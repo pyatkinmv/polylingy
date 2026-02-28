@@ -147,43 +147,45 @@ class _StudyScreenState extends State<StudyScreen> {
     if (_currentTopic == null || _currentExercise == null) {
       return const Center(child: CircularProgressIndicator());
     }
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 640),
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                _currentTopic!.subject,
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 24),
-              Text(
-                _currentExercise!.task,
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
-              const SizedBox(height: 24),
-              TextField(
-                controller: _answerController,
-                autofocus: true,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  labelText: 'Your answer',
+    return SingleChildScrollView(
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 640),
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _currentTopic!.subject,
+                  style: Theme.of(context).textTheme.titleLarge,
                 ),
-                onSubmitted: (_) => _submit(),
-              ),
-              const SizedBox(height: 16),
-              Align(
-                alignment: Alignment.centerRight,
-                child: FilledButton(
-                  onPressed: _submit,
-                  child: const Text('Submit'),
+                const SizedBox(height: 24),
+                Text(
+                  _currentExercise!.task,
+                  style: Theme.of(context).textTheme.bodyLarge,
                 ),
-              ),
-            ],
+                const SizedBox(height: 24),
+                TextField(
+                  controller: _answerController,
+                  autofocus: true,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: 'Your answer',
+                  ),
+                  onSubmitted: (_) => _submit(),
+                ),
+                const SizedBox(height: 16),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: FilledButton(
+                    onPressed: _submit,
+                    child: const Text('Submit'),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -193,16 +195,17 @@ class _StudyScreenState extends State<StudyScreen> {
   Widget _buildResult() {
     final exercise = _currentExercise!;
     final topic = _currentTopic!;
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 640),
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(topic.subject, style: Theme.of(context).textTheme.titleLarge),
+    return SingleChildScrollView(
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 640),
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(topic.subject, style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 24),
               _LabeledText(label: 'Task', text: exercise.task),
               const SizedBox(height: 16),
@@ -233,6 +236,7 @@ class _StudyScreenState extends State<StudyScreen> {
                 ],
               ),
             ],
+            ),
           ),
         ),
       ),
