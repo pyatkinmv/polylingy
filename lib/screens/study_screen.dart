@@ -221,14 +221,14 @@ class _StudyScreenState extends State<StudyScreen> {
                 _LabeledText(label: 'Example', text: exercise.exampleExplanation),
               ],
               const SizedBox(height: 32),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+              OverflowBar(
+                alignment: MainAxisAlignment.end,
+                spacing: 12,
                 children: [
                   OutlinedButton(
                     onPressed: () => _rate(false),
                     child: const Text('Incorrect'),
                   ),
-                  const SizedBox(width: 12),
                   FilledButton(
                     onPressed: () => _rate(true),
                     child: const Text('Correct'),
