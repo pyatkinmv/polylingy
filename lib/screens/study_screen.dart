@@ -339,76 +339,92 @@ class _StudyScreenState extends State<StudyScreen> {
         }
         return KeyEventResult.ignored;
       },
-      child: SingleChildScrollView(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 720),
-            child: Padding(
-              padding: const EdgeInsets.all(32),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SizedBox(
-                    width: double.infinity,
-                    child: Text(
-                      topic.subject,
-                      style: Theme.of(context).textTheme.titleLarge,
-                      textAlign: TextAlign.center,
+      child: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 720),
+                  child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                          width: double.infinity,
+                          child: Text(
+                            topic.subject,
+                            style: Theme.of(context).textTheme.titleLarge,
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        _buildAnnotatedTask(),
+                        const SizedBox(height: 12),
+                        Container(
+                          width: double.infinity,
+                          alignment: Alignment.center,
+                          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: _modeColor(_resultMode!),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            _resultPhrase,
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold, fontSize: 17),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        if (exercise.exampleExplanation.isNotEmpty) ...[
+                          const SizedBox(height: 16),
+                          _ExplanationBox(
+                            label: 'Specific explanation',
+                            color: const Color(0xFFDEF3C8),
+                            child: Text(exercise.exampleExplanation, style: Theme.of(context).textTheme.bodyMedium),
+                          ),
+                        ],
+                        if (topic.generalExplanation.isNotEmpty) ...[
+                          const SizedBox(height: 16),
+                          _ExplanationBox(
+                            label: 'Explanation',
+                            color: const Color(0xFFE3F2FD),
+                            child: _FormattedContent(
+                              content: topic.generalExplanation,
+                              format: topic.generalExplanationFormat,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  _buildAnnotatedTask(),
-                  const SizedBox(height: 12),
-                  Container(
-                    width: double.infinity,
-                    alignment: Alignment.center,
-                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: _modeColor(_resultMode!),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      _resultPhrase,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold, fontSize: 17),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  if (exercise.exampleExplanation.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    _ExplanationBox(
-                      label: 'Specific explanation',
-                      color: const Color(0xFFBBDEF8),
-                      child: Text(exercise.exampleExplanation, style: Theme.of(context).textTheme.bodyMedium),
-                    ),
-                  ],
-                  if (topic.generalExplanation.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    _ExplanationBox(
-                      label: 'Explanation',
-                      color: const Color(0xFFE3F2FD),
-                      child: _FormattedContent(
-                        content: topic.generalExplanation,
-                        format: topic.generalExplanationFormat,
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 32),
-                  OverflowBar(
-                    alignment: MainAxisAlignment.center,
-                    spacing: 12,
-                    children: [
-                      for (final btn in buttons)
-                        btn.filled
-                            ? FilledButton(onPressed: btn.onPressed, child: Text(btn.label))
-                            : OutlinedButton(onPressed: btn.onPressed, child: Text(btn.label)),
-                    ],
-                  ),
-                ],
+                ),
               ),
             ),
           ),
-        ),
+          Container(
+            decoration: BoxDecoration(
+              border: Border(top: BorderSide(color: Colors.grey.shade300, width: 1.5)),
+            ),
+            padding: const EdgeInsets.fromLTRB(32, 12, 32, 20),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 720),
+                child: OverflowBar(
+                  alignment: MainAxisAlignment.center,
+                  spacing: 12,
+                  children: [
+                    for (final btn in buttons)
+                      btn.filled
+                          ? FilledButton(onPressed: btn.onPressed, child: Text(btn.label))
+                          : OutlinedButton(onPressed: btn.onPressed, child: Text(btn.label)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
