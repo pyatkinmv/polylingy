@@ -218,18 +218,21 @@ class _StudyScreenState extends State<StudyScreen> {
               _LabeledText(label: 'Correct answer', text: exercise.answer),
               if (exercise.exampleExplanation.isNotEmpty) ...[
                 const SizedBox(height: 16),
-                _LabeledText(label: 'Specific explanation', text: exercise.exampleExplanation),
+                _ExplanationBox(
+                  label: 'Specific explanation',
+                  color: const Color(0xFFE8F5E9),
+                  child: Text(exercise.exampleExplanation, style: Theme.of(context).textTheme.bodyMedium),
+                ),
               ],
               if (topic.generalExplanation.isNotEmpty) ...[
                 const SizedBox(height: 16),
-                Text(
-                  'Explanation',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.grey[600]),
-                ),
-                const SizedBox(height: 2),
-                _FormattedContent(
-                  content: topic.generalExplanation,
-                  format: topic.generalExplanationFormat,
+                _ExplanationBox(
+                  label: 'Explanation',
+                  color: const Color(0xFFE3F2FD),
+                  child: _FormattedContent(
+                    content: topic.generalExplanation,
+                    format: topic.generalExplanationFormat,
+                  ),
                 ),
               ],
               const SizedBox(height: 32),
@@ -274,6 +277,37 @@ class _StudyScreenState extends State<StudyScreen> {
             onPressed: () => Navigator.pop(context),
             child: const Text('Back to home'),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ExplanationBox extends StatelessWidget {
+  final String label;
+  final Color color;
+  final Widget child;
+
+  const _ExplanationBox({required this.label, required this.color, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.grey[700]),
+          ),
+          const SizedBox(height: 4),
+          child,
         ],
       ),
     );
