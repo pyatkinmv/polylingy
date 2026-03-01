@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_html/flutter_html.dart';
 import 'package:polylingy/data/progress_repository.dart';
 import 'package:polylingy/models/course.dart';
@@ -23,6 +24,18 @@ class StudyScreen extends StatefulWidget {
 }
 
 class _StudyScreenState extends State<StudyScreen> {
+  static const _digitKeys = [
+    LogicalKeyboardKey.digit1,
+    LogicalKeyboardKey.digit2,
+    LogicalKeyboardKey.digit3,
+    LogicalKeyboardKey.digit4,
+    LogicalKeyboardKey.digit5,
+    LogicalKeyboardKey.digit6,
+    LogicalKeyboardKey.digit7,
+    LogicalKeyboardKey.digit8,
+    LogicalKeyboardKey.digit9,
+  ];
+
   final _srService = SrService();
   final _answerController = TextEditingController();
   final _random = Random();
@@ -199,58 +212,70 @@ class _StudyScreenState extends State<StudyScreen> {
   Widget _buildResult() {
     final exercise = _currentExercise!;
     final topic = _currentTopic!;
-    return SingleChildScrollView(
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 640),
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(topic.subject, style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: 24),
-              _LabeledText(label: 'Task', text: exercise.task),
-              const SizedBox(height: 16),
-              _LabeledText(label: 'Your answer', text: _userAnswer.isEmpty ? '(empty)' : _userAnswer),
-              const SizedBox(height: 16),
-              _LabeledText(label: 'Correct answer', text: exercise.answer),
-              if (exercise.exampleExplanation.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                _ExplanationBox(
-                  label: 'Specific explanation',
-                  color: const Color(0xFFE8F5E9),
-                  child: Text(exercise.exampleExplanation, style: Theme.of(context).textTheme.bodyMedium),
-                ),
-              ],
-              if (topic.generalExplanation.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                _ExplanationBox(
-                  label: 'Explanation',
-                  color: const Color(0xFFE3F2FD),
-                  child: _FormattedContent(
-                    content: topic.generalExplanation,
-                    format: topic.generalExplanationFormat,
-                  ),
-                ),
-              ],
-              const SizedBox(height: 32),
-              OverflowBar(
-                alignment: MainAxisAlignment.center,
-                spacing: 12,
+    final buttons = [
+      (label: 'Incorrect', onPressed: () => _rate(false), filled: false),
+      (label: 'Correct',   onPressed: () => _rate(true),  filled: true),
+    ];
+    return Focus(
+      autofocus: true,
+      onKeyEvent: (_, event) {
+        if (event is! KeyDownEvent) return KeyEventResult.ignored;
+        final index = _digitKeys.indexOf(event.logicalKey);
+        if (index >= 0 && index < buttons.length) {
+          buttons[index].onPressed();
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.ignored;
+      },
+      child: SingleChildScrollView(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 640),
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  OutlinedButton(
-                    onPressed: () => _rate(false),
-                    child: const Text('Incorrect'),
-                  ),
-                  FilledButton(
-                    onPressed: () => _rate(true),
-                    child: const Text('Correct'),
+                  Text(topic.subject, style: Theme.of(context).textTheme.titleLarge),
+                  const SizedBox(height: 24),
+                  _LabeledText(label: 'Task', text: exercise.task),
+                  const SizedBox(height: 16),
+                  _LabeledText(label: 'Your answer', text: _userAnswer.isEmpty ? '(empty)' : _userAnswer),
+                  const SizedBox(height: 16),
+                  _LabeledText(label: 'Correct answer', text: exercise.answer),
+                  if (exercise.exampleExplanation.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    _ExplanationBox(
+                      label: 'Specific explanation',
+                      color: const Color(0xFFE8F5E9),
+                      child: Text(exercise.exampleExplanation, style: Theme.of(context).textTheme.bodyMedium),
+                    ),
+                  ],
+                  if (topic.generalExplanation.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    _ExplanationBox(
+                      label: 'Explanation',
+                      color: const Color(0xFFE3F2FD),
+                      child: _FormattedContent(
+                        content: topic.generalExplanation,
+                        format: topic.generalExplanationFormat,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 32),
+                  OverflowBar(
+                    alignment: MainAxisAlignment.center,
+                    spacing: 12,
+                    children: [
+                      for (final btn in buttons)
+                        btn.filled
+                            ? FilledButton(onPressed: btn.onPressed, child: Text(btn.label))
+                            : OutlinedButton(onPressed: btn.onPressed, child: Text(btn.label)),
+                    ],
                   ),
                 ],
               ),
-            ],
             ),
           ),
         ),
