@@ -9,6 +9,8 @@ import 'package:polylingy/services/sr_service.dart';
 
 enum _StudyState { exercise, result, done }
 
+enum _ResultMode { correct, partial, incorrect }
+
 class StudyScreen extends StatefulWidget {
   final Course course;
   final ProgressRepository progressRepo;
@@ -24,6 +26,28 @@ class StudyScreen extends StatefulWidget {
 }
 
 class _StudyScreenState extends State<StudyScreen> {
+  static const _correctPhrases = [
+    'Correct!',
+    'Well done!',
+    'Right!',
+    'Got it!',
+    'Yes!',
+  ];
+  static const _partialPhrases = [
+    'Partially right.',
+    'Some correct!',
+    'Half right!',
+    'Almost!',
+    'Close!',
+  ];
+  static const _incorrectPhrases = [
+    'Incorrect.',
+    'Not quite.',
+    'Try again.',
+    'Missed it.',
+    'Wrong.',
+  ];
+
   static const _digitKeys = [
     LogicalKeyboardKey.digit1,
     LogicalKeyboardKey.digit2,
@@ -47,6 +71,8 @@ class _StudyScreenState extends State<StudyScreen> {
   Topic? _currentTopic;
   Exercise? _currentExercise;
   Map<String, String> _userAnswers = {};
+  _ResultMode? _resultMode;
+  String _resultPhrase = '';
 
   @override
   void initState() {
@@ -119,6 +145,8 @@ class _StudyScreenState extends State<StudyScreen> {
       _currentTopic = topic;
       _currentExercise = exercise;
       _userAnswers = {};
+      _resultMode = null;
+      _resultPhrase = '';
       _state = _StudyState.exercise;
     });
   }
@@ -126,10 +154,28 @@ class _StudyScreenState extends State<StudyScreen> {
   void _submit() {
     final keys = _sortedKeys(_currentExercise!.answer);
     final parts = _answerController.text.split(',').map((s) => s.trim()).toList();
+    final answers = {
+      for (var i = 0; i < keys.length; i++) keys[i]: i < parts.length ? parts[i] : '',
+    };
+    final correctCount = keys.where((k) {
+      final user = answers[k] ?? '';
+      final correct = _currentExercise!.answer[k] ?? '';
+      return user.trim().toLowerCase() == correct.trim().toLowerCase();
+    }).length;
+    final mode = correctCount == keys.length
+        ? _ResultMode.correct
+        : correctCount == 0
+            ? _ResultMode.incorrect
+            : _ResultMode.partial;
+    final phrases = switch (mode) {
+      _ResultMode.correct   => _correctPhrases,
+      _ResultMode.partial   => _partialPhrases,
+      _ResultMode.incorrect => _incorrectPhrases,
+    };
     setState(() {
-      _userAnswers = {
-        for (var i = 0; i < keys.length; i++) keys[i]: i < parts.length ? parts[i] : '',
-      };
+      _userAnswers = answers;
+      _resultMode = mode;
+      _resultPhrase = phrases[_random.nextInt(phrases.length)];
       _state = _StudyState.result;
     });
   }
@@ -170,6 +216,12 @@ class _StudyScreenState extends State<StudyScreen> {
     );
   }
 
+  Color _modeColor(_ResultMode mode) => switch (mode) {
+    _ResultMode.correct   => const Color(0xFFA5D6A7),
+    _ResultMode.partial   => const Color(0xFFFFE082),
+    _ResultMode.incorrect => const Color(0xFFEF9A9A),
+  };
+
   Widget _buildAnnotatedTask() {
     final exercise = _currentExercise!;
     final pattern = RegExp(r'\{(\d+)\}');
@@ -200,10 +252,14 @@ class _StudyScreenState extends State<StudyScreen> {
     if (lastEnd < exercise.task.length) {
       spans.add(TextSpan(text: exercise.task.substring(lastEnd)));
     }
-    return RichText(
-      text: TextSpan(
-        style: Theme.of(context).textTheme.bodyLarge,
-        children: spans,
+    return SizedBox(
+      width: double.infinity,
+      child: RichText(
+        textAlign: TextAlign.center,
+        text: TextSpan(
+          style: Theme.of(context).textTheme.bodyLarge,
+          children: spans,
+        ),
       ),
     );
   }
@@ -226,12 +282,19 @@ class _StudyScreenState extends State<StudyScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Align(
-                  alignment: Alignment.center,
-                  child: Text(_currentTopic!.subject, style: Theme.of(context).textTheme.titleLarge),
+                SizedBox(
+                  width: double.infinity,
+                  child: Text(
+                    _currentTopic!.subject,
+                    style: Theme.of(context).textTheme.titleLarge,
+                    textAlign: TextAlign.center,
+                  ),
                 ),
                 const SizedBox(height: 24),
-                Text(taskText, style: Theme.of(context).textTheme.bodyLarge),
+                SizedBox(
+                  width: double.infinity,
+                  child: Text(taskText, style: Theme.of(context).textTheme.bodyLarge, textAlign: TextAlign.center),
+                ),
                 const SizedBox(height: 24),
                 TextField(
                   controller: _answerController,
@@ -286,27 +349,36 @@ class _StudyScreenState extends State<StudyScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Align(
-                    alignment: Alignment.center,
-                    child: Text(topic.subject, style: Theme.of(context).textTheme.titleLarge),
+                  SizedBox(
+                    width: double.infinity,
+                    child: Text(
+                      topic.subject,
+                      style: Theme.of(context).textTheme.titleLarge,
+                      textAlign: TextAlign.center,
+                    ),
                   ),
                   const SizedBox(height: 24),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Task',
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.grey[600]),
-                      ),
-                      const SizedBox(height: 2),
-                      _buildAnnotatedTask(),
-                    ],
+                  _buildAnnotatedTask(),
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    alignment: Alignment.center,
+                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: _modeColor(_resultMode!),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      _resultPhrase,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold, fontSize: 17),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
                   if (exercise.exampleExplanation.isNotEmpty) ...[
                     const SizedBox(height: 16),
                     _ExplanationBox(
                       label: 'Specific explanation',
-                      color: const Color(0xFFE8F5E9),
+                      color: const Color(0xFFBBDEF8),
                       child: Text(exercise.exampleExplanation, style: Theme.of(context).textTheme.bodyMedium),
                     ),
                   ],
