@@ -189,9 +189,9 @@ class _StudyScreenState extends State<StudyScreen> {
           style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
         ));
       } else {
-        final display = user.trim().isEmpty ? '(empty)' : user.trim();
+        final text = user.trim().isEmpty ? correct : '${user.trim()} → $correct';
         spans.add(TextSpan(
-          text: '$display → $correct',
+          text: text,
           style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
         ));
       }
