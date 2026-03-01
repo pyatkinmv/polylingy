@@ -66,7 +66,10 @@ class _StudyScreenState extends State<StudyScreen> {
       }
     }
 
-    final eligibleIds = _srService.eligibleTopicIds(progressMap.values.toList(), today);
+    final eligibleIds = _srService.eligibleTopicIds(
+      widget.course.topics.map((t) => progressMap[t.id]!).toList(),
+      today,
+    );
     eligibleIds.shuffle(_random);
 
     setState(() {
