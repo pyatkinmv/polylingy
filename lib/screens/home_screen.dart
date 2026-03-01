@@ -92,28 +92,33 @@ class _HomeScreenState extends State<HomeScreen> {
       return const Center(child: Text('No courses found. Add JSON files to the courses folder.'));
     }
 
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: _courses!.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 8),
-      itemBuilder: (context, index) {
-        final stats = _courses![index];
-        return _CourseCard(
-          stats: stats,
-          onStart: () async {
-            await Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => StudyScreen(
-                  course: stats.course,
-                  progressRepo: widget.progressRepo,
-                ),
-              ),
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 720),
+        child: ListView.separated(
+          padding: const EdgeInsets.all(16),
+          itemCount: _courses!.length,
+          separatorBuilder: (_, _) => const SizedBox(height: 8),
+          itemBuilder: (context, index) {
+            final stats = _courses![index];
+            return _CourseCard(
+              stats: stats,
+              onStart: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => StudyScreen(
+                      course: stats.course,
+                      progressRepo: widget.progressRepo,
+                    ),
+                  ),
+                );
+                _load();
+              },
             );
-            _load();
           },
-        );
-      },
+        ),
+      ),
     );
   }
 }
