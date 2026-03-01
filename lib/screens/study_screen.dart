@@ -65,11 +65,6 @@ class _StudyScreenState extends State<StudyScreen> {
     return keys;
   }
 
-  String _formatAnswers(Map<String, String> answers) {
-    final keys = _sortedKeys(answers);
-    return keys.map((k) => answers[k] ?? '').join(' / ');
-  }
-
   Future<void> _initSession() async {
     final allProgress = await widget.progressRepo.getAllForCourse(widget.course.id);
     final progressMap = {for (final p in allProgress) p.topicId: p};
@@ -175,6 +170,44 @@ class _StudyScreenState extends State<StudyScreen> {
     );
   }
 
+  Widget _buildAnnotatedTask() {
+    final exercise = _currentExercise!;
+    final pattern = RegExp(r'\{(\d+)\}');
+    final spans = <InlineSpan>[];
+    int lastEnd = 0;
+    for (final match in pattern.allMatches(exercise.task)) {
+      if (match.start > lastEnd) {
+        spans.add(TextSpan(text: exercise.task.substring(lastEnd, match.start)));
+      }
+      final key = match.group(1)!;
+      final correct = exercise.answer[key] ?? '';
+      final user = _userAnswers[key] ?? '';
+      final isCorrect = user.trim().toLowerCase() == correct.trim().toLowerCase();
+      if (isCorrect) {
+        spans.add(TextSpan(
+          text: correct,
+          style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
+        ));
+      } else {
+        final display = user.trim().isEmpty ? '(empty)' : user.trim();
+        spans.add(TextSpan(
+          text: '$display → $correct',
+          style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+        ));
+      }
+      lastEnd = match.end;
+    }
+    if (lastEnd < exercise.task.length) {
+      spans.add(TextSpan(text: exercise.task.substring(lastEnd)));
+    }
+    return RichText(
+      text: TextSpan(
+        style: Theme.of(context).textTheme.bodyLarge,
+        children: spans,
+      ),
+    );
+  }
+
   Widget _buildExercise() {
     if (_currentTopic == null || _currentExercise == null) {
       return const Center(child: CircularProgressIndicator());
@@ -193,7 +226,10 @@ class _StudyScreenState extends State<StudyScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(_currentTopic!.subject, style: Theme.of(context).textTheme.titleLarge),
+                Align(
+                  alignment: Alignment.center,
+                  child: Text(_currentTopic!.subject, style: Theme.of(context).textTheme.titleLarge),
+                ),
                 const SizedBox(height: 24),
                 Text(taskText, style: Theme.of(context).textTheme.bodyLarge),
                 const SizedBox(height: 24),
@@ -250,19 +286,22 @@ class _StudyScreenState extends State<StudyScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(topic.subject, style: Theme.of(context).textTheme.titleLarge),
+                  Align(
+                    alignment: Alignment.center,
+                    child: Text(topic.subject, style: Theme.of(context).textTheme.titleLarge),
+                  ),
                   const SizedBox(height: 24),
-                  _LabeledText(
-                    label: 'Task',
-                    text: exercise.task.replaceAllMapped(RegExp(r'\{\d+\}'), (_) => '___'),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Task',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.grey[600]),
+                      ),
+                      const SizedBox(height: 2),
+                      _buildAnnotatedTask(),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  _LabeledText(
-                    label: 'Your answer',
-                    text: _userAnswers.values.every((v) => v.isEmpty) ? '(empty)' : _formatAnswers(_userAnswers),
-                  ),
-                  const SizedBox(height: 16),
-                  _LabeledText(label: 'Correct answer', text: _formatAnswers(exercise.answer)),
                   if (exercise.exampleExplanation.isNotEmpty) ...[
                     const SizedBox(height: 16),
                     _ExplanationBox(
@@ -373,24 +412,3 @@ class _FormattedContent extends StatelessWidget {
   }
 }
 
-class _LabeledText extends StatelessWidget {
-  final String label;
-  final String text;
-
-  const _LabeledText({required this.label, required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.grey[600]),
-        ),
-        const SizedBox(height: 2),
-        Text(text, style: Theme.of(context).textTheme.bodyMedium),
-      ],
-    );
-  }
-}
