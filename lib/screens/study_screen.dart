@@ -38,7 +38,7 @@ class _StudyScreenState extends State<StudyScreen> {
 
   final _srService = SrService();
   final _random = Random();
-  List<TextEditingController> _answerControllers = [];
+  final _answerController = TextEditingController();
 
   _StudyState _state = _StudyState.exercise;
   Map<String, TopicProgress> _progressMap = {};
@@ -56,9 +56,7 @@ class _StudyScreenState extends State<StudyScreen> {
 
   @override
   void dispose() {
-    for (final c in _answerControllers) {
-      c.dispose();
-    }
+    _answerController.dispose();
     super.dispose();
   }
 
@@ -120,10 +118,7 @@ class _StudyScreenState extends State<StudyScreen> {
     final topic = widget.course.topics.firstWhere((t) => t.id == topicId);
     final exercise = topic.exercises[_random.nextInt(topic.exercises.length)];
 
-    for (final c in _answerControllers) {
-      c.dispose();
-    }
-    _answerControllers = List.generate(exercise.answer.length, (_) => TextEditingController());
+    _answerController.clear();
 
     setState(() {
       _currentTopic = topic;
@@ -135,9 +130,10 @@ class _StudyScreenState extends State<StudyScreen> {
 
   void _submit() {
     final keys = _sortedKeys(_currentExercise!.answer);
+    final parts = _answerController.text.split(',').map((s) => s.trim()).toList();
     setState(() {
       _userAnswers = {
-        for (var i = 0; i < keys.length; i++) keys[i]: _answerControllers[i].text.trim(),
+        for (var i = 0; i < keys.length; i++) keys[i]: i < parts.length ? parts[i] : '',
       };
       _state = _StudyState.result;
     });
@@ -201,20 +197,15 @@ class _StudyScreenState extends State<StudyScreen> {
                 const SizedBox(height: 24),
                 Text(taskText, style: Theme.of(context).textTheme.bodyLarge),
                 const SizedBox(height: 24),
-                for (var i = 0; i < keys.length; i++) ...[
-                  if (i > 0) const SizedBox(height: 12),
-                  TextField(
-                    controller: _answerControllers[i],
-                    autofocus: i == 0,
-                    decoration: InputDecoration(
-                      border: const OutlineInputBorder(),
-                      labelText: multiBlank ? 'Answer ${i + 1}' : 'Your answer',
-                    ),
-                    onSubmitted: (_) => i == keys.length - 1
-                        ? _submit()
-                        : FocusScope.of(context).nextFocus(),
+                TextField(
+                  controller: _answerController,
+                  autofocus: true,
+                  decoration: InputDecoration(
+                    border: const OutlineInputBorder(),
+                    labelText: multiBlank ? 'Your answers (comma-separated)' : 'Your answer',
                   ),
-                ],
+                  onSubmitted: (_) => _submit(),
+                ),
                 const SizedBox(height: 16),
                 Align(
                   alignment: Alignment.centerRight,
