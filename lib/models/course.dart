@@ -1,3 +1,5 @@
+enum ExplanationFormat { text, html }
+
 class Exercise {
   final String task;
   final String answer;
@@ -20,12 +22,14 @@ class Topic {
   final String id;
   final String subject;
   final String generalExplanation;
+  final ExplanationFormat generalExplanationFormat;
   final List<Exercise> exercises;
 
   const Topic({
     required this.id,
     required this.subject,
     required this.generalExplanation,
+    required this.generalExplanationFormat,
     required this.exercises,
   });
 
@@ -34,6 +38,10 @@ class Topic {
       id: '$courseId::$index',
       subject: json['subject'] as String? ?? '',
       generalExplanation: json['generalExplanation'] as String? ?? '',
+      generalExplanationFormat: switch (json['generalExplanationFormat'] as String?) {
+        'HTML' => ExplanationFormat.html,
+        _ => ExplanationFormat.text,
+      },
       exercises: (json['exercises'] as List<dynamic>? ?? [])
           .map((e) => Exercise.fromJson(e as Map<String, dynamic>))
           .toList(),

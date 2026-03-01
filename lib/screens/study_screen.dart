@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter_html/flutter_html.dart';
 import 'package:polylingy/data/progress_repository.dart';
 import 'package:polylingy/models/course.dart';
 import 'package:polylingy/models/topic_progress.dart';
@@ -212,17 +213,25 @@ class _StudyScreenState extends State<StudyScreen> {
               _LabeledText(label: 'Your answer', text: _userAnswer.isEmpty ? '(empty)' : _userAnswer),
               const SizedBox(height: 16),
               _LabeledText(label: 'Correct answer', text: exercise.answer),
-              if (topic.generalExplanation.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                _LabeledText(label: 'Explanation', text: topic.generalExplanation),
-              ],
               if (exercise.exampleExplanation.isNotEmpty) ...[
                 const SizedBox(height: 16),
-                _LabeledText(label: 'Example', text: exercise.exampleExplanation),
+                _LabeledText(label: 'Specific explanation', text: exercise.exampleExplanation),
+              ],
+              if (topic.generalExplanation.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Text(
+                  'Explanation',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.grey[600]),
+                ),
+                const SizedBox(height: 2),
+                _FormattedContent(
+                  content: topic.generalExplanation,
+                  format: topic.generalExplanationFormat,
+                ),
               ],
               const SizedBox(height: 32),
               OverflowBar(
-                alignment: MainAxisAlignment.end,
+                alignment: MainAxisAlignment.center,
                 spacing: 12,
                 children: [
                   OutlinedButton(
@@ -265,6 +274,21 @@ class _StudyScreenState extends State<StudyScreen> {
         ],
       ),
     );
+  }
+}
+
+class _FormattedContent extends StatelessWidget {
+  final String content;
+  final ExplanationFormat format;
+
+  const _FormattedContent({required this.content, required this.format});
+
+  @override
+  Widget build(BuildContext context) {
+    return switch (format) {
+      ExplanationFormat.html => Html(data: content),
+      ExplanationFormat.text => Text(content, style: Theme.of(context).textTheme.bodyMedium),
+    };
   }
 }
 
