@@ -2,7 +2,7 @@ enum ExplanationFormat { text, html }
 
 class Exercise {
   final String task;
-  final String answer;
+  final Map<String, String> answer;
   final String exampleExplanation;
 
   const Exercise({
@@ -13,9 +13,15 @@ class Exercise {
 
   factory Exercise.fromJson(Map<String, dynamic> json) => Exercise(
         task: json['task'] as String? ?? '',
-        answer: json['answer'] as String? ?? '',
+        answer: _parseAnswer(json['answer']),
         exampleExplanation: json['exampleExplanation'] as String? ?? '',
       );
+
+  static Map<String, String> _parseAnswer(dynamic raw) {
+    if (raw is String) return {'0': raw};
+    if (raw is Map) return {for (final e in raw.entries) e.key as String: e.value as String};
+    return {'0': ''};
+  }
 }
 
 class Topic {

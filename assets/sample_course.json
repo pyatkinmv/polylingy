@@ -7,17 +7,17 @@
       "exercises": [
         {
           "task": "Translate to Spanish: 'Hello'",
-          "answer": "Hola",
+          "answer": {"0": "Hola"},
           "exampleExplanation": "'Hola' is used at any time of day."
         },
         {
           "task": "Translate to Spanish: 'Good morning'",
-          "answer": "Buenos días",
+          "answer": {"0": "Buenos días"},
           "exampleExplanation": "Used from sunrise until noon."
         },
         {
           "task": "Translate to Spanish: 'Good night'",
-          "answer": "Buenas noches",
+          "answer": {"0": "Buenas noches"},
           "exampleExplanation": "Used as both a greeting and farewell at night."
         }
       ]
@@ -28,27 +28,27 @@
       "exercises": [
         {
           "task": "How do you say '1' in Spanish?",
-          "answer": "uno",
+          "answer": {"0": "uno"},
           "exampleExplanation": "Uno becomes 'un' before masculine nouns."
         },
         {
           "task": "How do you say '2' in Spanish?",
-          "answer": "dos",
+          "answer": {"0": "dos"},
           "exampleExplanation": "'Dos' is used for both genders."
         },
         {
           "task": "How do you say '3' in Spanish?",
-          "answer": "tres",
+          "answer": {"0": "tres"},
           "exampleExplanation": ""
         },
         {
           "task": "How do you say '4' in Spanish?",
-          "answer": "cuatro",
+          "answer": {"0": "cuatro"},
           "exampleExplanation": ""
         },
         {
           "task": "How do you say '5' in Spanish?",
-          "answer": "cinco",
+          "answer": {"0": "cinco"},
           "exampleExplanation": ""
         }
       ]
@@ -59,18 +59,18 @@
       "exercises": [
         {
           "task": "Translate: 'Thank you'",
-          "answer": "Gracias",
+          "answer": {"0": "Gracias"},
           "exampleExplanation": "'Muchas gracias' means 'Thank you very much'."
         },
         {
           "task": "Translate: 'Please'",
-          "answer": "Por favor",
+          "answer": {"0": "Por favor"},
           "exampleExplanation": "Used at the end of requests."
         },
         {
-          "task": "Translate: 'Excuse me'",
-          "answer": "Perdón / Disculpe",
-          "exampleExplanation": "'Perdón' for bumping into someone, 'Disculpe' for getting attention."
+          "task": "In Spanish, to get someone's attention you say {0}, and to apologize for bumping into someone you say {1}.",
+          "answer": {"0": "Disculpe", "1": "Perdón"},
+          "exampleExplanation": "'Disculpe' is more formal and used to address strangers. 'Perdón' is a quick apology for minor accidents."
         }
       ]
     },
@@ -79,18 +79,18 @@
       "generalExplanation": "Basic colors in Spanish. Adjectives agree in gender and number with the noun.",
       "exercises": [
         {
-          "task": "Translate: 'red'",
-          "answer": "rojo / roja",
-          "exampleExplanation": "'rojo' (masc.), 'roja' (fem.): el coche rojo, la manzana roja."
+          "task": "Translate: 'red' (masculine / feminine)",
+          "answer": {"0": "rojo", "1": "roja"},
+          "exampleExplanation": "el coche {0}, la manzana {1}."
         },
         {
           "task": "Translate: 'blue'",
-          "answer": "azul",
+          "answer": {"0": "azul"},
           "exampleExplanation": "'Azul' has the same form for both genders."
         },
         {
           "task": "Translate: 'green'",
-          "answer": "verde",
+          "answer": {"0": "verde"},
           "exampleExplanation": "'Verde' is the same for both genders."
         }
       ]

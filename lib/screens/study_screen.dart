@@ -37,8 +37,8 @@ class _StudyScreenState extends State<StudyScreen> {
   ];
 
   final _srService = SrService();
-  final _answerController = TextEditingController();
   final _random = Random();
+  List<TextEditingController> _answerControllers = [];
 
   _StudyState _state = _StudyState.exercise;
   Map<String, TopicProgress> _progressMap = {};
@@ -46,7 +46,7 @@ class _StudyScreenState extends State<StudyScreen> {
 
   Topic? _currentTopic;
   Exercise? _currentExercise;
-  String _userAnswer = '';
+  Map<String, String> _userAnswers = {};
 
   @override
   void initState() {
@@ -56,8 +56,20 @@ class _StudyScreenState extends State<StudyScreen> {
 
   @override
   void dispose() {
-    _answerController.dispose();
+    for (final c in _answerControllers) {
+      c.dispose();
+    }
     super.dispose();
+  }
+
+  List<String> _sortedKeys(Map<String, String> map) {
+    final keys = map.keys.toList()..sort((a, b) => int.parse(a).compareTo(int.parse(b)));
+    return keys;
+  }
+
+  String _formatAnswers(Map<String, String> answers) {
+    final keys = _sortedKeys(answers);
+    return keys.map((k) => answers[k] ?? '').join(' / ');
   }
 
   Future<void> _initSession() async {
@@ -108,18 +120,25 @@ class _StudyScreenState extends State<StudyScreen> {
     final topic = widget.course.topics.firstWhere((t) => t.id == topicId);
     final exercise = topic.exercises[_random.nextInt(topic.exercises.length)];
 
+    for (final c in _answerControllers) {
+      c.dispose();
+    }
+    _answerControllers = List.generate(exercise.answer.length, (_) => TextEditingController());
+
     setState(() {
       _currentTopic = topic;
       _currentExercise = exercise;
-      _answerController.clear();
-      _userAnswer = '';
+      _userAnswers = {};
       _state = _StudyState.exercise;
     });
   }
 
   void _submit() {
+    final keys = _sortedKeys(_currentExercise!.answer);
     setState(() {
-      _userAnswer = _answerController.text.trim();
+      _userAnswers = {
+        for (var i = 0; i < keys.length; i++) keys[i]: _answerControllers[i].text.trim(),
+      };
       _state = _StudyState.result;
     });
   }
@@ -164,6 +183,10 @@ class _StudyScreenState extends State<StudyScreen> {
     if (_currentTopic == null || _currentExercise == null) {
       return const Center(child: CircularProgressIndicator());
     }
+    final exercise = _currentExercise!;
+    final taskText = exercise.task.replaceAllMapped(RegExp(r'\{\d+\}'), (_) => '___');
+    final keys = _sortedKeys(exercise.answer);
+    final multiBlank = keys.length > 1;
     return SingleChildScrollView(
       child: Center(
         child: ConstrainedBox(
@@ -174,25 +197,24 @@ class _StudyScreenState extends State<StudyScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  _currentTopic!.subject,
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
+                Text(_currentTopic!.subject, style: Theme.of(context).textTheme.titleLarge),
                 const SizedBox(height: 24),
-                Text(
-                  _currentExercise!.task,
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
+                Text(taskText, style: Theme.of(context).textTheme.bodyLarge),
                 const SizedBox(height: 24),
-                TextField(
-                  controller: _answerController,
-                  autofocus: true,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    labelText: 'Your answer',
+                for (var i = 0; i < keys.length; i++) ...[
+                  if (i > 0) const SizedBox(height: 12),
+                  TextField(
+                    controller: _answerControllers[i],
+                    autofocus: i == 0,
+                    decoration: InputDecoration(
+                      border: const OutlineInputBorder(),
+                      labelText: multiBlank ? 'Answer ${i + 1}' : 'Your answer',
+                    ),
+                    onSubmitted: (_) => i == keys.length - 1
+                        ? _submit()
+                        : FocusScope.of(context).nextFocus(),
                   ),
-                  onSubmitted: (_) => _submit(),
-                ),
+                ],
                 const SizedBox(height: 16),
                 Align(
                   alignment: Alignment.centerRight,
@@ -239,11 +261,17 @@ class _StudyScreenState extends State<StudyScreen> {
                 children: [
                   Text(topic.subject, style: Theme.of(context).textTheme.titleLarge),
                   const SizedBox(height: 24),
-                  _LabeledText(label: 'Task', text: exercise.task),
+                  _LabeledText(
+                    label: 'Task',
+                    text: exercise.task.replaceAllMapped(RegExp(r'\{\d+\}'), (_) => '___'),
+                  ),
                   const SizedBox(height: 16),
-                  _LabeledText(label: 'Your answer', text: _userAnswer.isEmpty ? '(empty)' : _userAnswer),
+                  _LabeledText(
+                    label: 'Your answer',
+                    text: _userAnswers.values.every((v) => v.isEmpty) ? '(empty)' : _formatAnswers(_userAnswers),
+                  ),
                   const SizedBox(height: 16),
-                  _LabeledText(label: 'Correct answer', text: exercise.answer),
+                  _LabeledText(label: 'Correct answer', text: _formatAnswers(exercise.answer)),
                   if (exercise.exampleExplanation.isNotEmpty) ...[
                     const SizedBox(height: 16),
                     _ExplanationBox(
