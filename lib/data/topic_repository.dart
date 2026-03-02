@@ -41,7 +41,9 @@ class TopicRepository {
     final dir = await _coursesDir();
     final file = File(p.join(dir.path, '$courseId.json'));
     final content = await file.readAsString();
-    final json = (jsonDecode(content) as Map<String, dynamic>)..['name'] = newName;
+    final json = jsonDecode(content) as Map<String, dynamic>;
+    json['createdAt'] ??= file.lastModifiedSync().toIso8601String();
+    json['name'] = newName;
     await file.writeAsString(jsonEncode(json));
   }
 
