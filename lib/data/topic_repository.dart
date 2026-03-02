@@ -33,7 +33,7 @@ class TopicRepository {
       candidate = File(p.join(dir.path, '${filename}_$suffix.json'));
       suffix++;
     }
-    final json = jsonEncode({'name': name, 'topics': []});
+    final json = jsonEncode({'name': name, 'createdAt': DateTime.now().toIso8601String(), 'topics': []});
     await candidate.writeAsString(json);
   }
 
@@ -53,19 +53,22 @@ class TopicRepository {
 
   Future<List<Course>> loadCourses() async {
     final dir = await _coursesDir();
-    final files = dir.listSync().whereType<File>().where((f) => f.path.endsWith('.json')).toList()
-      ..sort((a, b) => a.lastModifiedSync().compareTo(b.lastModifiedSync()));
-    final courses = <Course>[];
+    final files = dir.listSync().whereType<File>().where((f) => f.path.endsWith('.json')).toList();
+    final entries = <({DateTime createdAt, Course course})>[];
     for (final file in files) {
       try {
         final content = await file.readAsString();
         final json = jsonDecode(content) as Map<String, dynamic>;
         final id = p.basenameWithoutExtension(file.path);
-        courses.add(Course.fromJson(json, id));
+        final createdAt = json['createdAt'] != null
+            ? DateTime.parse(json['createdAt'] as String)
+            : file.lastModifiedSync();
+        entries.add((createdAt: createdAt, course: Course.fromJson(json, id)));
       } catch (e) {
         // Skip malformed files
       }
     }
-    return courses;
+    entries.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    return entries.map((e) => e.course).toList();
   }
 }
