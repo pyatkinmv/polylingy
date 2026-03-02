@@ -121,9 +121,48 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
                 _load();
               },
+              onAddCard: () => _showAddCardDialog(),
+              onRemove: () => _showRemoveCourseDialog(stats.course.id, stats.course.name),
             );
           },
         ),
+      ),
+    );
+  }
+
+  Future<void> _showRemoveCourseDialog(String courseId, String courseName) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Remove course'),
+        content: Text('Are you sure you want to remove "$courseName"? This cannot be undone.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('OK')),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await widget.topicRepo.deleteCourse(courseId);
+      _load();
+    }
+  }
+
+  Future<void> _showAddCardDialog() async {
+    final controller = TextEditingController();
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Add card'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(labelText: 'Front'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
+        ],
       ),
     );
   }
@@ -132,18 +171,27 @@ class _HomeScreenState extends State<HomeScreen> {
     final controller = TextEditingController();
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('New course'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(labelText: 'Course name'),
-          onSubmitted: (_) => Navigator.pop(ctx, true),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) => AlertDialog(
+          title: const Text('New course'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            maxLength: 50,
+            decoration: const InputDecoration(labelText: 'Course name'),
+            onChanged: (_) => setState(() {}),
+            onSubmitted: (_) {
+              if (controller.text.trim().isNotEmpty) Navigator.pop(ctx, true);
+            },
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+            FilledButton(
+              onPressed: controller.text.trim().isNotEmpty ? () => Navigator.pop(ctx, true) : null,
+              child: const Text('OK'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('OK')),
-        ],
       ),
     );
     final name = controller.text.trim();
@@ -173,8 +221,10 @@ class _CourseStats {
 class _CourseCard extends StatelessWidget {
   final _CourseStats stats;
   final VoidCallback onStart;
+  final VoidCallback onAddCard;
+  final VoidCallback onRemove;
 
-  const _CourseCard({required this.stats, required this.onStart});
+  const _CourseCard({required this.stats, required this.onStart, required this.onAddCard, required this.onRemove});
 
   @override
   Widget build(BuildContext context) {
@@ -201,6 +251,17 @@ class _CourseCard extends StatelessWidget {
             FilledButton(
               onPressed: stats.eligible > 0 ? onStart : null,
               child: const Text('Start'),
+            ),
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert),
+              onSelected: (value) {
+                if (value == 'add_card') onAddCard();
+                if (value == 'remove') onRemove();
+              },
+              itemBuilder: (_) => const [
+                PopupMenuItem(value: 'add_card', child: Text('Add card')),
+                PopupMenuItem(value: 'remove', child: Text('Remove course')),
+              ],
             ),
           ],
         ),

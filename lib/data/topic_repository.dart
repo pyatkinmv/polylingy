@@ -37,6 +37,12 @@ class TopicRepository {
     await candidate.writeAsString(json);
   }
 
+  Future<void> deleteCourse(String courseId) async {
+    final dir = await _coursesDir();
+    final file = File(p.join(dir.path, '$courseId.json'));
+    if (file.existsSync()) await file.delete();
+  }
+
   Future<List<Course>> loadCourses() async {
     final dir = await _coursesDir();
     final files = dir.listSync().whereType<File>().where((f) => f.path.endsWith('.json')).toList()
