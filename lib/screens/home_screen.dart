@@ -4,6 +4,7 @@ import 'package:polylingy/data/topic_repository.dart';
 import 'package:polylingy/models/course.dart';
 import 'package:polylingy/models/topic_progress.dart';
 import 'package:polylingy/screens/study_screen.dart';
+import 'package:polylingy/services/sm2_policy.dart';
 
 class HomeScreen extends StatefulWidget {
   final TopicRepository topicRepo;
@@ -110,6 +111,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     builder: (_) => StudyScreen(
                       course: stats.course,
                       progressRepo: widget.progressRepo,
+                      policy: Sm2Policy(),
                     ),
                   ),
                 );

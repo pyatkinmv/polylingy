@@ -80,6 +80,18 @@ class $TopicProgressTableTable extends TopicProgressTable
     requiredDuringInsert: false,
     defaultValue: const Constant(1),
   );
+  static const VerificationMeta _easeFactorMeta = const VerificationMeta(
+    'easeFactor',
+  );
+  @override
+  late final GeneratedColumn<double> easeFactor = GeneratedColumn<double>(
+    'ease_factor',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(2.5),
+  );
   static const VerificationMeta _nextReviewDateMeta = const VerificationMeta(
     'nextReviewDate',
   );
@@ -111,6 +123,7 @@ class $TopicProgressTableTable extends TopicProgressTable
     status,
     consecutiveCorrect,
     intervalDays,
+    easeFactor,
     nextReviewDate,
     lastAnsweredAt,
   ];
@@ -166,6 +179,12 @@ class $TopicProgressTableTable extends TopicProgressTable
         ),
       );
     }
+    if (data.containsKey('ease_factor')) {
+      context.handle(
+        _easeFactorMeta,
+        easeFactor.isAcceptableOrUnknown(data['ease_factor']!, _easeFactorMeta),
+      );
+    }
     if (data.containsKey('next_review_date')) {
       context.handle(
         _nextReviewDateMeta,
@@ -213,6 +232,10 @@ class $TopicProgressTableTable extends TopicProgressTable
         DriftSqlType.int,
         data['${effectivePrefix}interval_days'],
       )!,
+      easeFactor: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}ease_factor'],
+      )!,
       nextReviewDate: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}next_review_date'],
@@ -237,6 +260,7 @@ class TopicProgressTableData extends DataClass
   final int status;
   final int consecutiveCorrect;
   final int intervalDays;
+  final double easeFactor;
   final DateTime? nextReviewDate;
   final DateTime? lastAnsweredAt;
   const TopicProgressTableData({
@@ -245,6 +269,7 @@ class TopicProgressTableData extends DataClass
     required this.status,
     required this.consecutiveCorrect,
     required this.intervalDays,
+    required this.easeFactor,
     this.nextReviewDate,
     this.lastAnsweredAt,
   });
@@ -256,6 +281,7 @@ class TopicProgressTableData extends DataClass
     map['status'] = Variable<int>(status);
     map['consecutive_correct'] = Variable<int>(consecutiveCorrect);
     map['interval_days'] = Variable<int>(intervalDays);
+    map['ease_factor'] = Variable<double>(easeFactor);
     if (!nullToAbsent || nextReviewDate != null) {
       map['next_review_date'] = Variable<DateTime>(nextReviewDate);
     }
@@ -272,6 +298,7 @@ class TopicProgressTableData extends DataClass
       status: Value(status),
       consecutiveCorrect: Value(consecutiveCorrect),
       intervalDays: Value(intervalDays),
+      easeFactor: Value(easeFactor),
       nextReviewDate: nextReviewDate == null && nullToAbsent
           ? const Value.absent()
           : Value(nextReviewDate),
@@ -292,6 +319,7 @@ class TopicProgressTableData extends DataClass
       status: serializer.fromJson<int>(json['status']),
       consecutiveCorrect: serializer.fromJson<int>(json['consecutiveCorrect']),
       intervalDays: serializer.fromJson<int>(json['intervalDays']),
+      easeFactor: serializer.fromJson<double>(json['easeFactor']),
       nextReviewDate: serializer.fromJson<DateTime?>(json['nextReviewDate']),
       lastAnsweredAt: serializer.fromJson<DateTime?>(json['lastAnsweredAt']),
     );
@@ -305,6 +333,7 @@ class TopicProgressTableData extends DataClass
       'status': serializer.toJson<int>(status),
       'consecutiveCorrect': serializer.toJson<int>(consecutiveCorrect),
       'intervalDays': serializer.toJson<int>(intervalDays),
+      'easeFactor': serializer.toJson<double>(easeFactor),
       'nextReviewDate': serializer.toJson<DateTime?>(nextReviewDate),
       'lastAnsweredAt': serializer.toJson<DateTime?>(lastAnsweredAt),
     };
@@ -316,6 +345,7 @@ class TopicProgressTableData extends DataClass
     int? status,
     int? consecutiveCorrect,
     int? intervalDays,
+    double? easeFactor,
     Value<DateTime?> nextReviewDate = const Value.absent(),
     Value<DateTime?> lastAnsweredAt = const Value.absent(),
   }) => TopicProgressTableData(
@@ -324,6 +354,7 @@ class TopicProgressTableData extends DataClass
     status: status ?? this.status,
     consecutiveCorrect: consecutiveCorrect ?? this.consecutiveCorrect,
     intervalDays: intervalDays ?? this.intervalDays,
+    easeFactor: easeFactor ?? this.easeFactor,
     nextReviewDate: nextReviewDate.present
         ? nextReviewDate.value
         : this.nextReviewDate,
@@ -342,6 +373,9 @@ class TopicProgressTableData extends DataClass
       intervalDays: data.intervalDays.present
           ? data.intervalDays.value
           : this.intervalDays,
+      easeFactor: data.easeFactor.present
+          ? data.easeFactor.value
+          : this.easeFactor,
       nextReviewDate: data.nextReviewDate.present
           ? data.nextReviewDate.value
           : this.nextReviewDate,
@@ -359,6 +393,7 @@ class TopicProgressTableData extends DataClass
           ..write('status: $status, ')
           ..write('consecutiveCorrect: $consecutiveCorrect, ')
           ..write('intervalDays: $intervalDays, ')
+          ..write('easeFactor: $easeFactor, ')
           ..write('nextReviewDate: $nextReviewDate, ')
           ..write('lastAnsweredAt: $lastAnsweredAt')
           ..write(')'))
@@ -372,6 +407,7 @@ class TopicProgressTableData extends DataClass
     status,
     consecutiveCorrect,
     intervalDays,
+    easeFactor,
     nextReviewDate,
     lastAnsweredAt,
   );
@@ -384,6 +420,7 @@ class TopicProgressTableData extends DataClass
           other.status == this.status &&
           other.consecutiveCorrect == this.consecutiveCorrect &&
           other.intervalDays == this.intervalDays &&
+          other.easeFactor == this.easeFactor &&
           other.nextReviewDate == this.nextReviewDate &&
           other.lastAnsweredAt == this.lastAnsweredAt);
 }
@@ -395,6 +432,7 @@ class TopicProgressTableCompanion
   final Value<int> status;
   final Value<int> consecutiveCorrect;
   final Value<int> intervalDays;
+  final Value<double> easeFactor;
   final Value<DateTime?> nextReviewDate;
   final Value<DateTime?> lastAnsweredAt;
   final Value<int> rowid;
@@ -404,6 +442,7 @@ class TopicProgressTableCompanion
     this.status = const Value.absent(),
     this.consecutiveCorrect = const Value.absent(),
     this.intervalDays = const Value.absent(),
+    this.easeFactor = const Value.absent(),
     this.nextReviewDate = const Value.absent(),
     this.lastAnsweredAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -414,6 +453,7 @@ class TopicProgressTableCompanion
     this.status = const Value.absent(),
     this.consecutiveCorrect = const Value.absent(),
     this.intervalDays = const Value.absent(),
+    this.easeFactor = const Value.absent(),
     this.nextReviewDate = const Value.absent(),
     this.lastAnsweredAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -425,6 +465,7 @@ class TopicProgressTableCompanion
     Expression<int>? status,
     Expression<int>? consecutiveCorrect,
     Expression<int>? intervalDays,
+    Expression<double>? easeFactor,
     Expression<DateTime>? nextReviewDate,
     Expression<DateTime>? lastAnsweredAt,
     Expression<int>? rowid,
@@ -435,6 +476,7 @@ class TopicProgressTableCompanion
       if (status != null) 'status': status,
       if (consecutiveCorrect != null) 'consecutive_correct': consecutiveCorrect,
       if (intervalDays != null) 'interval_days': intervalDays,
+      if (easeFactor != null) 'ease_factor': easeFactor,
       if (nextReviewDate != null) 'next_review_date': nextReviewDate,
       if (lastAnsweredAt != null) 'last_answered_at': lastAnsweredAt,
       if (rowid != null) 'rowid': rowid,
@@ -447,6 +489,7 @@ class TopicProgressTableCompanion
     Value<int>? status,
     Value<int>? consecutiveCorrect,
     Value<int>? intervalDays,
+    Value<double>? easeFactor,
     Value<DateTime?>? nextReviewDate,
     Value<DateTime?>? lastAnsweredAt,
     Value<int>? rowid,
@@ -457,6 +500,7 @@ class TopicProgressTableCompanion
       status: status ?? this.status,
       consecutiveCorrect: consecutiveCorrect ?? this.consecutiveCorrect,
       intervalDays: intervalDays ?? this.intervalDays,
+      easeFactor: easeFactor ?? this.easeFactor,
       nextReviewDate: nextReviewDate ?? this.nextReviewDate,
       lastAnsweredAt: lastAnsweredAt ?? this.lastAnsweredAt,
       rowid: rowid ?? this.rowid,
@@ -481,6 +525,9 @@ class TopicProgressTableCompanion
     if (intervalDays.present) {
       map['interval_days'] = Variable<int>(intervalDays.value);
     }
+    if (easeFactor.present) {
+      map['ease_factor'] = Variable<double>(easeFactor.value);
+    }
     if (nextReviewDate.present) {
       map['next_review_date'] = Variable<DateTime>(nextReviewDate.value);
     }
@@ -501,6 +548,7 @@ class TopicProgressTableCompanion
           ..write('status: $status, ')
           ..write('consecutiveCorrect: $consecutiveCorrect, ')
           ..write('intervalDays: $intervalDays, ')
+          ..write('easeFactor: $easeFactor, ')
           ..write('nextReviewDate: $nextReviewDate, ')
           ..write('lastAnsweredAt: $lastAnsweredAt, ')
           ..write('rowid: $rowid')
@@ -529,6 +577,7 @@ typedef $$TopicProgressTableTableCreateCompanionBuilder =
       Value<int> status,
       Value<int> consecutiveCorrect,
       Value<int> intervalDays,
+      Value<double> easeFactor,
       Value<DateTime?> nextReviewDate,
       Value<DateTime?> lastAnsweredAt,
       Value<int> rowid,
@@ -540,6 +589,7 @@ typedef $$TopicProgressTableTableUpdateCompanionBuilder =
       Value<int> status,
       Value<int> consecutiveCorrect,
       Value<int> intervalDays,
+      Value<double> easeFactor,
       Value<DateTime?> nextReviewDate,
       Value<DateTime?> lastAnsweredAt,
       Value<int> rowid,
@@ -576,6 +626,11 @@ class $$TopicProgressTableTableFilterComposer
 
   ColumnFilters<int> get intervalDays => $composableBuilder(
     column: $table.intervalDays,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get easeFactor => $composableBuilder(
+    column: $table.easeFactor,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -624,6 +679,11 @@ class $$TopicProgressTableTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<double> get easeFactor => $composableBuilder(
+    column: $table.easeFactor,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get nextReviewDate => $composableBuilder(
     column: $table.nextReviewDate,
     builder: (column) => ColumnOrderings(column),
@@ -660,6 +720,11 @@ class $$TopicProgressTableTableAnnotationComposer
 
   GeneratedColumn<int> get intervalDays => $composableBuilder(
     column: $table.intervalDays,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get easeFactor => $composableBuilder(
+    column: $table.easeFactor,
     builder: (column) => column,
   );
 
@@ -719,6 +784,7 @@ class $$TopicProgressTableTableTableManager
                 Value<int> status = const Value.absent(),
                 Value<int> consecutiveCorrect = const Value.absent(),
                 Value<int> intervalDays = const Value.absent(),
+                Value<double> easeFactor = const Value.absent(),
                 Value<DateTime?> nextReviewDate = const Value.absent(),
                 Value<DateTime?> lastAnsweredAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -728,6 +794,7 @@ class $$TopicProgressTableTableTableManager
                 status: status,
                 consecutiveCorrect: consecutiveCorrect,
                 intervalDays: intervalDays,
+                easeFactor: easeFactor,
                 nextReviewDate: nextReviewDate,
                 lastAnsweredAt: lastAnsweredAt,
                 rowid: rowid,
@@ -739,6 +806,7 @@ class $$TopicProgressTableTableTableManager
                 Value<int> status = const Value.absent(),
                 Value<int> consecutiveCorrect = const Value.absent(),
                 Value<int> intervalDays = const Value.absent(),
+                Value<double> easeFactor = const Value.absent(),
                 Value<DateTime?> nextReviewDate = const Value.absent(),
                 Value<DateTime?> lastAnsweredAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -748,6 +816,7 @@ class $$TopicProgressTableTableTableManager
                 status: status,
                 consecutiveCorrect: consecutiveCorrect,
                 intervalDays: intervalDays,
+                easeFactor: easeFactor,
                 nextReviewDate: nextReviewDate,
                 lastAnsweredAt: lastAnsweredAt,
                 rowid: rowid,

@@ -19,6 +19,7 @@ class TopicProgress {
   final ProgressStatus status;
   final int consecutiveCorrect;
   final int intervalDays;
+  final double easeFactor;
   final DateTime? nextReviewDate;
   final DateTime? lastAnsweredAt;
 
@@ -28,6 +29,7 @@ class TopicProgress {
     required this.status,
     required this.consecutiveCorrect,
     required this.intervalDays,
+    this.easeFactor = 2.5,
     this.nextReviewDate,
     this.lastAnsweredAt,
   });
@@ -45,6 +47,7 @@ class TopicProgress {
     ProgressStatus? status,
     int? consecutiveCorrect,
     int? intervalDays,
+    double? easeFactor,
     DateTime? nextReviewDate,
     DateTime? lastAnsweredAt,
     bool clearNextReviewDate = false,
@@ -55,6 +58,7 @@ class TopicProgress {
       status: status ?? this.status,
       consecutiveCorrect: consecutiveCorrect ?? this.consecutiveCorrect,
       intervalDays: intervalDays ?? this.intervalDays,
+      easeFactor: easeFactor ?? this.easeFactor,
       nextReviewDate: clearNextReviewDate ? null : (nextReviewDate ?? this.nextReviewDate),
       lastAnsweredAt: lastAnsweredAt ?? this.lastAnsweredAt,
     );

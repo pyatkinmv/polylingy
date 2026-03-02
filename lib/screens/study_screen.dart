@@ -5,7 +5,7 @@ import 'package:flutter_html/flutter_html.dart';
 import 'package:polylingy/data/progress_repository.dart';
 import 'package:polylingy/models/course.dart';
 import 'package:polylingy/models/topic_progress.dart';
-import 'package:polylingy/services/sr_service.dart';
+import 'package:polylingy/services/repetition_policy.dart';
 
 enum _StudyState { exercise, result, done }
 
@@ -14,11 +14,13 @@ enum _ResultMode { correct, partial, incorrect }
 class StudyScreen extends StatefulWidget {
   final Course course;
   final ProgressRepository progressRepo;
+  final RepetitionPolicy policy;
 
   const StudyScreen({
     super.key,
     required this.course,
     required this.progressRepo,
+    required this.policy,
   });
 
   @override
@@ -60,7 +62,6 @@ class _StudyScreenState extends State<StudyScreen> {
     LogicalKeyboardKey.digit9,
   ];
 
-  final _srService = SrService();
   final _random = Random();
   final _answerController = TextEditingController();
 
@@ -95,22 +96,20 @@ class _StudyScreenState extends State<StudyScreen> {
     final allProgress = await widget.progressRepo.getAllForCourse(widget.course.id);
     final progressMap = {for (final p in allProgress) p.topicId: p};
 
-    // Ensure all topics have a progress entry
     final today = _today();
     for (final topic in widget.course.topics) {
       if (!progressMap.containsKey(topic.id)) {
-        final newProgress = TopicProgress(
+        progressMap[topic.id] = TopicProgress(
           topicId: topic.id,
           courseId: widget.course.id,
           status: ProgressStatus.newTopic,
           consecutiveCorrect: 0,
           intervalDays: 1,
         );
-        progressMap[topic.id] = newProgress;
       }
     }
 
-    final eligibleIds = _srService.eligibleTopicIds(
+    final eligibleIds = widget.policy.eligibleTopicIds(
       widget.course.topics.map((t) => progressMap[t.id]!).toList(),
       today,
     );
@@ -137,10 +136,12 @@ class _StudyScreenState extends State<StudyScreen> {
 
     final topicId = _eligibleIds[_random.nextInt(_eligibleIds.length)];
     final topic = widget.course.topics.firstWhere((t) => t.id == topicId);
+    _pickExerciseForTopic(topic);
+  }
+
+  void _pickExerciseForTopic(Topic topic) {
     final exercise = topic.exercises[_random.nextInt(topic.exercises.length)];
-
     _answerController.clear();
-
     setState(() {
       _currentTopic = topic;
       _currentExercise = exercise;
@@ -182,24 +183,19 @@ class _StudyScreenState extends State<StudyScreen> {
 
   Future<void> _rate(bool correct) async {
     final topic = _currentTopic!;
-    final progress = _progressMap[topic.id]!;
-    final today = _today();
+    final result = widget.policy.recordAnswer(topic.id, correct);
 
-    final updated = correct
-        ? _srService.onCorrect(progress, today)
-        : _srService.onIncorrect(progress, today);
-
-    await widget.progressRepo.saveProgress(updated);
-    _progressMap[topic.id] = updated;
-
-    // Re-evaluate eligibility: remove if graduated past today
-    if (!updated.isEligibleToday(today)) {
-      _eligibleIds.remove(topic.id);
-    } else if (!_eligibleIds.contains(topic.id)) {
-      _eligibleIds.add(topic.id);
+    if (result.completed) {
+      final updated = widget.policy.advance(_progressMap[topic.id]!, result.mistakes, _today());
+      await widget.progressRepo.saveProgress(updated);
+      _progressMap[topic.id] = updated;
+      if (!updated.isEligibleToday(_today())) {
+        _eligibleIds.remove(topic.id);
+      }
+      _pickNext();
+    } else {
+      _pickExerciseForTopic(topic);
     }
-
-    _pickNext();
   }
 
   @override
@@ -499,4 +495,3 @@ class _FormattedContent extends StatelessWidget {
     };
   }
 }
-

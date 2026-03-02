@@ -15,6 +15,7 @@ class ProgressRepository {
         status: ProgressStatus.fromInt(row.status),
         consecutiveCorrect: row.consecutiveCorrect,
         intervalDays: row.intervalDays,
+        easeFactor: row.easeFactor,
         nextReviewDate: row.nextReviewDate,
         lastAnsweredAt: row.lastAnsweredAt,
       );
@@ -36,6 +37,7 @@ class ProgressRepository {
       status: Value(progress.status.value),
       consecutiveCorrect: Value(progress.consecutiveCorrect),
       intervalDays: Value(progress.intervalDays),
+      easeFactor: Value(progress.easeFactor),
       nextReviewDate: Value(progress.nextReviewDate),
       lastAnsweredAt: Value(progress.lastAnsweredAt),
     ));

@@ -11,6 +11,7 @@ class TopicProgressTable extends Table {
   IntColumn get status => integer().withDefault(const Constant(0))();
   IntColumn get consecutiveCorrect => integer().withDefault(const Constant(0))();
   IntColumn get intervalDays => integer().withDefault(const Constant(1))();
+  RealColumn get easeFactor => real().withDefault(const Constant(2.5))();
   DateTimeColumn get nextReviewDate => dateTime().nullable()();
   DateTimeColumn get lastAnsweredAt => dateTime().nullable()();
 
@@ -44,7 +45,16 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        await m.addColumn(topicProgressTable, topicProgressTable.easeFactor);
+      }
+    },
+  );
 }
 
 LazyDatabase _openConnection() {
