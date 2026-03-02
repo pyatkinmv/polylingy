@@ -77,6 +77,14 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: const Text('Polylingy'),
         centerTitle: false,
+        actions: [
+          TextButton.icon(
+            onPressed: _showNewCourseDialog,
+            icon: const Icon(Icons.add),
+            label: const Text('New course'),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: _buildBody(),
     );
@@ -89,10 +97,6 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_courses == null) {
       return const Center(child: CircularProgressIndicator());
     }
-    if (_courses!.isEmpty) {
-      return const Center(child: Text('No courses found. Add JSON files to the courses folder.'));
-    }
-
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 720),
@@ -122,6 +126,31 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _showNewCourseDialog() async {
+    final controller = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('New course'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(labelText: 'Course name'),
+          onSubmitted: (_) => Navigator.pop(ctx, true),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('OK')),
+        ],
+      ),
+    );
+    final name = controller.text.trim();
+    if (confirmed == true && name.isNotEmpty) {
+      await widget.topicRepo.createCourse(name);
+      _load();
+    }
   }
 }
 

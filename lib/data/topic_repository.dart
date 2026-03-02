@@ -23,9 +23,24 @@ class TopicRepository {
     }
   }
 
+  Future<void> createCourse(String name) async {
+    final dir = await _coursesDir();
+    final slug = name.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '_').replaceAll(RegExp(r'_+$'), '');
+    var filename = slug.isEmpty ? 'course' : slug;
+    var candidate = File(p.join(dir.path, '$filename.json'));
+    var suffix = 2;
+    while (candidate.existsSync()) {
+      candidate = File(p.join(dir.path, '${filename}_$suffix.json'));
+      suffix++;
+    }
+    final json = jsonEncode({'name': name, 'topics': []});
+    await candidate.writeAsString(json);
+  }
+
   Future<List<Course>> loadCourses() async {
     final dir = await _coursesDir();
-    final files = dir.listSync().whereType<File>().where((f) => f.path.endsWith('.json'));
+    final files = dir.listSync().whereType<File>().where((f) => f.path.endsWith('.json')).toList()
+      ..sort((a, b) => a.lastModifiedSync().compareTo(b.lastModifiedSync()));
     final courses = <Course>[];
     for (final file in files) {
       try {
