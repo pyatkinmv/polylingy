@@ -37,6 +37,14 @@ class TopicRepository {
     await candidate.writeAsString(json);
   }
 
+  Future<void> renameCourse(String courseId, String newName) async {
+    final dir = await _coursesDir();
+    final file = File(p.join(dir.path, '$courseId.json'));
+    final content = await file.readAsString();
+    final json = (jsonDecode(content) as Map<String, dynamic>)..['name'] = newName;
+    await file.writeAsString(jsonEncode(json));
+  }
+
   Future<void> deleteCourse(String courseId) async {
     final dir = await _coursesDir();
     final file = File(p.join(dir.path, '$courseId.json'));

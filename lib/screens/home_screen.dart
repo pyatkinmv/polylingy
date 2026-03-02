@@ -122,12 +122,47 @@ class _HomeScreenState extends State<HomeScreen> {
                 _load();
               },
               onAddCard: () => _showAddCardDialog(),
+              onRename: () => _showRenameCourseDialog(stats.course.id, stats.course.name),
               onRemove: () => _showRemoveCourseDialog(stats.course.id, stats.course.name),
             );
           },
         ),
       ),
     );
+  }
+
+  Future<void> _showRenameCourseDialog(String courseId, String currentName) async {
+    final controller = TextEditingController(text: currentName);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) => AlertDialog(
+          title: const Text('Rename course'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            maxLength: 50,
+            decoration: const InputDecoration(labelText: 'Course name'),
+            onChanged: (_) => setState(() {}),
+            onSubmitted: (_) {
+              if (controller.text.trim().isNotEmpty) Navigator.pop(ctx, true);
+            },
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+            FilledButton(
+              onPressed: controller.text.trim().isNotEmpty ? () => Navigator.pop(ctx, true) : null,
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      ),
+    );
+    final name = controller.text.trim();
+    if (confirmed == true && name.isNotEmpty) {
+      await widget.topicRepo.renameCourse(courseId, name);
+      _load();
+    }
   }
 
   Future<void> _showRemoveCourseDialog(String courseId, String courseName) async {
@@ -222,9 +257,10 @@ class _CourseCard extends StatelessWidget {
   final _CourseStats stats;
   final VoidCallback onStart;
   final VoidCallback onAddCard;
+  final VoidCallback onRename;
   final VoidCallback onRemove;
 
-  const _CourseCard({required this.stats, required this.onStart, required this.onAddCard, required this.onRemove});
+  const _CourseCard({required this.stats, required this.onStart, required this.onAddCard, required this.onRename, required this.onRemove});
 
   @override
   Widget build(BuildContext context) {
@@ -256,10 +292,12 @@ class _CourseCard extends StatelessWidget {
               icon: const Icon(Icons.more_vert),
               onSelected: (value) {
                 if (value == 'add_card') onAddCard();
+                if (value == 'rename') onRename();
                 if (value == 'remove') onRemove();
               },
               itemBuilder: (_) => const [
                 PopupMenuItem(value: 'add_card', child: Text('Add card')),
+                PopupMenuItem(value: 'rename', child: Text('Rename course')),
                 PopupMenuItem(value: 'remove', child: Text('Remove course')),
               ],
             ),
