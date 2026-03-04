@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_html/flutter_html.dart';
 import 'package:polylingy/data/progress_repository.dart';
+import 'package:polylingy/data/topic_repository.dart';
 import 'package:polylingy/models/course.dart';
 import 'package:polylingy/models/topic_progress.dart';
 import 'package:polylingy/services/repetition_policy.dart';
@@ -14,12 +15,14 @@ enum _ResultMode { correct, partial, incorrect }
 class StudyScreen extends StatefulWidget {
   final Course course;
   final ProgressRepository progressRepo;
+  final TopicRepository topicRepo;
   final RepetitionPolicy policy;
 
   const StudyScreen({
     super.key,
     required this.course,
     required this.progressRepo,
+    required this.topicRepo,
     required this.policy,
   });
 
@@ -203,6 +206,18 @@ class _StudyScreenState extends State<StudyScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.course.name),
+        actions: [
+          if (_currentTopic != null)
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert),
+              onSelected: (value) {
+                if (value == 'remove') _showRemoveTopicDialog();
+              },
+              itemBuilder: (_) => const [
+                PopupMenuItem(value: 'remove', child: Text('Remove topic')),
+              ],
+            ),
+        ],
       ),
       body: switch (_state) {
         _StudyState.exercise => _buildExercise(),
@@ -210,6 +225,26 @@ class _StudyScreenState extends State<StudyScreen> {
         _StudyState.done => _buildDone(),
       },
     );
+  }
+
+  Future<void> _showRemoveTopicDialog() async {
+    final topic = _currentTopic!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Remove topic'),
+        content: Text('Are you sure you want to remove "${topic.subject}"? This cannot be undone.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('OK')),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await widget.topicRepo.deleteTopic(widget.course.id, topic.id);
+      setState(() => _eligibleIds.remove(topic.id));
+      _pickNext();
+    }
   }
 
   Color _modeColor(_ResultMode mode) => switch (mode) {

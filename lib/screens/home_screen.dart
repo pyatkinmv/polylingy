@@ -115,6 +115,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     builder: (_) => StudyScreen(
                       course: stats.course,
                       progressRepo: widget.progressRepo,
+                      topicRepo: widget.topicRepo,
                       policy: Sm2Policy(),
                     ),
                   ),
@@ -188,7 +189,7 @@ class _HomeScreenState extends State<HomeScreen> {
     await showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Add card'),
+        title: const Text('Add topic'),
         content: TextField(
           controller: controller,
           autofocus: true,
@@ -296,7 +297,7 @@ class _CourseCard extends StatelessWidget {
                 if (value == 'remove') onRemove();
               },
               itemBuilder: (_) => const [
-                PopupMenuItem(value: 'add_card', child: Text('Add card')),
+                PopupMenuItem(value: 'add_card', child: Text('Add topic')),
                 PopupMenuItem(value: 'rename', child: Text('Rename course')),
                 PopupMenuItem(value: 'remove', child: Text('Remove course')),
               ],
