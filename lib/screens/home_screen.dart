@@ -1,10 +1,13 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:polylingy/data/progress_repository.dart';
 import 'package:polylingy/data/topic_repository.dart';
 import 'package:polylingy/models/course.dart';
 import 'package:polylingy/models/topic_progress.dart';
 import 'package:polylingy/screens/study_screen.dart';
+import 'package:polylingy/services/graduation_policy.dart';
 import 'package:polylingy/services/sm2_policy.dart';
+import 'package:polylingy/services/topic_picker.dart';
 
 class HomeScreen extends StatefulWidget {
   final TopicRepository topicRepo;
@@ -117,12 +120,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       progressRepo: widget.progressRepo,
                       topicRepo: widget.topicRepo,
                       policy: Sm2Policy(),
+                      topicPicker: const RandomTopicPicker(),
+                      graduationPolicy: ConsecutiveCorrectPolicy(),
                     ),
                   ),
                 );
                 _load();
               },
-              onAddCard: () => _showAddCardDialog(),
+              onAddCard: () => _showAddCardDialog(stats.course.id),
               onRename: () => _showRenameCourseDialog(stats.course.id, stats.course.name),
               onRemove: () => _showRemoveCourseDialog(stats.course.id, stats.course.name),
             );
@@ -184,23 +189,47 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _showAddCardDialog() async {
+  Future<void> _showAddCardDialog(String courseId) async {
     final controller = TextEditingController();
-    await showDialog<void>(
+    final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Add topic'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(labelText: 'Front'),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
-        ],
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) {
+          bool isValid() {
+            try {
+              return jsonDecode(controller.text) is Map;
+            } catch (_) {
+              return false;
+            }
+          }
+          return AlertDialog(
+            title: const Text('Add topic'),
+            content: TextField(
+              controller: controller,
+              autofocus: true,
+              maxLines: null,
+              decoration: const InputDecoration(
+                labelText: 'Content',
+                alignLabelWithHint: true,
+              ),
+              onChanged: (_) => setState(() {}),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+              FilledButton(
+                onPressed: isValid() ? () => Navigator.pop(ctx, true) : null,
+                child: const Text('OK'),
+              ),
+            ],
+          );
+        },
       ),
     );
+    if (confirmed == true) {
+      final parsed = jsonDecode(controller.text) as Map<String, dynamic>;
+      await widget.topicRepo.addTopic(courseId, parsed);
+      _load();
+    }
   }
 
   Future<void> _showNewCourseDialog() async {

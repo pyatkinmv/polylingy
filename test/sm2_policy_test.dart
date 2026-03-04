@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:polylingy/models/topic_progress.dart';
+import 'package:polylingy/services/graduation_policy.dart';
 import 'package:polylingy/services/sm2_policy.dart';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
@@ -34,9 +35,8 @@ TopicProgress reviewCard(
 
 // Shorthand: drive a sequence of answers and return the final SessionResult.
 // answers: list of true (correct) / false (incorrect).
-// The policy is fresh for each call unless you pass one in.
 ({bool completed, int mistakes}) drive(
-  Sm2Policy policy,
+  ConsecutiveCorrectPolicy policy,
   String topicId,
   List<bool> answers,
 ) {
@@ -56,22 +56,22 @@ void main() {
   // ══════════════════════════════════════════════════════════════════════════
   group('session — completion rule (3 consecutive correct)', () {
     test('3 correct in a row → completes immediately', () {
-      final p = Sm2Policy();
+      final p = ConsecutiveCorrectPolicy();
       expect(drive(p, 'a', [true, true, true]).completed, isTrue);
     });
 
     test('2 correct is not enough', () {
-      final p = Sm2Policy();
+      final p = ConsecutiveCorrectPolicy();
       expect(drive(p, 'a', [true, true]).completed, isFalse);
     });
 
     test('1 correct is not enough', () {
-      final p = Sm2Policy();
+      final p = ConsecutiveCorrectPolicy();
       expect(drive(p, 'a', [true]).completed, isFalse);
     });
 
     test('1 incorrect then 3 correct → completes on 4th answer', () {
-      final p = Sm2Policy();
+      final p = ConsecutiveCorrectPolicy();
       final results = [false, true, true, true].map((a) => p.recordAnswer('a', a)).toList();
       expect(results[0].completed, isFalse);
       expect(results[1].completed, isFalse);
@@ -80,14 +80,14 @@ void main() {
     });
 
     test('correct, incorrect, correct, correct, correct → completes on 5th', () {
-      final p = Sm2Policy();
+      final p = ConsecutiveCorrectPolicy();
       // streak: 1, reset, 1, 2, 3 ✓
       final results = [true, false, true, true, true].map((a) => p.recordAnswer('a', a)).toList();
       expect(results[4].completed, isTrue);
     });
 
     test('incorrect resets the streak to zero', () {
-      final p = Sm2Policy();
+      final p = ConsecutiveCorrectPolicy();
       // build streak of 2, then break it
       p.recordAnswer('a', true);
       p.recordAnswer('a', true);
@@ -99,7 +99,7 @@ void main() {
     });
 
     test('many wrong answers followed by 3 correct → still completes', () {
-      final p = Sm2Policy();
+      final p = ConsecutiveCorrectPolicy();
       for (var i = 0; i < 10; i++) p.recordAnswer('a', false);
       expect(drive(p, 'a', [true, true, true]).completed, isTrue);
     });
@@ -110,28 +110,28 @@ void main() {
   // ══════════════════════════════════════════════════════════════════════════
   group('session — mistake count at completion', () {
     test('0 mistakes: perfect run', () {
-      final p = Sm2Policy();
+      final p = ConsecutiveCorrectPolicy();
       expect(drive(p, 'a', [true, true, true]).mistakes, 0);
     });
 
     test('1 mistake before eventual 3-in-a-row', () {
-      final p = Sm2Policy();
+      final p = ConsecutiveCorrectPolicy();
       expect(drive(p, 'a', [false, true, true, true]).mistakes, 1);
     });
 
     test('2 mistakes: incorrect, incorrect, then 3 correct', () {
-      final p = Sm2Policy();
+      final p = ConsecutiveCorrectPolicy();
       expect(drive(p, 'a', [false, false, true, true, true]).mistakes, 2);
     });
 
     test('3 mistakes → q=2 territory', () {
-      final p = Sm2Policy();
+      final p = ConsecutiveCorrectPolicy();
       expect(drive(p, 'a', [false, false, false, true, true, true]).mistakes, 3);
     });
 
     test('mistakes counted across streak resets', () {
       // wrong, right×2, wrong, right×3 → 2 mistakes total
-      final p = Sm2Policy();
+      final p = ConsecutiveCorrectPolicy();
       expect(drive(p, 'a', [false, true, true, false, true, true, true]).mistakes, 2);
     });
   });
@@ -141,7 +141,7 @@ void main() {
   // ══════════════════════════════════════════════════════════════════════════
   group('session — topics are tracked independently', () {
     test('completing topic A does not affect topic B streak', () {
-      final p = Sm2Policy();
+      final p = ConsecutiveCorrectPolicy();
       p.recordAnswer('A', true); // A: streak 1
       p.recordAnswer('B', true); // B: streak 1
       p.recordAnswer('A', true); // A: streak 2
@@ -152,7 +152,7 @@ void main() {
     });
 
     test('incorrect on A does not reset B streak', () {
-      final p = Sm2Policy();
+      final p = ConsecutiveCorrectPolicy();
       p.recordAnswer('B', true);
       p.recordAnswer('B', true);
       p.recordAnswer('A', false); // reset A only
@@ -160,7 +160,7 @@ void main() {
     });
 
     test('two topics can complete in the same session at different times', () {
-      final p = Sm2Policy();
+      final p = ConsecutiveCorrectPolicy();
       final r1 = drive(p, 'X', [true, true, true]);
       final r2 = drive(p, 'Y', [false, true, true, true]);
       expect(r1.completed, isTrue);
@@ -173,7 +173,7 @@ void main() {
   // ══════════════════════════════════════════════════════════════════════════
   group('session — state is cleared after completion', () {
     test('after a topic completes, its session state resets for re-use', () {
-      final p = Sm2Policy();
+      final p = ConsecutiveCorrectPolicy();
       // first run: 1 mistake
       drive(p, 'a', [false, true, true, true]);
       // second run: perfect — mistakes should start fresh from 0
@@ -182,7 +182,7 @@ void main() {
     });
 
     test('streak counter starts from 0 after completion', () {
-      final p = Sm2Policy();
+      final p = ConsecutiveCorrectPolicy();
       drive(p, 'a', [true, true, true]);  // complete
       // now need 3 more — 2 should not be enough
       expect(drive(p, 'a', [true, true]).completed, isFalse);

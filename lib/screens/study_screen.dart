@@ -6,7 +6,9 @@ import 'package:polylingy/data/progress_repository.dart';
 import 'package:polylingy/data/topic_repository.dart';
 import 'package:polylingy/models/course.dart';
 import 'package:polylingy/models/topic_progress.dart';
+import 'package:polylingy/services/graduation_policy.dart';
 import 'package:polylingy/services/repetition_policy.dart';
+import 'package:polylingy/services/topic_picker.dart';
 
 enum _StudyState { exercise, result, done }
 
@@ -17,6 +19,8 @@ class StudyScreen extends StatefulWidget {
   final ProgressRepository progressRepo;
   final TopicRepository topicRepo;
   final RepetitionPolicy policy;
+  final TopicPicker topicPicker;
+  final GraduationPolicy graduationPolicy;
 
   const StudyScreen({
     super.key,
@@ -24,6 +28,8 @@ class StudyScreen extends StatefulWidget {
     required this.progressRepo,
     required this.topicRepo,
     required this.policy,
+    required this.topicPicker,
+    required this.graduationPolicy,
   });
 
   @override
@@ -116,8 +122,6 @@ class _StudyScreenState extends State<StudyScreen> {
       widget.course.topics.map((t) => progressMap[t.id]!).toList(),
       today,
     );
-    eligibleIds.shuffle(_random);
-
     setState(() {
       _progressMap = progressMap;
       _eligibleIds = eligibleIds;
@@ -137,7 +141,7 @@ class _StudyScreenState extends State<StudyScreen> {
       return;
     }
 
-    final topicId = _eligibleIds[_random.nextInt(_eligibleIds.length)];
+    final topicId = widget.topicPicker.pick(_eligibleIds, _currentTopic?.id, _random);
     final topic = widget.course.topics.firstWhere((t) => t.id == topicId);
     _pickExerciseForTopic(topic);
   }
@@ -186,8 +190,7 @@ class _StudyScreenState extends State<StudyScreen> {
 
   Future<void> _rate(bool correct) async {
     final topic = _currentTopic!;
-    final result = widget.policy.recordAnswer(topic.id, correct);
-
+    final result = widget.graduationPolicy.recordAnswer(topic.id, correct);
     if (result.completed) {
       final updated = widget.policy.advance(_progressMap[topic.id]!, result.mistakes, _today());
       await widget.progressRepo.saveProgress(updated);
@@ -195,10 +198,8 @@ class _StudyScreenState extends State<StudyScreen> {
       if (!updated.isEligibleToday(_today())) {
         _eligibleIds.remove(topic.id);
       }
-      _pickNext();
-    } else {
-      _pickExerciseForTopic(topic);
     }
+    _pickNext();
   }
 
   @override

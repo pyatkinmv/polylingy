@@ -1,30 +1,8 @@
 import 'package:polylingy/models/topic_progress.dart';
 import 'package:polylingy/services/repetition_policy.dart';
 
-class _TopicSession {
-  int consecutive = 0;
-  int mistakes = 0;
-}
-
 class Sm2Policy implements RepetitionPolicy {
-  static const int _goal = 3;
   static const double _minEf = 1.3;
-
-  final Map<String, _TopicSession> _sessions = {};
-
-  @override
-  SessionResult recordAnswer(String topicId, bool correct) {
-    final s = _sessions.putIfAbsent(topicId, _TopicSession.new);
-    if (correct) {
-      s.consecutive++;
-    } else {
-      s.consecutive = 0;
-      s.mistakes++;
-    }
-    final done = s.consecutive >= _goal;
-    if (done) _sessions.remove(topicId);
-    return SessionResult(completed: done, mistakes: done ? s.mistakes : 0);
-  }
 
   @override
   TopicProgress advance(TopicProgress current, int sessionMistakes, DateTime today) {
