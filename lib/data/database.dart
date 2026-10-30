@@ -38,6 +38,16 @@ class ProgressDao extends DatabaseAccessor<AppDatabase> with _$ProgressDaoMixin 
   Future<void> upsertProgress(TopicProgressTableCompanion companion) {
     return into(topicProgressTable).insertOnConflictUpdate(companion);
   }
+
+  Future<void> deleteProgress(String topicId, String courseId) {
+    return (delete(topicProgressTable)
+          ..where((t) => t.topicId.equals(topicId) & t.courseId.equals(courseId)))
+        .go();
+  }
+
+  Future<void> deleteAllForCourse(String courseId) {
+    return (delete(topicProgressTable)..where((t) => t.courseId.equals(courseId))).go();
+  }
 }
 
 @DriftDatabase(tables: [TopicProgressTable], daos: [ProgressDao])

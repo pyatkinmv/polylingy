@@ -185,6 +185,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
     if (confirmed == true) {
       await widget.topicRepo.deleteCourse(courseId);
+      await widget.progressRepo.deleteAllForCourse(courseId);
       _load();
     }
   }

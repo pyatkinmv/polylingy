@@ -41,7 +41,8 @@ class Topic {
 
   factory Topic.fromJson(Map<String, dynamic> json, String courseId, int index) {
     return Topic(
-      id: '$courseId::$index',
+      // Falls back to the index only for topics not yet backfilled by TopicRepository.
+      id: '$courseId::${json['id'] ?? index}',
       subject: json['subject'] as String? ?? '',
       generalExplanation: json['generalExplanation'] as String? ?? '',
       generalExplanationFormat: switch (json['generalExplanationFormat'] as String?) {

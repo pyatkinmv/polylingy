@@ -38,7 +38,7 @@ Key files:
     sample_course.json
 ```
 
-Topic ID format: `"${courseId}::${index}"` — stable across reloads.
+Topic ID format: `"${courseId}::${topicJson.id}"`. Each topic stores its own `id` in the course JSON; `TopicRepository.ensureTopicIds` backfills missing ids with the topic's index (matching legacy `courseId::index` progress rows) and gives new topics a random id, so deleting a topic never shifts other topics' progress.
 
 ## Essential Commands
 
