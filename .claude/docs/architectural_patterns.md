@@ -7,10 +7,10 @@ Patterns confirmed across multiple files in this codebase.
 Repositories are created once at the top (`lib/app.dart:14-15`) and passed down via required constructor parameters — no service locator, no `Provider`, no `InheritedWidget`.
 
 Applies to:
-- `HomeScreen({required topicRepo, required progressRepo})` — `lib/screens/home_screen.dart:9-10`
-- `StudyScreen({required course, required progressRepo})` — `lib/screens/study_screen.dart:11-12`
+- `HomeScreen({required topicRepo, required progressRepo})` — `lib/screens/home_screen.dart`
+- `StudyScreen({required course, required progressRepo, required topicRepo, required policy, required topicPicker, required graduationPolicy})` — `lib/screens/study_screen.dart`
 
-When adding a new screen that needs data access, receive repos as constructor args.
+When adding a new screen that needs data access, receive repos as constructor args. Learning rules (policies) are injected the same way: `HomeScreen` picks the concrete implementations when it opens `StudyScreen`.
 
 ## 2. Repository Pattern: Domain Models Over DB Rows
 
@@ -23,13 +23,19 @@ Rule: only `ProgressRepository` imports both `database.dart` and `topic_progress
 
 ## 3. Pure Service Layer
 
-`SrService` (`lib/services/sr_service.dart`) has zero Flutter, Drift, or I/O imports. It takes and returns domain models, making it trivially testable. All side effects (persistence, UI) happen in the screen after calling the service.
+`lib/services/` has zero Flutter, Drift, or I/O imports. Each learning rule is an abstract interface with swappable implementations:
 
-Pattern: services receive values, return new values — they do not read or write state.
+- `RepetitionPolicy` → `Sm2Policy` (`lib/services/sm2_policy.dart`) — schedules the next review after a topic completes a session
+- `GraduationPolicy` → `ConsecutiveCorrectPolicy` (`lib/services/graduation_policy.dart`) — decides when a topic is done within a session
+- `TopicPicker` → `RandomTopicPicker`, `FixedTopicPicker` (`lib/services/topic_picker.dart`) — chooses the next topic
+
+All side effects (persistence, UI) happen in the screen after calling the service.
+
+Pattern: `RepetitionPolicy` and `TopicPicker` receive values and return new values. `GraduationPolicy` is the exception — it keeps in-memory per-session counters, so create a fresh instance per study session.
 
 ## 4. Immutable Domain Models with `copyWith`
 
-`TopicProgress` is an immutable value object (`lib/models/topic_progress.dart:16`). Mutations are expressed by returning a new instance via `copyWith`. This is used consistently in `SrService.onCorrect` and `SrService.onIncorrect`.
+`TopicProgress` is an immutable value object (`lib/models/topic_progress.dart:16`). Mutations are expressed by returning a new instance via `copyWith`. This is used consistently in `Sm2Policy.advance`.
 
 `Course`, `Topic`, and `Exercise` (`lib/models/course.dart`) are also immutable and constructed via `fromJson` factories.
 
@@ -44,8 +50,8 @@ When adding screens: follow the same pattern unless complexity clearly warrants 
 UI sub-components that are only used within one screen are defined as private classes in the same file (prefixed `_`), not extracted to separate files.
 
 Examples:
-- `_CourseStats`, `_CourseCard` in `lib/screens/home_screen.dart:121,137`
-- `_LabeledText`, `_StudyState` in `lib/screens/study_screen.dart:8,267`
+- `_CourseStats`, `_CourseCard` in `lib/screens/home_screen.dart`
+- `_StudyState`, `_ResultMode`, `_ExplanationBox`, `_FormattedContent` in `lib/screens/study_screen.dart`
 
 Extract to a separate file only when a widget is reused across screens.
 
@@ -57,8 +63,8 @@ Extract to a separate file only when a widget is reused across screens.
 
 Dates are always normalized to midnight before comparison or storage:
 
-- `lib/screens/study_screen.dart:79` — `_today()` strips time component
-- `lib/services/sr_service.dart:44` — same normalization before filtering
-- `lib/screens/home_screen.dart:37` — same in `HomeScreen._load()`
+- `lib/screens/study_screen.dart` — `_today()` strips time component and is passed to every policy call
+- `lib/screens/home_screen.dart` — same in `HomeScreen._load()`
+- Policies (`Sm2Policy`, `TopicProgress.isEligibleToday`) expect an already-normalized `today` and do not normalize themselves
 
 Never compare raw `DateTime.now()` against stored dates — always normalize first.

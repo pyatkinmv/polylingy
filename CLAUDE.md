@@ -26,7 +26,10 @@ Key files:
 - `lib/app.dart:7` — `PolylingyApp`; instantiates repos, wires `HomeScreen`
 - `lib/data/database.dart:8` — Drift schema + `ProgressDao`
 - `lib/data/database.g.dart` — **generated**, do not edit manually
-- `lib/services/sr_service.dart:3` — SR algorithm (`onCorrect`, `onIncorrect`, `eligibleTopicIds`)
+- `lib/services/repetition_policy.dart` / `sm2_policy.dart` — SR scheduling (`advance`, `eligibleTopicIds`)
+- `lib/services/graduation_policy.dart` — when a topic is done within a session (3 correct in a row)
+- `lib/services/topic_picker.dart` — which topic to show next
+- `lib/screens/home_screen.dart` — wires the concrete policies into `StudyScreen`
 - `lib/models/topic_progress.dart:35` — `isEligibleToday` eligibility logic
 
 ## File Storage
