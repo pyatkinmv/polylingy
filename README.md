@@ -29,11 +29,10 @@ flutter run -d windows   # or -d macos / -d linux
 
 Place a JSON file in `<Documents>/polylingy/courses/`. A sample course is copied there automatically on first run.
 
-Course format:
+The course ID is the file name (`my_course.json` → `my_course`). Course format:
 
 ```json
 {
-  "id": "my_course",
   "name": "My Course",
   "topics": [
     {
@@ -44,6 +43,11 @@ Course format:
           "task": "Translate: hello",
           "answer": "hola",
           "exampleExplanation": "Used in informal greetings."
+        },
+        {
+          "task": "red: {0} (masculine) / {1} (feminine)",
+          "answer": {"0": "rojo", "1": "roja"},
+          "exampleExplanation": "Multiple blanks: answer them comma-separated."
         }
       ]
     }

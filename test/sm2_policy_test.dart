@@ -100,7 +100,9 @@ void main() {
 
     test('many wrong answers followed by 3 correct → still completes', () {
       final p = ConsecutiveCorrectPolicy();
-      for (var i = 0; i < 10; i++) p.recordAnswer('a', false);
+      for (var i = 0; i < 10; i++) {
+        p.recordAnswer('a', false);
+      }
       expect(drive(p, 'a', [true, true, true]).completed, isTrue);
     });
   });
