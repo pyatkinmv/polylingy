@@ -42,4 +42,9 @@ class ProgressRepository {
       lastAnsweredAt: Value(progress.lastAnsweredAt),
     ));
   }
+
+  Future<void> deleteProgress(String topicId, String courseId) =>
+      _dao.deleteProgress(topicId, courseId);
+
+  Future<void> deleteAllForCourse(String courseId) => _dao.deleteAllForCourse(courseId);
 }

@@ -243,6 +243,7 @@ class _StudyScreenState extends State<StudyScreen> {
     );
     if (confirmed == true) {
       await widget.topicRepo.deleteTopic(widget.course.id, topic.id);
+      await widget.progressRepo.deleteProgress(topic.id, widget.course.id);
       setState(() => _eligibleIds.remove(topic.id));
       _pickNext();
     }
