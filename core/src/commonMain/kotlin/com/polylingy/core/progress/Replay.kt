@@ -38,7 +38,8 @@ fun replay(
     val courseOfTopic = courses.flatMap { course -> course.topics.map { it.id to course.id } }.toMap()
     val states = courseOfTopic.keys.associateWith { TopicState(TopicProgress(it)) }.toMutableMap()
 
-    val ordered = events.sortedWith(compareBy({ it.occurredAt.instant }, { it.eventId.toString() }))
+    // Stable sort: events with the same instant keep their journal (append) order.
+    val ordered = events.sortedBy { it.occurredAt.instant }
     for (envelope in ordered) {
         val answer = envelope.event as? AnswerSubmitted ?: continue
         if (courseOfTopic[answer.topicId] != answer.courseId) continue

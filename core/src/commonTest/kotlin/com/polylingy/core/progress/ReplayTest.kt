@@ -82,6 +82,18 @@ class ReplayTest {
         assertEquals(2.5, states.getValue(a.id).progress.easeFactor, 0.001)   // the mistake still counts once
     }
 
+    @Test fun eventsAtTheSameInstantKeepJournalOrder() {
+        // A wrong answer followed by three right ones, all stamped with the same moment:
+        // the order must come from the journal, never from random event ids.
+        repeat(50) {
+            val now = at(day1)
+            val events = listOf(false, true, true, true).map { answer(c, a, it, now) }
+            val progress = replay(listOf(c), events).getValue(a.id).progress
+            assertEquals(ProgressStatus.TO_REVIEW, progress.status)
+            assertEquals(2.5, progress.easeFactor, 0.001)   // graduated with exactly one mistake
+        }
+    }
+
     // ── which day an answer belongs to ──────────────────────────────────────
 
     @Test fun dayIsTakenFromTheEventsOwnZone() {

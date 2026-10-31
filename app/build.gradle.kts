@@ -1,3 +1,5 @@
+import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.kotlin.serialization)
@@ -52,5 +54,25 @@ compose.desktop {
         }.get().metadata.installationPath.asFile.absolutePath
         // sqlite-jdbc loads a native library; JDK 24+ warns about that unless it's allowed explicitly.
         jvmArgs += "--enable-native-access=ALL-UNNAMED"
+
+        nativeDistributions {
+            targetFormats(TargetFormat.Msi)
+            packageName = "Polylingy"
+            packageVersion = "1.0.0"
+            description = "Spaced-repetition language learning"
+            vendor = "Polylingy"
+            // From ./gradlew :app:suggestRuntimeModules; java.desktop is always included.
+            modules("java.instrument", "java.sql", "jdk.unsupported")
+
+            windows {
+                iconFile = project.file("icons/polylingy.ico")
+                menuGroup = "Polylingy"
+                shortcut = true
+                perUserInstall = true
+                dirChooser = true
+                // Must never change: lets a newer .msi upgrade an installed version in place.
+                upgradeUuid = "024500e5-77f0-4b9a-93dd-5617686569a0"
+            }
+        }
     }
 }
