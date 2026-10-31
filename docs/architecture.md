@@ -61,6 +61,7 @@ polylingy/
 │   ├── journal/     EventEnvelope, Event, AnswerSubmitted, ZonedInstant
 │   ├── rules/       Sm2Policy, GraduationPolicy, TopicPicker, AnswerChecker
 │   ├── progress/    replay(), TopicProgress, отбор тем на сегодня
+│   ├── study/       сценарии использования: StudyService
 │   └── ports/       CourseRepository, EventLog, Clock
 ├── core/src/commonTest/
 ├── client/src/{commonMain, desktopMain}/
