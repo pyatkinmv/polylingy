@@ -71,6 +71,19 @@ class StudyUiTest {
         text("0 new · 0 to review · 1 done today").assertIsDisplayed()
     }
 
+    @Test fun ratingButtonsWorkWithTheMouse() = appTest(seed = { it.seedCourse(colors) }) {
+        click("Start")
+        answer("ROJO , roja")                 // case and spaces don't matter
+        text("red: rojo / roja").assertIsDisplayed()
+        screenshot("study-result-correct")
+        click("Incorrect")
+        repeat(3) {
+            answer("rojo, roja")
+            click("Correct")
+        }
+        text("All done for today!").assertIsDisplayed()
+    }
+
     @Test fun keyOneRatesIncorrectAndKeepsTheTopic() = appTest(seed = { it.seedCourse(colors) }) {
         click("Start")
         answer("rojo, roja")
