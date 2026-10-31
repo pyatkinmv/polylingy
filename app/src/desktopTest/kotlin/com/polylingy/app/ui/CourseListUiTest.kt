@@ -5,6 +5,7 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
+import com.polylingy.app.APP_VERSION
 import com.polylingy.app.MovableClock
 import kotlinx.datetime.LocalDateTime
 import kotlin.test.Test
@@ -12,7 +13,7 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-// The course-list part of the parity checklist in docs/migration-plan.md.
+// Course list scenarios; see docs/testing.md.
 class CourseListUiTest {
     private val topicJson = """{"subject": "Greetings", "exercises": [{"task": "hello", "answer": "hola"}]}"""
 
@@ -21,6 +22,10 @@ class CourseListUiTest {
         text("4 new · 0 to review · 0 done today").assertIsDisplayed()
         text("Start").assertIsEnabled()
         screenshot("course-list")
+    }
+
+    @Test fun appVersionIsShownOnTheCourseList() = appTest {
+        text("v$APP_VERSION").assertIsDisplayed()
     }
 
     @Test fun coursesAreListedOldestFirst() = appTest(seed = {

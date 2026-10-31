@@ -5,8 +5,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
-// Ported from the Flutter sm2_policy_test.dart "session —" groups. Multi-topic
-// independence now lives in ReplayTest, since streaks are kept per topic by replay().
+// Multi-topic independence is tested in ReplayTest, since streaks are kept per topic by replay().
 
 /** Feeds answers one by one, starting a fresh streak after each graduation, and returns every outcome. */
 private fun GraduationPolicy.run(answers: List<Boolean>): List<StreakOutcome> {

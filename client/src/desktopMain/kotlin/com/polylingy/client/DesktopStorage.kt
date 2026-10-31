@@ -8,7 +8,7 @@ import javax.swing.filechooser.FileSystemView
 import kotlin.io.path.createDirectories
 
 object DesktopStorage {
-    /** `<Documents>/polylingy`, next to (but separate from) the Flutter version's files. */
+    /** `<Documents>/polylingy`. */
     fun defaultDataDir(): Path = FileSystemView.getFileSystemView().defaultDirectory.toPath().resolve("polylingy")
 
     /** Opens the database file, creating it or migrating its schema as needed. */

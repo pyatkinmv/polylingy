@@ -36,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.polylingy.app.APP_VERSION
 import com.polylingy.app.CourseFiles
 import com.polylingy.app.ui.AddTopicDialog
 import com.polylingy.app.ui.ConfirmDialog
@@ -96,6 +97,12 @@ fun CourseListScreen(viewModel: CourseListViewModel, files: CourseFiles, onStart
                     )
                 }
             }
+            Text(
+                "v$APP_VERSION",
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.Gray,
+                modifier = Modifier.align(Alignment.BottomEnd).padding(8.dp),
+            )
         }
     }
 

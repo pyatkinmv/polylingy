@@ -30,7 +30,7 @@ class ReplayTest {
         assertEquals(ProgressStatus.NEW, states.getValue(b.id).progress.status)
     }
 
-    // ── topics are tracked independently (ported from the Flutter session tests) ──
+    // ── topics are tracked independently ──────────────────────────────────
 
     @Test fun completingADoesNotAffectBStreak() {
         val states = replayOf(ans(a, true), ans(b, true), ans(a, true), ans(a, true), ans(b, true))

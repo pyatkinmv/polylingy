@@ -47,7 +47,7 @@ Platform-specific parts sit in `desktopMain` behind small interfaces: `DesktopSt
 ## 8. Testing Helpers
 
 - Core rules: `core/src/commonTest/.../Fixtures.kt` builders (`course`, `topic`, `answer`, `at`)
-- Parity guard: `core/src/jvmTest/.../FlutterParityTest.kt` with golden data from the old Flutter implementation
+- SM-2 guard: `core/src/jvmTest/.../Sm2GoldenTest.kt` with golden data from the first implementation of the rules
 - UI: `app/src/desktopTest/.../ui/UiTestSupport.kt` — `appTest(seed) { click(…); menu(…); text(…); screenshot(…) }`
 
 See `docs/testing.md` for the workflow.

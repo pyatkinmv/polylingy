@@ -96,7 +96,7 @@ fun StudyScreen(viewModel: StudyViewModel, onBack: () -> Unit) {
     }
 }
 
-/** Scrollable column centred and capped at [ContentWidth], like the Flutter layout. */
+/** Scrollable column centred and capped at [ContentWidth]. */
 @Composable
 private fun CenteredColumn(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     Box(modifier.fillMaxWidth().verticalScroll(rememberScrollState()), contentAlignment = Alignment.TopCenter) {

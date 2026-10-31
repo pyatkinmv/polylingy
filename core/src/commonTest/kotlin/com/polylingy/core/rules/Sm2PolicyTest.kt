@@ -7,9 +7,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.uuid.Uuid
 
-// Ported 1:1 from the Flutter sm2_policy_test.dart "advance —" groups.
-// The "learning card" case is gone: that status was never set and no longer exists.
-
 private val today = LocalDate(2026, 1, 15)
 
 private fun newCard() = TopicProgress(Uuid.random())
@@ -55,7 +52,7 @@ class Sm2PolicyTest {
 
     @Test fun newCardZeroMistakes() = assertEquals(3, p.advance(newCard(), 0, today).intervalDays)
 
-    // Kotlin's roundToInt rounds 2.5 up to 3, same as Dart for positive numbers.
+    // roundToInt rounds 2.5 up to 3.
     @Test fun newCardOneMistake() = assertEquals(3, p.advance(newCard(), 1, today).intervalDays)
 
     @Test fun newCardTwoMistakes() = assertEquals(2, p.advance(newCard(), 2, today).intervalDays)
