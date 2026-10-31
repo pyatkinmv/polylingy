@@ -1,68 +1,73 @@
 # Polylingy
 
-Flutter desktop app for language learning via spaced repetition. Topics are loaded from user-managed JSON files; progress is stored locally in SQLite.
+Desktop app for language learning via spaced repetition, written in Kotlin Multiplatform with Compose. Courses are versioned documents; learning is an append-only journal of answers from which progress is derived. Everything is stored locally in SQLite.
+
+Only the desktop (JVM) target is built today, and only Windows is built and checked. Android, iOS, a server with sync and a web client are planned but not started — see `docs/architecture.md`.
 
 ## Tech Stack
 
-- **Flutter** (Windows / macOS / Linux desktop only — no mobile)
-- **Drift** `^2.20.0` — type-safe SQLite ORM with code generation
-- **sqlite3_flutter_libs** `^0.5.0` — native SQLite binaries
-- **path_provider** `^2.1.0` + **path** `^1.9.0` — filesystem access
+Versions live in `gradle/libs.versions.toml`.
 
-Dev tools: `drift_dev`, `build_runner`, `flutter_lints`.
+- **Kotlin Multiplatform** + **Compose Multiplatform** (desktop), Material 3
+- **JDK 25** via Gradle toolchain (auto-provisioned; Gradle itself may run on another JDK)
+- **SQLDelight** — SQLite with SQL-first, generated Kotlin
+- **kotlinx.serialization** (JSON), **kotlinx-datetime**
+- **AndroidX ViewModel + Navigation** for Compose Multiplatform
+- Tests: `kotlin.test`, Compose `ui-test`
 
-## Key Directories
+## Modules
 
-| Path | Purpose |
-|------|---------|
-| `lib/models/` | Pure domain models; no Flutter or DB imports |
-| `lib/data/` | Drift schema, DAOs, and repository wrappers |
-| `lib/services/` | Pure business logic (SR algorithm) |
-| `lib/screens/` | Flutter UI; receives repos via constructor injection |
-| `assets/` | Bundled sample course JSON, copied to disk on first run |
+| Module | Purpose |
+|--------|---------|
+| `core/` | Pure business logic, no UI/SQL/IO: content models, journal events, rules (SM-2, graduation, topic picking, answer checking), `replay()`, ports, `StudyService` / `CourseService` |
+| `client/` | Storage adapters: SQLite (`LocalStorage`), course file import/export (`CourseFile`), sample course; `desktopMain` opens the DB in `<Documents>/polylingy` |
+| `app/` | Compose UI: screens, ViewModels, `AppContainer` (manual DI); `desktopMain` has `main()` and native file dialogs |
+
+Dependencies point only towards `core`. Root package: `com.polylingy`.
 
 Key files:
-- `lib/main.dart:1` — entry point; creates `AppDatabase`, runs app
-- `lib/app.dart:7` — `PolylingyApp`; instantiates repos, wires `HomeScreen`
-- `lib/data/database.dart:8` — Drift schema + `ProgressDao`
-- `lib/data/database.g.dart` — **generated**, do not edit manually
-- `lib/services/repetition_policy.dart` / `sm2_policy.dart` — SR scheduling (`advance`, `eligibleTopicIds`)
-- `lib/services/graduation_policy.dart` — when a topic is done within a session (3 correct in a row)
-- `lib/services/topic_picker.dart` — which topic to show next
-- `lib/screens/home_screen.dart` — wires the concrete policies into `StudyScreen`
-- `lib/models/topic_progress.dart:35` — `isEligibleToday` eligibility logic
+- `app/src/desktopMain/kotlin/com/polylingy/app/Main.kt` — entry point: opens storage, seeds the sample course, opens the window
+- `app/src/commonMain/kotlin/com/polylingy/app/AppContainer.kt` — builds every long-lived object (clock, random, services)
+- `core/src/commonMain/kotlin/com/polylingy/core/progress/Replay.kt` — derives all progress from the journal
+- `core/src/commonMain/kotlin/com/polylingy/core/rules/` — SM-2, graduation, pickers, answer checking
+- `core/src/commonMain/kotlin/com/polylingy/core/journal/Events.kt` — journal event format (`schemaVersion`)
+- `client/src/commonMain/sqldelight/` — SQLite schema; Kotlin is generated from it
 
-## File Storage
+## Data Rules
+
+- **Journal events are immutable** and only appended. Evolve the format with `schemaVersion`; older versions must stay readable.
+- **Progress is never stored** — always `replay()`ed from the journal with the current rules (TODO(perf) noted in `Replay.kt`).
+- **Courses are whole documents** with `revision`/`updatedAt`; every edit goes through `CourseService`, which bumps the revision.
+- All ids are UUIDs. Topic ids are stable; deleting a topic never affects others.
+- Dates for scheduling are `LocalDate` from `ZonedInstant` (instant + zone), never raw `Instant` math.
+
+## Storage
 
 ```
 <Documents>/polylingy/
-  progress.db        # SQLite database
-  courses/           # User-managed JSON course files
-    sample_course.json
+  polylingy.db       # course_document, journal_event, setting
 ```
 
-Topic ID format: `"${courseId}::${topicJson.id}"`. Each topic stores its own `id` in the course JSON; `TopicRepository.ensureTopicIds` backfills missing ids with the topic's index (matching legacy `courseId::index` progress rows) and gives new topics a random id, so deleting a topic never shifts other topics' progress.
+Courses get in and out via JSON import/export (format compatible with the old Flutter files).
 
 ## Essential Commands
 
 ```bash
-# Install / update dependencies
-flutter pub get
+# All tests (core, client, app incl. UI tests); writes screenshots to app/build/screenshots/
+./gradlew check
 
-# Regenerate Drift code after schema changes
-dart run build_runner build --delete-conflicting-outputs
+# Run the app
+./gradlew :app:run
 
-# Static analysis
-flutter analyze
-
-# Run on desktop
-flutter run -d windows   # or -d macos / -d linux
-
-# Tests
-flutter test
+# Build the Windows installer -> app/build/compose/binaries/main/msi/
+./gradlew :app:packageMsi
 ```
 
-> **Windows note**: running the app requires Developer Mode enabled (needed for symlinks created by Flutter plugins).
+## Verifying Changes
+
+Follow `docs/testing.md`. For any UI change: add or extend a scenario in `app/src/desktopTest/.../ui/*UiTest.kt` (helpers in `UiTestSupport.kt`), call `screenshot("name")` for new or changed screens, run `./gradlew check`, then open the PNGs in `app/build/screenshots/` and review them. Only native file dialogs, the real window and the installer need manual checks.
+
+When launching the app from scripts, match processes by PID or executable path, never by window title — the user may have their own instance open.
 
 ## Git Workflow
 
@@ -72,12 +77,13 @@ flutter test
 git checkout -b <branch-name>   # e.g. feat/streak-counter, fix/review-date-off-by-one
 ```
 
-Do not commit directly to `main`.
+Do not commit directly to `master`.
 
 ## Additional Docs
 
-Check these when relevant:
-
 | File | When to read |
 |------|-------------|
-| `.claude/docs/architectural_patterns.md` | Adding features, understanding design decisions, dependency injection conventions |
+| `docs/architecture.md` | Target architecture: modules, documents vs journal, replay, sync concept, open questions |
+| `docs/testing.md` | How changes are verified: test levels, UI tests, screenshots, manual checks |
+| `docs/migration-plan.md` | History of the move from Flutter; parity checklist and what it covers |
+| `.claude/docs/architectural_patterns.md` | Code conventions: ports, DI, ViewModels, testing helpers |

@@ -1,35 +1,39 @@
 # Polylingy
 
-A Flutter desktop app for language learning via spaced repetition.
+A desktop app for language learning via spaced repetition, in the spirit of Anki but built around flexible exercises: a course consists of topics, each topic has several exercises with blanks, and a topic is scheduled as a whole.
 
-Topics are loaded from user-managed JSON files; progress is stored locally in SQLite — no account or internet connection required.
+Everything runs offline; data stays on your machine.
 
 ## Features
 
-- Spaced repetition scheduling (SM-2-inspired)
-- JSON-based courses — add your own topics without touching code
-- Progress persisted locally in SQLite
-- Clean desktop UI (Windows / macOS / Linux)
+- Spaced repetition (SM-2 variant): a topic "graduates" after 3 correct answers in a row, and the number of mistakes on the way decides the next interval
+- Exercises with blanks (`{0}`, `{1}`), answered comma-separated; automatic check plus your own Correct/Incorrect rating (keys `1` / `2`)
+- Explanations per exercise and per topic (plain text or simple HTML)
+- Courses imported from and exported to JSON files
+- Every answer is kept in a journal; progress is computed from it
 
-## Getting Started
+## Install
 
-### Prerequisites
-
-- [Flutter SDK](https://docs.flutter.dev/get-started/install) with desktop support enabled
-- Windows: [Developer Mode](https://learn.microsoft.com/en-us/windows/apps/get-started/enable-your-device-for-development) must be enabled (required for Flutter plugin symlinks)
-
-### Run
+Build the Windows installer and run it (installs for the current user, no admin rights, bundles its own Java):
 
 ```bash
-flutter pub get
-flutter run -d windows   # or -d macos / -d linux
+./gradlew :app:packageMsi
 ```
 
-### Add a course
+The installer is written to `app/build/compose/binaries/main/msi/`.
 
-Place a JSON file in `<Documents>/polylingy/courses/`. A sample course is copied there automatically on first run.
+## Development
 
-The course ID is the file name (`my_course.json` → `my_course`). Course format:
+Requires a JDK to run Gradle (21+); the JDK 25 used by the project is downloaded automatically.
+
+```bash
+./gradlew :app:run     # run the app
+./gradlew check        # all tests, including headless UI tests
+```
+
+Data lives in `<Documents>/polylingy/polylingy.db`.
+
+## Course format
 
 ```json
 {
@@ -55,21 +59,14 @@ The course ID is the file name (`my_course.json` → `my_course`). Course format
 }
 ```
 
-## Tech Stack
+Optional fields: `"generalExplanationFormat": "HTML"` for HTML explanations, and `"id"` (UUID) on the course, topics and exercises — missing ids are generated on import.
 
-- **Flutter** — desktop UI
-- **Drift** — type-safe SQLite ORM
-- **sqlite3_flutter_libs** — native SQLite binaries
+## Project layout
 
-## Development
+| Module | Contents |
+|---|---|
+| `core` | business logic: models, journal, SM-2 and other rules |
+| `client` | storage: SQLite, JSON import/export |
+| `app` | Compose UI |
 
-```bash
-# Regenerate Drift code after schema changes
-dart run build_runner build --delete-conflicting-outputs
-
-# Static analysis
-flutter analyze
-
-# Tests
-flutter test
-```
+See `docs/architecture.md` for the design and `docs/testing.md` for how changes are verified.

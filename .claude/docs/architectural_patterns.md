@@ -1,70 +1,53 @@
 # Architectural Patterns
 
-Patterns confirmed across multiple files in this codebase.
+Conventions used across the codebase. The big picture is in `docs/architecture.md`.
 
-## 1. Constructor Injection for Dependencies
+## 1. Ports and Adapters
 
-Repositories are created once at the top (`lib/app.dart:14-15`) and passed down via required constructor parameters — no service locator, no `Provider`, no `InheritedWidget`.
+`core` declares what it needs from the outside world as interfaces in `core/.../ports/Ports.kt` (`CourseRepository`, `EventLog`, `Clock`). Implementations live outside the core: `client` provides SQLite ones (`LocalStorage`), tests provide in-memory ones (`InMemoryCourseRepository`, `InMemoryEventLog`, `FixedClock` in `core/src/commonTest/.../Fixtures.kt`).
 
-Applies to:
-- `HomeScreen({required topicRepo, required progressRepo})` — `lib/screens/home_screen.dart`
-- `StudyScreen({required course, required progressRepo, required topicRepo, required policy, required topicPicker, required graduationPolicy})` — `lib/screens/study_screen.dart`
+Rule: `core` has no UI, SQL, file or network code. If something platform-specific is needed, add a port.
 
-When adding a new screen that needs data access, receive repos as constructor args. Learning rules (policies) are injected the same way: `HomeScreen` picks the concrete implementations when it opens `StudyScreen`.
+## 2. Swappable Rules
 
-## 2. Repository Pattern: Domain Models Over DB Rows
+Learning rules are interfaces with default implementations, bundled in `LearningRules`:
 
-`ProgressRepository` (`lib/data/progress_repository.dart`) translates between Drift-generated `TopicProgressTableData` rows and the domain `TopicProgress` model. Screens and services never touch Drift types directly.
+- `RepetitionPolicy` → `Sm2Policy` — schedules the next review after graduation
+- `GraduationPolicy` → `ConsecutiveCorrectPolicy` — pure: `(Streak, correct) -> StreakOutcome`
+- `CorrectnessRule` → `RatingThenAutoCheck` — whether an answer counts as correct
+- `TopicPicker` → `RandomTopicPicker`, `FixedTopicPicker`
 
-- DB row → domain: `_fromRow()` at `lib/data/progress_repository.dart:12`
-- Domain → DB row: `TopicProgressTableCompanion(...)` at `lib/data/progress_repository.dart:33`
+Rules are pure functions of their inputs; state (streaks, progress) is always derived by `replay()`.
 
-Rule: only `ProgressRepository` imports both `database.dart` and `topic_progress.dart`.
+## 3. Journal Plus Replay
 
-## 3. Pure Service Layer
+Answers are appended as `EventEnvelope`s and never changed. `replay(courses, events, rules)` folds the journal into per-topic `TopicState`. Use cases call it on demand (see `StudyService`). Events for content that no longer exists are ignored. Ordering is by instant with a stable sort, so equal instants keep journal order.
 
-`lib/services/` has zero Flutter, Drift, or I/O imports. Each learning rule is an abstract interface with swappable implementations:
+## 4. Use-Case Services
 
-- `RepetitionPolicy` → `Sm2Policy` (`lib/services/sm2_policy.dart`) — schedules the next review after a topic completes a session
-- `GraduationPolicy` → `ConsecutiveCorrectPolicy` (`lib/services/graduation_policy.dart`) — decides when a topic is done within a session
-- `TopicPicker` → `RandomTopicPicker`, `FixedTopicPicker` (`lib/services/topic_picker.dart`) — chooses the next topic
+Screens never touch repositories for business decisions. They call:
 
-All side effects (persistence, UI) happen in the screen after calling the service.
+- `StudyService` — course counters, next exercise, submitting answers
+- `CourseService` — every course edit (validates names, bumps `revision`)
 
-Pattern: `RepetitionPolicy` and `TopicPicker` receive values and return new values. `GraduationPolicy` is the exception — it keeps in-memory per-session counters, so create a fresh instance per study session.
+## 5. Manual Dependency Injection
 
-## 4. Immutable Domain Models with `copyWith`
+`AppContainer` builds every long-lived object once (storage, clock, `Random`, services). ViewModels receive what they need through constructors; `App.kt` creates them with `viewModel { … }`. No DI framework.
 
-`TopicProgress` is an immutable value object (`lib/models/topic_progress.dart:16`). Mutations are expressed by returning a new instance via `copyWith`. This is used consistently in `Sm2Policy.advance`.
+Clock and `Random` are injected so tests are repeatable.
 
-`Course`, `Topic`, and `Exercise` (`lib/models/course.dart`) are also immutable and constructed via `fromJson` factories.
+## 6. ViewModels With StateFlow
 
-## 5. Local `StatefulWidget` State (No Global State Management)
+Each screen has a ViewModel exposing `StateFlow` state (`CourseListViewModel`, `StudyViewModel` with a sealed `StudyState`). Actions are plain methods; operations are synchronous (the data is small). Errors meant for the user are returned as messages (`String?`) rather than thrown into the UI.
 
-Both screens (`HomeScreen`, `StudyScreen`) manage state locally with `setState`. There is no Redux, BLoC, Riverpod, or `ChangeNotifier` in this project. Async data is loaded in `initState` and exposed as nullable fields (`_courses`, `_eligibleIds`, etc.) with loading/error guards in `build`.
+## 7. Platform Code at the Edges
 
-When adding screens: follow the same pattern unless complexity clearly warrants a state management library.
+Platform-specific parts sit in `desktopMain` behind small interfaces: `DesktopStorage` (DB path and driver), `CourseFiles` / `DesktopCourseFiles` (native file dialogs), `Main.kt` (window). Screens and ViewModels are in `commonMain`.
 
-## 6. Screen-Local Private Classes
+## 8. Testing Helpers
 
-UI sub-components that are only used within one screen are defined as private classes in the same file (prefixed `_`), not extracted to separate files.
+- Core rules: `core/src/commonTest/.../Fixtures.kt` builders (`course`, `topic`, `answer`, `at`)
+- Parity guard: `core/src/jvmTest/.../FlutterParityTest.kt` with golden data from the old Flutter implementation
+- UI: `app/src/desktopTest/.../ui/UiTestSupport.kt` — `appTest(seed) { click(…); menu(…); text(…); screenshot(…) }`
 
-Examples:
-- `_CourseStats`, `_CourseCard` in `lib/screens/home_screen.dart`
-- `_StudyState`, `_ResultMode`, `_ExplanationBox`, `_FormattedContent` in `lib/screens/study_screen.dart`
-
-Extract to a separate file only when a widget is reused across screens.
-
-## 7. Enum Serialization via `value` / `fromInt`
-
-`ProgressStatus` stores an `int value` in SQLite and provides a `fromInt` factory for deserialization (`lib/models/topic_progress.dart:1-13`). The mapping lives in the model, not in the DAO or repository.
-
-## 8. Date Precision: Day-Level Only
-
-Dates are always normalized to midnight before comparison or storage:
-
-- `lib/screens/study_screen.dart` — `_today()` strips time component and is passed to every policy call
-- `lib/screens/home_screen.dart` — same in `HomeScreen._load()`
-- Policies (`Sm2Policy`, `TopicProgress.isEligibleToday`) expect an already-normalized `today` and do not normalize themselves
-
-Never compare raw `DateTime.now()` against stored dates — always normalize first.
+See `docs/testing.md` for the workflow.
