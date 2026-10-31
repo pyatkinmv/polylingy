@@ -9,9 +9,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.uuid.Uuid
 
-// Ported from the Flutter "eligibleTopicIds" group and widget_test.dart (isEligibleToday).
-// The "learning topic" case is gone with that status.
-
 private val today = LocalDate(2026, 1, 15)
 
 private fun reviewDue(date: LocalDate) =

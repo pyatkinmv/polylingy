@@ -48,7 +48,7 @@ Key files:
   polylingy.db       # course_document, journal_event, setting
 ```
 
-Courses get in and out via JSON import/export (format compatible with the old Flutter files).
+Courses get in and out via JSON import/export (files from the first app version, without ids, still import).
 
 ## Essential Commands
 
@@ -67,7 +67,19 @@ Courses get in and out via JSON import/export (format compatible with the old Fl
 
 Follow `docs/testing.md`. For any UI change: add or extend a scenario in `app/src/desktopTest/.../ui/*UiTest.kt` (helpers in `UiTestSupport.kt`), call `screenshot("name")` for new or changed screens, run `./gradlew check`, then open the PNGs in `app/build/screenshots/` and review them. Only native file dialogs, the real window and the installer need manual checks.
 
-When launching the app from scripts, match processes by PID or executable path, never by window title — the user may have their own instance open.
+**After every change, relaunch the app so the user can see it:** run `scripts/relaunch.ps1` in the background. It closes any running Polylingy (dev run or `Polylingy.exe`), then builds and starts the current code. Check that the window came up (process `java` with `com.polylingy.app.MainKt` in its command line, window title `Polylingy`) and say which version is now running.
+
+Never stop processes other than Polylingy's own — match them by command line or executable path, not by window title.
+
+## Versioning
+
+The app version lives only in `gradle.properties` (`version=0.MINOR.PATCH`). It is generated into `APP_VERSION` (shown as small text on the course list) and used as the installer version.
+
+Every change merged to `master` bumps the version, as part of that change:
+- **PATCH** (`0.1.0` → `0.1.1`) — fixes and small changes within the same scope;
+- **MINOR** (`0.1.x` → `0.2.0`) — a big feature, a large change, or a substantial batch of accumulated changes. PATCH resets to 0.
+
+When unsure which one applies, ask the user.
 
 ## Git Workflow
 
@@ -83,7 +95,6 @@ Do not commit directly to `master`.
 
 | File | When to read |
 |------|-------------|
-| `docs/architecture.md` | Target architecture: modules, documents vs journal, replay, sync concept, open questions |
+| `docs/architecture.md` | Architecture: modules, documents vs journal, replay, behaviour decisions, known debts, sync concept, open questions |
 | `docs/testing.md` | How changes are verified: test levels, UI tests, screenshots, manual checks |
-| `docs/migration-plan.md` | History of the move from Flutter; parity checklist and what it covers |
 | `.claude/docs/architectural_patterns.md` | Code conventions: ports, DI, ViewModels, testing helpers |

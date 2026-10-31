@@ -9,7 +9,7 @@ import androidx.compose.ui.test.pressKey
 import kotlinx.datetime.LocalDateTime
 import kotlin.test.Test
 
-// The study part of the parity checklist in docs/migration-plan.md.
+// Study scenarios; see docs/testing.md.
 class StudyUiTest {
     /** One topic with two blanks and both kinds of explanation, so every screen is deterministic. */
     private val colors = """

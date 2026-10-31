@@ -25,7 +25,7 @@ import kotlin.uuid.Uuid
 class CourseFormatException(message: String) : IllegalArgumentException(message)
 
 /**
- * The user-facing course file format, compatible with the Flutter version's files:
+ * The user-facing course file format (files from the first app version, without ids, still import):
  *
  * ```json
  * {"name": "…", "createdAt": "…", "topics": [{"subject": "…", "generalExplanation": "…",
@@ -115,7 +115,7 @@ object CourseFile {
         explanation = node.optionalString("exampleExplanation")?.takeIf { it.isNotEmpty() },
     )
 
-    /** Flutter wrote `createdAt` as local date-time without an offset; newer files use instants. */
+    /** Older files store `createdAt` as a local date-time without an offset; newer files use instants. */
     private fun parseTime(text: String, zone: TimeZone): Instant? =
         runCatching { Instant.parse(text) }.getOrNull()
             ?: runCatching { LocalDateTime.parse(text).toInstant(zone) }.getOrNull()

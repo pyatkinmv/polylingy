@@ -37,6 +37,27 @@ kotlin {
     }
 }
 
+// APP_VERSION constant generated from `version` in gradle.properties, so the UI shows the built version.
+val generateAppVersion = tasks.register("generateAppVersion") {
+    val appVersion = project.version.toString()
+    val outputDir = layout.buildDirectory.dir("generated/appVersion")
+    inputs.property("version", appVersion)
+    outputs.dir(outputDir)
+    doLast {
+        val file = outputDir.get().file("com/polylingy/app/AppVersion.kt").asFile
+        file.parentFile.mkdirs()
+        file.writeText(
+            """
+            |package com.polylingy.app
+            |
+            |/** Generated from `version` in gradle.properties. */
+            |const val APP_VERSION = "$appVersion"
+            |""".trimMargin(),
+        )
+    }
+}
+kotlin.sourceSets.commonMain { kotlin.srcDir(generateAppVersion) }
+
 // UI tests save screenshots of key screens here for manual (or Claude's) inspection.
 tasks.withType<Test>().configureEach {
     val screenshots = layout.buildDirectory.dir("screenshots")
@@ -58,7 +79,7 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Msi)
             packageName = "Polylingy"
-            packageVersion = "1.0.0"
+            packageVersion = project.version.toString()
             description = "Spaced-repetition language learning"
             vendor = "Polylingy"
             // From ./gradlew :app:suggestRuntimeModules; java.desktop is always included.

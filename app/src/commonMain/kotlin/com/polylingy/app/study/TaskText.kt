@@ -17,7 +17,7 @@ sealed interface TaskPart {
 /**
  * The task as shown on the result screen, with each blank filled in and marked right or wrong.
  * Tasks without `{n}` placeholders (e.g. "Translate: hello") get the answer appended on its own
- * line — the Flutter version showed no answer at all for them.
+ * line, so the answer is always visible.
  */
 fun annotateTask(task: String, check: AnswerCheck): List<TaskPart> {
     val byKey = check.blanks.associateBy { it.key }

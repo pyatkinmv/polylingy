@@ -28,7 +28,7 @@ class CourseFileTest {
     private fun courseJson(vararg topics: String, extra: String = "") =
         """{"name": "Spanish" $extra, "topics": [${topics.joinToString()}]}"""
 
-    // ── Flutter-era format ──────────────────────────────────────────────────
+    // ── older file format ───────────────────────────────────────────────────
 
     @Test fun stringAnswerBecomesBlankZero() {
         val exercise = parse(courseJson(topicJson())).topics.single().exercises.single()
@@ -59,7 +59,7 @@ class CourseFileTest {
         assertNull(topic.exercises.single().explanation)
     }
 
-    @Test fun flutterLocalCreatedAtIsReadInTheGivenZone() {
+    @Test fun localCreatedAtWithoutOffsetIsReadInTheGivenZone() {
         val course = parse(courseJson(extra = """, "createdAt": "2026-10-31T02:02:24.255718""""))
         assertEquals(LocalDateTime.parse("2026-10-31T02:02:24.255718").toInstant(zone), course.createdAt)
     }
@@ -68,7 +68,7 @@ class CourseFileTest {
 
     @Test fun missingNameGetsTheOldDefault() = assertEquals("Unnamed Course", parse("""{"topics": []}""").name)
 
-    // ── ids (successor of the Flutter ensureTopicIds tests) ────────────────
+    // ── ids ─────────────────────────────────────────────────────────────────
 
     @Test fun missingIdsGetFreshUuids() {
         val course = parse(courseJson(topicJson(), topicJson()))
@@ -81,8 +81,8 @@ class CourseFileTest {
         assertEquals(id, parse(courseJson(topicJson(extra = """, "id": "$id""""))).topics.single().id)
     }
 
-    @Test fun flutterStyleIdsAreReplaced() {
-        // The Flutter version used "0", "1", … and 8-hex ids; they aren't globally unique.
+    @Test fun nonUuidIdsAreReplaced() {
+        // Older files used "0", "1", … and 8-hex ids; they aren't globally unique.
         val topics = parse(courseJson(topicJson(extra = """, "id": "0""""), topicJson(extra = """, "id": "a1b2c3d4""""))).topics
         assertEquals(2, topics.map { it.id }.toSet().size)
     }

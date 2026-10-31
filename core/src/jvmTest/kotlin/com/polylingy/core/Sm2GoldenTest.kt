@@ -27,17 +27,17 @@ private data class GoldenProgress(val easeFactor: Double, val intervalDays: Int,
 private data class GoldenScenario(val sessions: List<GoldenSession>, val expected: List<GoldenProgress>)
 
 /**
- * Differential check against the Flutter implementation. `flutter_sm2_golden.json` was produced
- * by running the Dart `ConsecutiveCorrectPolicy` + `Sm2Policy` (lib/services, before the Flutter
- * code was removed) on 200 random answer histories, each session running until graduation.
- * The Kotlin journal + replay() must reproduce every graduation exactly.
+ * Guards the SM-2 schedule. `sm2_golden.json` holds 200 random answer histories (each session
+ * running until graduation) with the results of the app's first implementation of these rules.
+ * The journal + replay() must reproduce every graduation exactly; a failure means the scheduling
+ * rules changed, which should be a deliberate decision.
  */
-class FlutterParityTest {
+class Sm2GoldenTest {
     private val scenarios: List<GoldenScenario> = Json.decodeFromString(
-        requireNotNull(javaClass.getResource("/flutter_sm2_golden.json")).readText(),
+        requireNotNull(javaClass.getResource("/sm2_golden.json")).readText(),
     )
 
-    @Test fun replayMatchesTheFlutterScheduleAfterEveryGraduation() {
+    @Test fun replayMatchesTheGoldenScheduleAfterEveryGraduation() {
         var graduations = 0
         scenarios.forEachIndexed { s, scenario ->
             val topic = topic()
