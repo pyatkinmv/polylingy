@@ -1,0 +1,16 @@
+-- The learning journal: append-only. body is the full event envelope as JSON, so the
+-- event format can evolve (schema_version) without table migrations.
+CREATE TABLE journal_event (
+    event_id TEXT NOT NULL PRIMARY KEY,
+    occurred_at TEXT NOT NULL,
+    schema_version INTEGER NOT NULL,
+    type TEXT NOT NULL,
+    body TEXT NOT NULL
+);
+
+-- An event already in the journal (same event_id) is silently skipped.
+insert:
+INSERT OR IGNORE INTO journal_event(event_id, occurred_at, schema_version, type, body) VALUES (?, ?, ?, ?, ?);
+
+selectAll:
+SELECT body FROM journal_event ORDER BY rowid;

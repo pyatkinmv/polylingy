@@ -57,7 +57,7 @@ flowchart TD
 polylingy/
 ├── settings.gradle.kts, build.gradle.kts, gradle/libs.versions.toml, gradlew
 ├── core/src/commonMain/kotlin/com/polylingy/core/
-│   ├── content/     Course, Topic, Exercise
+│   ├── content/     Course, Topic, Exercise, CourseService (редактирование документов)
 │   ├── journal/     EventEnvelope, Event, AnswerSubmitted, ZonedInstant
 │   ├── rules/       Sm2Policy, GraduationPolicy, TopicPicker, AnswerChecker
 │   ├── progress/    replay(), TopicProgress, отбор тем на сегодня
@@ -201,9 +201,10 @@ fun replay(courses: List<Course>, events: List<EventEnvelope>, rules: Rules): Ma
 ## 8. Клиент: хранение
 
 - **SQLite через SQLDelight.** Схема пишется на SQL, Kotlin-код генерируется.
-- **Две таблицы:**
+- **Таблицы:**
   - `course_document` — курс целиком как JSON плюс `id`, `revision`, `updated_at`;
-  - `journal_event` — конверт события: `event_id`, время, пояс, `schema_version`, тип и тело события в JSON.
+  - `journal_event` — конверт события: `event_id`, время, пояс, `schema_version`, тип и тело события в JSON;
+  - `setting` — настройки установки, например `deviceId` для событий.
 
   Хранение тел в JSON позволяет развивать формат событий без миграций таблиц.
 - **Импорт и экспорт JSON** — обычные файлы курсов в формате, совместимом с текущим. Пример курса импортируется при первом запуске.

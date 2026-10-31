@@ -2,7 +2,6 @@ package com.polylingy.core.journal
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 import kotlin.uuid.Uuid
 
 /**
@@ -50,11 +49,4 @@ data class Rating(val scale: String, val value: String) {
         val CORRECT = Rating(BINARY, "correct")
         val INCORRECT = Rating(BINARY, "incorrect")
     }
-}
-
-/** JSON format shared by every component that stores or exchanges journal events. */
-val JournalJson = Json {
-    classDiscriminator = "type"
-    ignoreUnknownKeys = true
-    explicitNulls = false
 }

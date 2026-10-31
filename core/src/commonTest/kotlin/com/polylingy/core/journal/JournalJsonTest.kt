@@ -1,5 +1,6 @@
 package com.polylingy.core.journal
 
+import com.polylingy.core.PolylingyJson
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
@@ -24,9 +25,9 @@ class JournalJsonTest {
             occurredAt = zoned,
             event = AnswerSubmitted(Uuid.random(), Uuid.random(), Uuid.random(), "rojo, rosa", AutoCheck.PARTIAL, Rating.INCORRECT),
         )
-        val json = JournalJson.encodeToString(EventEnvelope.serializer(), envelope)
+        val json = PolylingyJson.encodeToString(EventEnvelope.serializer(), envelope)
         assertTrue("\"type\":\"AnswerSubmitted\"" in json, json)
-        assertEquals(envelope, JournalJson.decodeFromString(EventEnvelope.serializer(), json))
+        assertEquals(envelope, PolylingyJson.decodeFromString(EventEnvelope.serializer(), json))
     }
 
     @Test fun optionalFieldsAndUnknownKeysAreTolerated() {
@@ -35,7 +36,7 @@ class JournalJsonTest {
             {"eventId":"$id","deviceId":"$id","occurredAt":"$zoned","schemaVersion":1,"addedLater":true,
              "event":{"type":"AnswerSubmitted","courseId":"$id","topicId":"$id","exerciseId":"$id","input":"x"}}
         """.trimIndent()
-        val event = JournalJson.decodeFromString(EventEnvelope.serializer(), json).event as AnswerSubmitted
+        val event = PolylingyJson.decodeFromString(EventEnvelope.serializer(), json).event as AnswerSubmitted
         assertEquals(null, event.autoCheck)
         assertEquals(null, event.rating)
     }

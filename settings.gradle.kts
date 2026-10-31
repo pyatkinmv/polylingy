@@ -19,3 +19,4 @@ dependencyResolutionManagement {
 rootProject.name = "polylingy"
 
 include(":core")
+include(":client")
