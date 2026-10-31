@@ -1,10 +1,10 @@
 * text=auto
 
-# Flutter regenerates these with LF on every build; pin LF so they don't show up as modified.
-**/flutter/generated_plugin_registrant.* text eol=lf
-**/flutter/generated_plugins.cmake text eol=lf
-macos/Flutter/GeneratedPluginRegistrant.swift text eol=lf
-
 # Gradle wrapper scripts
 gradlew text eol=lf
 *.bat text eol=crlf
+
+# Binary assets
+*.jar binary
+*.png binary
+*.ico binary
