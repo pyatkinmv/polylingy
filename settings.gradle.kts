@@ -2,6 +2,7 @@ pluginManagement {
     repositories {
         gradlePluginPortal()
         mavenCentral()
+        google()
     }
 }
 
@@ -13,6 +14,7 @@ plugins {
 dependencyResolutionManagement {
     repositories {
         mavenCentral()
+        google()
     }
 }
 
@@ -20,3 +22,4 @@ rootProject.name = "polylingy"
 
 include(":core")
 include(":client")
+include(":app")

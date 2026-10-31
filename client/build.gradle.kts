@@ -32,3 +32,8 @@ sqldelight {
         }
     }
 }
+
+// sqlite-jdbc loads a native library; JDK 24+ warns about that unless it's allowed explicitly.
+tasks.withType<Test>().configureEach {
+    jvmArgs("--enable-native-access=ALL-UNNAMED")
+}
