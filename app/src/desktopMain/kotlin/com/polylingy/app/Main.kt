@@ -7,8 +7,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
+import com.polylingy.client.CourseArchive
 import com.polylingy.client.DesktopStorage
-import com.polylingy.client.seedSampleCourse
+import com.polylingy.client.FileImageStore
+import com.polylingy.client.HttpImageFetcher
+import com.polylingy.client.sampleCourse
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.jetbrains.skia.Image
 import java.awt.Dimension
 
@@ -17,13 +21,25 @@ private val AppIcon = BitmapPainter(
         .toComposeImageBitmap(),
 )
 
+/** Decodes PNG, JPEG, GIF, WebP and the rest that Skia knows. */
+val SkiaImageDecoder = ImageDecoder { Image.makeFromEncoded(it).toComposeImageBitmap() }
+
 fun main() {
-    val storage = DesktopStorage.open()
-    seedSampleCourse(storage, SystemClock, DesktopStorage.sampleCourseJson())
+    val dataDir = DesktopStorage.defaultDataDir()
+    // Read by logback.xml; must be set before the first logger is created.
+    System.setProperty("polylingy.logs", dataDir.resolve("logs").toString())
+    val log = KotlinLogging.logger {}
+    log.info { "Polylingy $APP_VERSION starting, data in $dataDir" }
+    Thread.setDefaultUncaughtExceptionHandler { thread, e -> log.error(e) { "Uncaught exception in thread ${thread.name}" } }
+
+    val storage = DesktopStorage.open(dataDir)
+    val images = FileImageStore(dataDir.resolve("images"))
+    val fetcher = HttpImageFetcher()
 
     application {
         Window(
             onCloseRequest = {
+                log.info { "Polylingy closing" }
                 storage.close()
                 exitApplication()
             },
@@ -32,7 +48,11 @@ fun main() {
             state = rememberWindowState(width = 832.dp, height = 720.dp),
         ) {
             window.minimumSize = Dimension(480, 400)
-            val container = remember { AppContainer(storage, DesktopCourseFiles(window)) }
+            val container = remember {
+                AppContainer(storage, DesktopCourseFiles(window), images, fetcher, CourseArchive, SkiaImageDecoder).also {
+                    it.library.seedSample(sampleCourse())
+                }
+            }
             App(container)
         }
     }

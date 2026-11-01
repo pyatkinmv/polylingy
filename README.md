@@ -1,72 +1,70 @@
 # Polylingy
 
-A desktop app for language learning via spaced repetition, in the spirit of Anki but built around flexible exercises: a course consists of topics, each topic has several exercises with blanks, and a topic is scheduled as a whole.
+A desktop app for language learning with spaced repetition, in the spirit of Anki but built around a textbook:
+a course has units with a page of theory, units have topics, and each topic has several exercises of different kinds.
+A topic is learned and reviewed as a whole; each time one of its exercises is picked.
 
 Everything runs offline; data stays on your machine.
 
 ## Features
 
-- Spaced repetition (SM-2 variant): a topic "graduates" after 3 correct answers in a row, and the number of mistakes on the way decides the next interval
-- Exercises with blanks (`{0}`, `{1}`), answered comma-separated; automatic check plus your own Correct/Incorrect rating (keys `1` / `2`)
-- Explanations per exercise and per topic (plain text or simple HTML)
-- Courses imported from and exported to JSON files
+- Theory pages built from blocks: sections, situations with pictures, tables, examples, word lists, tips, links
+- Six exercise types: gaps, choice, pictures with gaps, tables with gaps, matching, word order
+- Answers are checked item by item, with one forgiven typo per item if the course allows it
+- Explanations after every check: per exercise, per topic, and short notes per item, with links into the theory
+- Course policies: a preset (`quick`, `ladder` by default, `sm2`) with optional overrides — grading, mastery, schedule, order
+- Courses imported from and exported to `course.json` or a zip with pictures
 - Every answer is kept in a journal; progress is computed from it
 
-## Install
-
-Build the Windows installer and run it (installs for the current user, no admin rights, bundles its own Java):
-
-```bash
-./gradlew :app:packageMsi
-```
-
-The installer is written to `app/build/compose/binaries/main/msi/`.
-
-## Development
+## Running
 
 Requires a JDK to run Gradle (21+); the JDK 25 used by the project is downloaded automatically.
 
 ```bash
 ./gradlew :app:run     # run the app
-./gradlew check        # all tests, including headless UI tests
+./gradlew check        # all tests, including headless UI tests and coverage
 ```
 
-Data lives in `<Documents>/polylingy/polylingy.db`.
+Data lives in `<Documents>/polylingy/` (`polylingy.db`, course pictures, logs). A sample course is added on first launch;
+more courses to try are in `examples/` — import them with the Import button.
+
+A Windows installer can be built with `./gradlew :app:packageMsi` (into `app/build/compose/binaries/main/msi/`);
+it isn't checked for now.
 
 ## Course format
 
 ```json
 {
-  "name": "My Course",
-  "topics": [
+  "formatVersion": 1,
+  "name": "English Grammar",
+  "units": [
     {
-      "subject": "Topic name",
-      "generalExplanation": "Optional explanation shown after each answer.",
-      "exercises": [
-        {
-          "task": "Translate: hello",
-          "answer": "hola",
-          "exampleExplanation": "Used in informal greetings."
-        },
-        {
-          "task": "red: {0} (masculine) / {1} (feminine)",
-          "answer": {"0": "rojo", "1": "roja"},
-          "exampleExplanation": "Multiple blanks: answer them comma-separated."
-        }
-      ]
+      "title": "Present continuous",
+      "theory": { "format": "blocks", "blocks": [
+        { "type": "section", "label": "A", "title": "Happening now",
+          "blocks": [ { "type": "text", "text": "He**’s cycling** to work." } ] } ] },
+      "topics": [
+        { "title": "Things happening now",
+          "exercises": [
+            { "type": "gaps", "instruction": "Complete the sentences.",
+              "items": [ { "text": "Listen! Somebody {{’s singing|is singing}}.", "hint": "sing" } ] } ] } ]
     }
   ]
 }
 ```
 
-Optional fields: `"generalExplanationFormat": "HTML"` for HTML explanations, and `"id"` (UUID) on the course, topics and exercises — missing ids are generated on import.
+The full format — every block and exercise type, explanations, links, pictures, validation and `formatVersion` —
+is in `docs/content-format.md`.
 
 ## Project layout
 
 | Module | Contents |
 |---|---|
-| `core` | business logic: models, journal, SM-2 and other rules |
-| `client` | storage: SQLite, JSON import/export |
-| `app` | Compose UI |
+| `content` | course content: markup, theory blocks, exercise types, validation, strict JSON |
+| `content-compose` | drawing theory and exercises with Compose |
+| `core` | business logic: course model, journal, checking, course policies, `replay()`, services |
+| `client` | storage: SQLite, import/export with pictures |
+| `app` | Compose desktop UI |
 
-See `docs/architecture.md` for the design and `docs/testing.md` for how changes are verified.
+See `docs/architecture.md` for the design, `docs/learning-model.md` for how learning works and `docs/testing.md`
+for how changes are verified.

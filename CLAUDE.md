@@ -19,17 +19,26 @@ Versions live in `gradle/libs.versions.toml`.
 
 | Module | Purpose |
 |--------|---------|
-| `core/` | Pure business logic, no UI/SQL/IO: content models, journal events, rules (SM-2, graduation, topic picking, answer checking), `replay()`, ports, `StudyService` / `CourseService` |
-| `client/` | Storage adapters: SQLite (`LocalStorage`), course file import/export (`CourseFile`), sample course; `desktopMain` opens the DB in `<Documents>/polylingy` |
+| `content/` | Course content, independent of the rest: text markup, theory blocks, exercise types, `validate()`, strict JSON (`ContentJson`) |
+| `content-compose/` | Draws content: `ContentView` (theory blocks), `ExerciseView` (every exercise type), `ContentTheme`, `ImageLoader`; knows nothing of courses or checking |
+| `core/` | Pure business logic, no UI/SQL/IO: course model and file (`CourseJson`), journal events, checking, course policies, `replay()`, ports, `CourseService` / `StudyService` |
+| `client/` | Storage adapters: SQLite (`LocalStorage`), course import/export with pictures (`CourseLibrary`), sample course; `desktopMain` has zip, picture files, HTTP and the DB in `<Documents>/polylingy` |
 | `app/` | Compose UI: screens, ViewModels, `AppContainer` (manual DI); `desktopMain` has `main()` and native file dialogs |
 
-Dependencies point only towards `core`. Root package: `com.polylingy`.
+Dependencies point only towards `core` (and `core` → `content`). Root package: `com.polylingy`.
+
+Version 0.2 is the rewrite to the current model (courses with units and theory, six exercise types, course policies); how it went is in `docs/migration-plan.md`. Example courses for manual checks are in `examples/`.
 
 Key files:
 - `app/src/desktopMain/kotlin/com/polylingy/app/Main.kt` — entry point: opens storage, seeds the sample course, opens the window
 - `app/src/commonMain/kotlin/com/polylingy/app/AppContainer.kt` — builds every long-lived object (clock, random, services)
-- `core/src/commonMain/kotlin/com/polylingy/core/progress/Replay.kt` — derives all progress from the journal
-- `core/src/commonMain/kotlin/com/polylingy/core/rules/` — SM-2, graduation, pickers, answer checking
+- `app/src/commonMain/kotlin/com/polylingy/app/App.kt` — routes and `Navigator`; screens in `courses/`, `course/`, `study/`, look in `ui/Look.kt`
+- `content/src/commonMain/kotlin/com/polylingy/content/` — `Inline`, `Block`, `Exercise`, `ContentJson`
+- `core/src/commonMain/kotlin/com/polylingy/core/content/CourseJson.kt` — reading and writing course files, all checks
+- `client/src/commonMain/kotlin/com/polylingy/client/CourseLibrary.kt` — import/export with pictures
+- `core/src/commonMain/kotlin/com/polylingy/core/rules/TextMatcher.kt`, `ExerciseChecker.kt` — checking answers
+- `core/src/commonMain/kotlin/com/polylingy/core/learning/` — the four policies, presets, `replay()` (derives all progress from the journal)
+- `core/src/commonMain/kotlin/com/polylingy/core/study/StudyService.kt` — what to show next, answering, progress for screens
 - `core/src/commonMain/kotlin/com/polylingy/core/journal/Events.kt` — journal event format (`schemaVersion`)
 - `client/src/commonMain/sqldelight/` — SQLite schema; Kotlin is generated from it
 
@@ -46,9 +55,11 @@ Key files:
 ```
 <Documents>/polylingy/
   polylingy.db       # course_document, journal_event, setting
+  images/<courseId>/ # pictures of each course: images/… from its archive, remote/<hash> downloaded by URL
+  logs/              # polylingy.log, one file per day, kept 14 days
 ```
 
-Courses get in and out via JSON import/export (files from the first app version, without ids, still import).
+Courses get in and out as files: `course.json` alone or a zip with `course.json` and `images/` (`docs/content-format.md`). Data from 0.1 is not supported: its database was thrown away.
 
 ## Essential Commands
 
@@ -96,5 +107,8 @@ Do not commit directly to `master`.
 | File | When to read |
 |------|-------------|
 | `docs/architecture.md` | Architecture: modules, documents vs journal, replay, behaviour decisions, known debts, sync concept, open questions |
+| `docs/learning-model.md` | Learning model: units, rounds, grades, course policies, checking and typos |
+| `docs/migration-plan.md` | How 0.2 was built (done): stages, invariants, decisions, open questions |
+| `docs/content-format.md` | Course format: theory blocks, exercise types, explanations, links, import, validation, `formatVersion` |
 | `docs/testing.md` | How changes are verified: test levels, UI tests, screenshots, manual checks |
 | `.claude/docs/architectural_patterns.md` | Code conventions: ports, DI, ViewModels, testing helpers |

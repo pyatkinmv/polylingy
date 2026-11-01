@@ -1,20 +1,55 @@
 package com.polylingy.core.content
 
+import com.polylingy.content.Content
+import com.polylingy.content.Exercise
+import com.polylingy.content.Inline
+import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import kotlin.time.Instant
 import kotlin.uuid.Uuid
 
+/** The course file format this app reads and writes; see docs/content-format.md, section 9. */
+const val FORMAT_VERSION = 1
+
 /**
- * A course is a versioned document: it is always saved and synced as a whole.
- * On conflict the higher [revision] wins; [updatedAt] breaks ties.
+ * A course is a versioned document: it is always saved and synced as a whole, in the same JSON as the course file.
+ * On conflict the higher [revision] wins; [updatedAt] breaks ties. A course has either [units] or [topics].
  */
 @Serializable
 data class Course(
+    @EncodeDefault val formatVersion: Int = FORMAT_VERSION,
     val id: Uuid,
     val name: String,
+    val description: Inline? = null,
     val createdAt: Instant,
-    val revision: Int,
+    val revision: Int = 0,
     val updatedAt: Instant,
+    val theme: Theme? = null,
+    val settings: CourseSettings = CourseSettings(),
+    /** Course policies; without them, the ladder preset. */
+    val rules: RulesSpec? = null,
+    val units: List<CourseUnit> = emptyList(),
+    val topics: List<Topic> = emptyList(),
+    /**
+     * The document as read, for a course of a newer format: it holds content this app can't write,
+     * so it is saved from this text, and the course can be studied but not exported.
+     */
+    @Transient val sourceJson: String? = null,
+) {
+    val studyOnly: Boolean get() = formatVersion > FORMAT_VERSION
+
+    /** Topics in course order: unit by unit, or the course's own topics. */
+    val allTopics: List<Topic> get() = units.flatMap { it.topics } + topics
+}
+
+/** A part of a course: a page of theory and the topics that practise it. */
+@Serializable
+data class CourseUnit(
+    val id: Uuid,
+    val title: String,
+    val subtitle: Inline? = null,
+    val theory: Content? = null,
     val topics: List<Topic>,
 )
 
@@ -22,25 +57,18 @@ data class Course(
 @Serializable
 data class Topic(
     val id: Uuid,
-    val subject: String,
-    val explanation: Explanation? = null,
+    val title: String,
+    /** Shown after an exercise is checked when the exercise has no explanation of its own. */
+    val explanation: Content? = null,
     val exercises: List<Exercise>,
 )
 
-/** A task with blanks `{0}`, `{1}`, … whose expected values are in [answers], keyed by blank number. */
+/** [accent] is a colour like `#2F6B5E`; without it the app's own colour is used. */
 @Serializable
-data class Exercise(
-    val id: Uuid,
-    val task: String,
-    val answers: Map<String, String>,
-    val explanation: String? = null,
-)
+data class Theme(val accent: String? = null)
 
 @Serializable
-data class Explanation(
-    val text: String,
-    val format: ExplanationFormat = ExplanationFormat.TEXT,
+data class CourseSettings(
+    /** Whether one typo per item still counts (docs/learning-model.md, section 3). */
+    val allowTypos: Boolean = true,
 )
-
-@Serializable
-enum class ExplanationFormat { TEXT, HTML }

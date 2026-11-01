@@ -1,86 +1,117 @@
 package com.polylingy.app.study
 
 import androidx.lifecycle.ViewModel
-import com.polylingy.core.content.CourseService
-import com.polylingy.core.content.Exercise
-import com.polylingy.core.content.Topic
-import com.polylingy.core.journal.AutoCheck
-import com.polylingy.core.journal.Rating
-import com.polylingy.core.ports.CourseRepository
-import com.polylingy.core.rules.AnswerCheck
-import com.polylingy.core.rules.AnswerChecker
+import com.polylingy.content.ItemCheck
+import com.polylingy.content.ItemResult
+import com.polylingy.content.Response
+import com.polylingy.content.emptyResponse
+import com.polylingy.core.content.Course
+import com.polylingy.core.learning.TopicStatus
+import com.polylingy.core.study.AnswerOutcome
+import com.polylingy.core.study.NextExercise
+import com.polylingy.core.study.ProgressCounts
 import com.polylingy.core.study.StudyService
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlin.random.Random
+import kotlinx.datetime.LocalDate
 import kotlin.uuid.Uuid
 
+private val log = KotlinLogging.logger {}
+
 sealed interface StudyState {
-    val topic: Topic? get() = null
+    /**
+     * An exercise on screen: [response] is what the learner has entered; after "Check" [outcome] holds the checks.
+     * [review] — the topic was passed before, this is a review. [seed] fixes the shuffled order for this showing.
+     */
+    data class Exercise(
+        val next: NextExercise,
+        val response: Response,
+        val outcome: AnswerOutcome?,
+        val review: Boolean,
+        val seed: Int,
+    ) : StudyState {
+        val checks: List<ItemCheck>? get() = outcome?.checks
+    }
 
-    data class Answering(override val topic: Topic, val exercise: Exercise, val input: String = "") : StudyState
+    /** Nothing left today in the unit (or course): [counts] of the same scope. */
+    data class Done(val counts: ProgressCounts) : StudyState
 
-    data class Reviewing(
-        override val topic: Topic,
-        val exercise: Exercise,
-        val input: String,
-        val check: AnswerCheck,
-        val phrase: String,
-    ) : StudyState
-
-    data object Done : StudyState
+    /** The course or topic is gone, or has no exercise this version can show. */
+    data object Missing : StudyState
 }
 
+/**
+ * Studying: one exercise after another, from [topicId] if the learner picked a topic, else as the course's picker
+ * chooses — in [unitId], or in the whole course. All rules live in [StudyService]; this only keeps the screen's state.
+ */
 class StudyViewModel(
-    private val courseId: Uuid,
     private val study: StudyService,
-    private val editor: CourseService,
-    courses: CourseRepository,
-    private val random: Random = Random.Default,
+    val courseId: Uuid,
+    val unitId: Uuid?,
+    topicId: Uuid?,
 ) : ViewModel() {
-    val courseName: String = courses.get(courseId)?.name.orEmpty()
+    val course: Course? = study.progress(courseId)?.course
+    private var shown = 0
 
-    private val _state = MutableStateFlow(next(current = null))
+    private val _state = MutableStateFlow(show(topicId?.let { study.practise(courseId, it) } ?: study.next(courseId, unitId)))
     val state: StateFlow<StudyState> = _state.asStateFlow()
 
-    fun onInput(text: String) {
-        val answering = _state.value as? StudyState.Answering ?: return
-        _state.value = answering.copy(input = text)
+    fun change(response: Response) {
+        val current = _state.value as? StudyState.Exercise ?: return
+        if (current.outcome == null) _state.value = current.copy(response = response)
     }
 
-    fun submit() {
-        val answering = _state.value as? StudyState.Answering ?: return
-        val check = AnswerChecker.check(answering.exercise, answering.input)
-        _state.value = StudyState.Reviewing(
-            answering.topic, answering.exercise, answering.input, check, phrase = PHRASES.getValue(check.result).random(random),
-        )
+    fun check() {
+        val current = _state.value as? StudyState.Exercise ?: return
+        if (current.outcome != null) return
+        val next = current.next
+        log.info { "User checks exercise ${next.exercise.id} of topic ${next.topic.id}" }
+        _state.value = current.copy(outcome = study.answer(courseId, next.topic.id, next.exercise.id, current.response))
     }
 
-    /** The user's self-rating; it decides graduation (see RatingThenAutoCheck). */
-    fun rate(correct: Boolean) {
-        val reviewing = _state.value as? StudyState.Reviewing ?: return
-        study.submitAnswer(
-            courseId, reviewing.topic.id, reviewing.exercise.id, reviewing.input, reviewing.check.result,
-            if (correct) Rating.CORRECT else Rating.INCORRECT,
-        )
-        _state.value = next(current = reviewing.topic.id)
+    /** The next exercise, or "done for today". */
+    fun next() {
+        val current = _state.value as? StudyState.Exercise ?: return
+        log.info { "User goes on from exercise ${current.next.exercise.id}" }
+        _state.value = show(study.next(courseId, unitId, current = current.next.topic.id, lastExercise = current.next.exercise.id))
     }
 
-    fun removeCurrentTopic() {
-        val topic = _state.value.topic ?: return
-        editor.deleteTopic(courseId, topic.id)
-        _state.value = next(current = null)
-    }
-
-    private fun next(current: Uuid?): StudyState =
-        study.nextExercise(courseId, current)?.let { StudyState.Answering(it.topic, it.exercise) } ?: StudyState.Done
-
-    private companion object {
-        val PHRASES = mapOf(
-            AutoCheck.CORRECT to listOf("Correct!", "Well done!", "Right!", "Got it!", "Yes!"),
-            AutoCheck.PARTIAL to listOf("Partially right.", "Some correct!", "Half right!", "Almost!", "Close!"),
-            AutoCheck.INCORRECT to listOf("Incorrect.", "Not quite.", "Try again.", "Missed it.", "Wrong."),
-        )
+    private fun show(next: NextExercise?): StudyState {
+        val progress = study.progress(courseId) ?: return StudyState.Missing
+        if (next == null) {
+            if (course == null) return StudyState.Missing
+            val counts = unitId?.let { id -> progress.units.firstOrNull { it.unit.id == id }?.counts } ?: progress.counts
+            log.info { "Nothing left today in course $courseId${unitId?.let { " unit $it" }.orEmpty()}" }
+            return StudyState.Done(counts)
+        }
+        val topic = progress.allTopics.first { it.topic.id == next.topic.id }
+        val review = topic.status == TopicStatus.Due || (topic.status == TopicStatus.InProgress && topic.studied)
+        log.info { "Shows exercise ${next.exercise.id} of topic ${next.topic.id} \"${next.topic.title}\"${if (review) " (review)" else ""}" }
+        return StudyState.Exercise(next, next.exercise.emptyResponse(), outcome = null, review = review, seed = shown++)
     }
 }
+
+/** What the check found, the same words for every exercise type: "All correct", "1 mistake · 2 typos". */
+fun checkLine(checks: List<ItemCheck>): String {
+    val mistakes = checks.count { it.result == ItemResult.WRONG }
+    val typos = checks.count { it.result == ItemResult.TYPO }
+    if (mistakes == 0 && typos == 0) return "All correct"
+    return listOfNotNull(
+        mistakes.takeIf { it > 0 }?.let { plural(it, "mistake") },
+        typos.takeIf { it > 0 }?.let { plural(it, "typo") },
+    ).joinToString(" · ")
+}
+
+/** What changed for the topic, from its status before and after the answer; null when nothing worth saying did. */
+fun progressLine(outcome: AnswerOutcome, describeDay: (LocalDate) -> String): String? {
+    if (outcome.before == outcome.after) return null
+    return when (val after = outcome.after) {
+        is TopicStatus.Passed -> "Topic passed — next review ${describeDay(after.due)}"
+        TopicStatus.Learned -> "Topic learned for good"
+        else -> null
+    }
+}
+
+private fun plural(n: Int, noun: String) = "$n $noun${if (n == 1) "" else "s"}"

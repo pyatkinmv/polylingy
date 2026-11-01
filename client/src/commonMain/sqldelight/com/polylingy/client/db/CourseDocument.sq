@@ -8,7 +8,7 @@ CREATE TABLE course_document (
 );
 
 selectAll:
-SELECT body FROM course_document;
+SELECT id, body FROM course_document;
 
 selectById:
 SELECT body FROM course_document WHERE id = ?;

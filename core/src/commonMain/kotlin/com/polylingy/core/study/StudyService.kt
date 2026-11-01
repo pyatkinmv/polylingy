@@ -1,100 +1,181 @@
 package com.polylingy.core.study
 
+import com.polylingy.content.Exercise
+import com.polylingy.content.ItemCheck
+import com.polylingy.content.Response
 import com.polylingy.core.content.Course
-import com.polylingy.core.content.Exercise
+import com.polylingy.core.content.CourseUnit
 import com.polylingy.core.content.Topic
 import com.polylingy.core.journal.AnswerSubmitted
-import com.polylingy.core.journal.AutoCheck
 import com.polylingy.core.journal.EventEnvelope
-import com.polylingy.core.journal.Rating
+import com.polylingy.core.learning.Candidate
+import com.polylingy.core.learning.CourseRules
+import com.polylingy.core.learning.TopicStatus
+import com.polylingy.core.learning.replay
+import com.polylingy.core.learning.status
+import com.polylingy.core.learning.toRules
 import com.polylingy.core.ports.Clock
 import com.polylingy.core.ports.CourseRepository
 import com.polylingy.core.ports.EventLog
-import com.polylingy.core.progress.LearningRules
-import com.polylingy.core.progress.ProgressStatus
-import com.polylingy.core.progress.TopicState
-import com.polylingy.core.progress.replay
-import com.polylingy.core.rules.RandomTopicPicker
-import com.polylingy.core.rules.TopicPicker
+import com.polylingy.core.rules.CheckSettings
+import com.polylingy.core.rules.Checking
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.datetime.LocalDate
 import kotlin.random.Random
 import kotlin.uuid.Uuid
 
-data class CourseStats(val course: Course, val newCount: Int, val toReview: Int, val doneToday: Int) {
-    val eligible: Int get() = newCount + toReview
+private val log = KotlinLogging.logger {}
+
+/** A topic's status today; [studied] — it has been passed at least once, so it counts as studied even while due again. */
+data class TopicProgress(val topic: Topic, val status: TopicStatus, val studied: Boolean)
+
+/**
+ * How a set of topics stands today, for the numbers on a course or unit card. Every topic is in exactly one of
+ * [learnedForGood], [resting] (passed, comes back on a later day), [due], [learning] (a round under way) and [new].
+ */
+data class ProgressCounts(
+    val learnedForGood: Int,
+    val resting: Int,
+    val due: Int,
+    val learning: Int,
+    val new: Int,
+    val studied: Int,
+    /** The earliest day a resting topic comes back, if any. */
+    val nextReview: LocalDate?,
+) {
+    val total: Int get() = learnedForGood + resting + due + learning + new
+
+    /** What waits today: reviews and rounds under way. New topics are not counted: there is no daily limit for them. */
+    val today: Int get() = due + learning
+
+    companion object {
+        fun of(topics: List<TopicProgress>): ProgressCounts {
+            val statuses = topics.map { it.status }
+            return ProgressCounts(
+                learnedForGood = statuses.count { it == TopicStatus.Learned },
+                resting = statuses.count { it is TopicStatus.Passed },
+                due = statuses.count { it == TopicStatus.Due },
+                learning = statuses.count { it == TopicStatus.InProgress },
+                new = statuses.count { it == TopicStatus.New },
+                studied = topics.count { it.studied },
+                nextReview = statuses.filterIsInstance<TopicStatus.Passed>().minOfOrNull { it.due },
+            )
+        }
+    }
 }
 
-data class NextExercise(val topic: Topic, val exercise: Exercise)
+/** A unit is learned when all its topics are; [started] — some topic of it has been answered. */
+data class UnitProgress(val unit: CourseUnit, val topics: List<TopicProgress>) {
+    val learned: Boolean get() = topics.all { it.status == TopicStatus.Learned }
+    val started: Boolean get() = topics.any { it.status != TopicStatus.New }
+    val counts: ProgressCounts get() = ProgressCounts.of(topics)
+}
 
-/** Use cases the study screens call; all learning rules live behind this class. */
+/** Every topic's status today: by unit for a course with units, flat for one without. */
+data class CourseProgress(val course: Course, val units: List<UnitProgress>, val topics: List<TopicProgress>) {
+    val allTopics: List<TopicProgress> get() = units.flatMap { it.topics } + topics
+    val counts: ProgressCounts get() = ProgressCounts.of(allTopics)
+}
+
+/** What to show: an exercise of a topic, with the unit it belongs to. */
+data class NextExercise(val topic: Topic, val unit: CourseUnit?, val exercise: Exercise)
+
+/** A checked answer: one check per item, and the topic's status before and after it, for "passed" or "learned". */
+data class AnswerOutcome(val checks: List<ItemCheck>, val before: TopicStatus, val after: TopicStatus)
+
+/** Use cases of the study screens; the learning rules all live behind this class. */
 class StudyService(
     private val courses: CourseRepository,
     private val journal: EventLog,
     private val clock: Clock,
     private val deviceId: Uuid,
-    private val rules: LearningRules = LearningRules(),
-    private val picker: TopicPicker = RandomTopicPicker,
     private val random: Random = Random.Default,
 ) {
-    /** Counters for the course list, oldest course first. Topics without exercises can't be studied and aren't counted. */
-    fun courseStats(): List<CourseStats> {
-        val all = courses.all().sortedBy { it.createdAt }
-        val states = replay(all, journal.all(), rules)
-        val today = today()
-        return all.map { course ->
-            var newCount = 0
-            var toReview = 0
-            var doneToday = 0
-            for (topic in course.studyableTopics()) {
-                val progress = states.getValue(topic.id).progress
-                when {
-                    progress.status == ProgressStatus.NEW -> newCount++
-                    progress.isEligibleOn(today) -> toReview++
-                    progress.lastGraduatedOn == today -> doneToday++
-                }
-            }
-            CourseStats(course, newCount, toReview, doneToday)
+    fun progress(courseId: Uuid): CourseProgress? {
+        val course = courses.get(courseId) ?: return null
+        val progress = topicProgress(course)
+        fun of(topics: List<Topic>) = topics.map { progress.getValue(it.id) }
+        return CourseProgress(course, course.units.map { UnitProgress(it, of(it.topics)) }, of(course.topics))
+    }
+
+    /**
+     * The next exercise the course's picker chooses — from one unit, or from the whole course in unit order —
+     * or null when nothing is left for today. [current] is the topic just shown, [lastExercise] the exercise just shown.
+     */
+    fun next(courseId: Uuid, unitId: Uuid? = null, current: Uuid? = null, lastExercise: Uuid? = null): NextExercise? {
+        val course = courses.get(courseId) ?: return null
+        return nextWith(course, course.rules(), unitId, current, lastExercise)
+    }
+
+    private fun <M, G> nextWith(course: Course, rules: CourseRules<M, G>, unitId: Uuid?, current: Uuid?, lastExercise: Uuid?): NextExercise? {
+        val states = replay(course, journal.all(), rules)
+        val today = clock.now().localDate
+        val topics = (if (unitId != null) course.units.firstOrNull { it.id == unitId }?.topics.orEmpty() else course.allTopics)
+            .filter { it.playable().isNotEmpty() }
+        val candidates = topics.mapNotNull { topic ->
+            val state = states.getValue(topic.id)
+            Candidate(topic.id, state.phase, state.round.isNotEmpty()).takeIf { state.status(rules.scheduler, today).available }
+        }
+        val picked = rules.picker.pick(candidates, current) ?: return null.also { log.debug { "Nothing left today in course ${course.id}" } }
+        log.debug { "Picked topic $picked from ${candidates.size} candidates" }
+        return exerciseOf(course, topics.first { it.id == picked }, lastExercise)
+    }
+
+    /** An exercise of a topic the learner chose, whatever its status: practising early counts as a round. */
+    fun practise(courseId: Uuid, topicId: Uuid, lastExercise: Uuid? = null): NextExercise? {
+        val course = courses.get(courseId) ?: return null
+        val topic = course.allTopics.firstOrNull { it.id == topicId } ?: return null
+        return exerciseOf(course, topic, lastExercise)
+    }
+
+    /** Checks an answer and writes it to the journal. */
+    fun answer(courseId: Uuid, topicId: Uuid, exerciseId: Uuid, response: Response): AnswerOutcome {
+        val course = requireNotNull(courses.get(courseId)) { "No course $courseId" }
+        val topic = requireNotNull(course.allTopics.firstOrNull { it.id == topicId }) { "No topic $topicId in course $courseId" }
+        val exercise = requireNotNull(topic.exercises.firstOrNull { it.id == exerciseId }) { "No exercise $exerciseId in topic $topicId" }
+        val before = statuses(course).getValue(topicId)
+        val checks = Checking.check(exercise, response, CheckSettings(course.settings.allowTypos))
+        val now = clock.now()
+        journal.append(
+            EventEnvelope(
+                Uuid.random(), deviceId, now,
+                event = AnswerSubmitted(courseId, topicId, exerciseId, course.revision, response, checks.map { it.result }),
+            ),
+        )
+        val after = statuses(course).getValue(topicId)
+        log.info { "Answer in course $courseId, topic $topicId \"${topic.title}\", exercise $exerciseId: ${checks.map { it.result }}; $before → $after" }
+        return AnswerOutcome(checks, before, after)
+    }
+
+    /** Whether to open a unit with its theory: nothing in it has been answered yet. */
+    fun theoryFirst(courseId: Uuid, unitId: Uuid): Boolean {
+        val progress = progress(courseId) ?: return false
+        val unit = progress.units.firstOrNull { it.unit.id == unitId } ?: return false
+        return unit.unit.theory != null && !unit.started
+    }
+
+    private fun Course.rules(): CourseRules<*, *> = rules.toRules(random)
+
+    private fun statuses(course: Course): Map<Uuid, TopicStatus> = topicProgress(course).mapValues { it.value.status }
+
+    private fun topicProgress(course: Course): Map<Uuid, TopicProgress> = progressWith(course, course.rules())
+
+    private fun <M, G> progressWith(course: Course, rules: CourseRules<M, G>): Map<Uuid, TopicProgress> {
+        val today = clock.now().localDate
+        val states = replay(course, journal.all(), rules)
+        return course.allTopics.associate { topic ->
+            val state = states.getValue(topic.id)
+            topic.id to TopicProgress(topic, state.status(rules.scheduler, today), studied = state.memory != null)
         }
     }
 
-    /** A random exercise from a topic eligible today, or null when the course is done for today. */
-    fun nextExercise(courseId: Uuid, currentTopicId: Uuid? = null): NextExercise? {
-        val course = courses.get(courseId) ?: return null
-        val states = replay(listOf(course), journal.all(), rules)
-        val today = today()
-        val eligible = course.studyableTopics().filter { states.getValue(it.id).progress.isEligibleOn(today) }
-        if (eligible.isEmpty()) return null
-
-        val topicId = picker.pick(eligible.map { it.id }, currentTopicId, random)
-        val topic = eligible.first { it.id == topicId }
-        return NextExercise(topic, topic.exercises.random(random))
+    private fun exerciseOf(course: Course, topic: Topic, lastExercise: Uuid?): NextExercise? {
+        val playable = topic.playable()
+        if (playable.isEmpty()) return null
+        val exercise = (playable.filter { it.id != lastExercise }.ifEmpty { playable }).random(random)
+        return NextExercise(topic, course.units.firstOrNull { unit -> unit.topics.any { it.id == topic.id } }, exercise)
     }
 
-    /** Records an answer in the journal. Graduation and scheduling follow from it on the next replay. */
-    fun submitAnswer(
-        courseId: Uuid,
-        topicId: Uuid,
-        exerciseId: Uuid,
-        input: String,
-        autoCheck: AutoCheck?,
-        rating: Rating?,
-    ) {
-        journal.append(
-            EventEnvelope(
-                eventId = Uuid.random(),
-                deviceId = deviceId,
-                occurredAt = clock.now(),
-                event = AnswerSubmitted(courseId, topicId, exerciseId, input, autoCheck, rating),
-            ),
-        )
-    }
-
-    fun topicStates(courseId: Uuid): Map<Uuid, TopicState> {
-        val course = courses.get(courseId) ?: return emptyMap()
-        return replay(listOf(course), journal.all(), rules)
-    }
-
-    private fun today(): LocalDate = clock.now().localDate
-
-    private fun Course.studyableTopics() = topics.filter { it.exercises.isNotEmpty() }
+    /** Exercises this version can show: not of a type from a newer format. */
+    private fun Topic.playable() = exercises.filterNot { it is Exercise.Unknown }
 }

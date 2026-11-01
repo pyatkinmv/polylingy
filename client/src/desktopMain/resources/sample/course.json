@@ -1,0 +1,449 @@
+{
+  "formatVersion": 1,
+  "id": "5a3f1e2d-7b6c-4d8e-9f00-1a2b3c4d5e01",
+  "name": "English Grammar Sampler",
+  "description": "A short sample course: one unit with a page of theory and one exercise of every kind.",
+  "units": [
+    {
+      "id": "5a3f1e2d-7b6c-4d8e-9f00-1a2b3c4d5e02",
+      "title": "Present continuous",
+      "subtitle": "I am doing",
+      "theory": {
+        "format": "blocks",
+        "blocks": [
+          {
+            "type": "section",
+            "id": "5a3f1e2d-7b6c-4d8e-9f00-1a2b3c4d5ea1",
+            "label": "A",
+            "title": "Happening now",
+            "blocks": [
+              {
+                "type": "text",
+                "text": "Look at this situation:"
+              },
+              {
+                "type": "situation",
+                "aside": {
+                  "type": "image",
+                  "src": "images/cycling.png",
+                  "alt": "A man cycling to work",
+                  "caption": "Tom on his way to work"
+                },
+                "blocks": [
+                  {
+                    "type": "text",
+                    "text": "Tom is on his bike. He**’s cycling** to work (= he **is cycling**).\nHe is doing it *now*, and he hasn’t finished."
+                  },
+                  {
+                    "type": "table",
+                    "rows": [
+                      [
+                        "I",
+                        "**am**",
+                        "(= I’m)",
+                        {
+                          "text": "**cycling**\n**working**\n**doing** etc.",
+                          "rowSpan": 3
+                        }
+                      ],
+                      [
+                        "he / she / it",
+                        "**is**",
+                        "(= he’s etc.)"
+                      ],
+                      [
+                        "we / you / they",
+                        "**are**",
+                        "(= we’re etc.)"
+                      ]
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "section",
+            "id": "5a3f1e2d-7b6c-4d8e-9f00-1a2b3c4d5eb1",
+            "label": "B",
+            "title": "Started, not finished",
+            "blocks": [
+              {
+                "type": "text",
+                "text": "**I am doing** something = I’ve started it, and I haven’t finished yet."
+              },
+              {
+                "type": "examples",
+                "items": [
+                  {
+                    "text": "Please be quiet. I**’m trying** to sleep.",
+                    "not": "I try"
+                  },
+                  {
+                    "text": "‘Where’s Lena?’ ‘She**’s making** coffee.’"
+                  },
+                  {
+                    "text": "What **are** you **reading**?"
+                  }
+                ]
+              },
+              {
+                "type": "quote",
+                "text": "I’m writing a short story this month.",
+                "who": "Maria, on the phone"
+              }
+            ]
+          },
+          {
+            "type": "section",
+            "id": "5a3f1e2d-7b6c-4d8e-9f00-1a2b3c4d5ec1",
+            "label": "C",
+            "title": "Things that are changing",
+            "blocks": [
+              {
+                "type": "words",
+                "words": [
+                  "getting",
+                  "becoming",
+                  "changing",
+                  "improving",
+                  "rising",
+                  "falling"
+                ]
+              },
+              {
+                "type": "examples",
+                "items": [
+                  {
+                    "text": "Your English **is getting** better.",
+                    "not": "gets better"
+                  },
+                  {
+                    "text": "The days **are becoming** shorter."
+                  }
+                ]
+              },
+              {
+                "type": "tip",
+                "blocks": [
+                  {
+                    "type": "text",
+                    "text": "Use the present continuous for changes that are happening around now."
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "topics": [
+        {
+          "id": "5a3f1e2d-7b6c-4d8e-9f00-1a2b3c4d5e10",
+          "title": "am / is / are",
+          "exercises": [
+            {
+              "id": "5a3f1e2d-7b6c-4d8e-9f00-1a2b3c4d5e11",
+              "type": "table",
+              "instruction": "Complete the table.",
+              "head": [
+                "",
+                "positive",
+                "question"
+              ],
+              "rows": [
+                [
+                  "I",
+                  "I {{am}} working",
+                  "{{Am}} I working?"
+                ],
+                [
+                  "she",
+                  "she {{is}} working",
+                  "{{Is}} she working?"
+                ],
+                [
+                  "they",
+                  "they {{are}} working",
+                  "{{Are}} they working?"
+                ]
+              ],
+              "explanation": {
+                "format": "blocks",
+                "blocks": [
+                  {
+                    "type": "text",
+                    "text": "The present continuous is **am / is / are** + verb**-ing**. Questions swap the subject and the verb: *Is she working?*"
+                  },
+                  {
+                    "type": "seeAlso",
+                    "links": [
+                      {
+                        "section": "5a3f1e2d-7b6c-4d8e-9f00-1a2b3c4d5ea1"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "5a3f1e2d-7b6c-4d8e-9f00-1a2b3c4d5e20",
+          "title": "Things happening now",
+          "exercises": [
+            {
+              "id": "5a3f1e2d-7b6c-4d8e-9f00-1a2b3c4d5e21",
+              "type": "gaps",
+              "instruction": "Complete the sentences. Use the present continuous.",
+              "example": "Please be quiet. I**’m working**. (work)",
+              "items": [
+                {
+                  "text": "Listen! Somebody {{is singing}} next door.",
+                  "hint": "sing"
+                },
+                {
+                  "text": "Why {{are}} you {{wearing}} a coat? It’s warm.",
+                  "hint": "wear"
+                },
+                {
+                  "text": "The weather {{’s getting|is getting}} warmer.",
+                  "hint": "get"
+                },
+                {
+                  "text": "I {{’m not reading|am not reading}} this book now.",
+                  "hint": "not / read",
+                  "note": "Negative: am / is / are + **not** + -ing."
+                }
+              ],
+              "explanation": {
+                "format": "blocks",
+                "blocks": [
+                  {
+                    "type": "text",
+                    "text": "Negatives and questions keep **-ing**:"
+                  },
+                  {
+                    "type": "examples",
+                    "items": [
+                      {
+                        "text": "I **’m not reading** it now.",
+                        "not": "I don’t read it now"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "seeAlso",
+                    "links": [
+                      {
+                        "section": "5a3f1e2d-7b6c-4d8e-9f00-1a2b3c4d5ea1"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "5a3f1e2d-7b6c-4d8e-9f00-1a2b3c4d5e30",
+          "title": "Describe the picture",
+          "exercises": [
+            {
+              "id": "5a3f1e2d-7b6c-4d8e-9f00-1a2b3c4d5e31",
+              "type": "pictures",
+              "instruction": "What are they doing?",
+              "wordBank": [
+                "cook",
+                "cycle",
+                "swim"
+              ],
+              "items": [
+                {
+                  "image": {
+                    "src": "images/cycling.png",
+                    "alt": "A man cycling to work"
+                  },
+                  "text": "He {{’s cycling|is cycling}}."
+                },
+                {
+                  "image": {
+                    "src": "images/cooking.png",
+                    "alt": "A woman at a stove"
+                  },
+                  "text": "She {{’s cooking|is cooking}}."
+                },
+                {
+                  "image": {
+                    "src": "images/swimming.png",
+                    "alt": "Two children in a pool"
+                  },
+                  "text": "They {{’re swimming|are swimming}}."
+                }
+              ],
+              "explanation": {
+                "format": "blocks",
+                "blocks": [
+                  {
+                    "type": "text",
+                    "text": "Each picture shows something going on **right now**, so: am / is / are + -ing. The short forms (*’s, ’re*) are just as right."
+                  },
+                  {
+                    "type": "seeAlso",
+                    "links": [
+                      {
+                        "section": "5a3f1e2d-7b6c-4d8e-9f00-1a2b3c4d5ea1"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "5a3f1e2d-7b6c-4d8e-9f00-1a2b3c4d5e40",
+          "title": "Why are you doing it?",
+          "exercises": [
+            {
+              "id": "5a3f1e2d-7b6c-4d8e-9f00-1a2b3c4d5e41",
+              "type": "match",
+              "instruction": "Match the beginnings and the endings.",
+              "pairs": [
+                [
+                  "I’m tired,",
+                  "so I’m going to bed."
+                ],
+                [
+                  "Be quiet!",
+                  "The baby is sleeping."
+                ],
+                [
+                  "She’s learning Italian",
+                  "because she’s moving to Rome."
+                ],
+                [
+                  "Where’s Dan?",
+                  "He’s having a shower."
+                ]
+              ],
+              "extra": [
+                "It rains a lot here."
+              ],
+              "explanation": {
+                "format": "blocks",
+                "blocks": [
+                  {
+                    "type": "text",
+                    "text": "*Why are you doing it?* — the answer often explains a situation that is going on now."
+                  },
+                  {
+                    "type": "seeAlso",
+                    "links": [
+                      {
+                        "section": "5a3f1e2d-7b6c-4d8e-9f00-1a2b3c4d5eb1"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "5a3f1e2d-7b6c-4d8e-9f00-1a2b3c4d5e50",
+          "title": "Questions",
+          "exercises": [
+            {
+              "id": "5a3f1e2d-7b6c-4d8e-9f00-1a2b3c4d5e51",
+              "type": "order",
+              "instruction": "Put the words in order.",
+              "items": [
+                {
+                  "answer": "What are you doing tonight?"
+                },
+                {
+                  "answer": "Is it raining now?",
+                  "accept": [
+                    "Is it now raining?"
+                  ]
+                }
+              ],
+              "explanation": {
+                "format": "blocks",
+                "blocks": [
+                  {
+                    "type": "text",
+                    "text": "In questions **am / is / are** comes before the subject: *What **are** you doing?*"
+                  },
+                  {
+                    "type": "seeAlso",
+                    "links": [
+                      {
+                        "section": "5a3f1e2d-7b6c-4d8e-9f00-1a2b3c4d5ea1"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "5a3f1e2d-7b6c-4d8e-9f00-1a2b3c4d5e60",
+          "title": "Continuous or simple?",
+          "exercises": [
+            {
+              "id": "5a3f1e2d-7b6c-4d8e-9f00-1a2b3c4d5e61",
+              "type": "choice",
+              "instruction": "Choose the right form.",
+              "items": [
+                {
+                  "text": "Look, it {{’s raining}} again.",
+                  "options": [
+                    "rains",
+                    "’s raining"
+                  ]
+                },
+                {
+                  "text": "I {{don’t understand}} this word.",
+                  "options": [
+                    "don’t understand",
+                    "’m not understanding"
+                  ],
+                  "note": "*Understand* is a state verb: no -ing."
+                },
+                {
+                  "text": "{{Do you go}} to the gym on Fridays?",
+                  "options": [
+                    "Are you going",
+                    "Do you go"
+                  ]
+                }
+              ],
+              "explanation": {
+                "format": "blocks",
+                "blocks": [
+                  {
+                    "type": "text",
+                    "text": "Things going on **now** → present continuous. Things that are true **in general** → present simple. Verbs like *know, like, understand* stay simple."
+                  },
+                  {
+                    "type": "seeAlso",
+                    "links": [
+                      {
+                        "section": "5a3f1e2d-7b6c-4d8e-9f00-1a2b3c4d5eb1"
+                      },
+                      {
+                        "section": "5a3f1e2d-7b6c-4d8e-9f00-1a2b3c4d5ec1"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

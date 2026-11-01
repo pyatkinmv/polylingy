@@ -1,230 +1,171 @@
 package com.polylingy.app.study
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.focusable
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onKeyEvent
-import androidx.compose.ui.input.key.type
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.polylingy.app.courses.OverflowMenu
-import com.polylingy.app.ui.ConfirmDialog
-import com.polylingy.app.ui.htmlToAnnotatedString
-import com.polylingy.app.ui.onEnter
-import com.polylingy.core.content.Explanation
-import com.polylingy.core.content.ExplanationFormat
-import com.polylingy.core.journal.AutoCheck
-import com.polylingy.core.rules.AnswerChecker
+import com.polylingy.app.Navigator
+import com.polylingy.app.course.TheoryButton
+import com.polylingy.app.course.accent
+import com.polylingy.app.ui.Look
+import com.polylingy.app.ui.Page
+import com.polylingy.app.ui.StubButton
+import com.polylingy.app.ui.TopBar
+import com.polylingy.app.ui.dayPhrase
+import com.polylingy.content.Block
+import com.polylingy.content.Exercise
+import com.polylingy.content.compose.ContentColors
+import com.polylingy.content.compose.ContentTheme
+import com.polylingy.content.compose.ExerciseView
+import com.polylingy.content.compose.ExplanationView
+import com.polylingy.content.compose.ImageLoader
+import com.polylingy.core.content.Course
+import kotlinx.datetime.LocalDate
 
-private val ContentWidth = 720.dp
-
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun StudyScreen(viewModel: StudyViewModel, onBack: () -> Unit) {
+fun StudyScreen(viewModel: StudyViewModel, images: ImageLoader, today: LocalDate, go: Navigator) {
     val state by viewModel.state.collectAsState()
-    var confirmRemove by remember { mutableStateOf(false) }
+    val course = viewModel.course
+    val links = remember(course) { course?.let(::CourseLinks) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(viewModel.courseName) },
-                navigationIcon = { IconButton(onClick = onBack) { Text("←", style = MaterialTheme.typography.titleLarge) } },
-                actions = { if (state.topic != null) OverflowMenu("Remove topic" to { confirmRemove = true }) },
+    Column(Modifier.fillMaxSize()) {
+        val exercise = state as? StudyState.Exercise
+        val unit = exercise?.next?.unit ?: course?.units?.firstOrNull { it.id == viewModel.unitId }
+        val unitIndex = course?.units?.indexOfFirst { it.id == unit?.id } ?: -1
+        val crumbs = buildList {
+            add("Courses" to go::courses)
+            if (course != null) add(course.name to { go.backToCourse(course.id) })
+            if (course != null && unit != null) add("Unit ${unitIndex + 1}" to { go.backToUnit(course.id, unit.id) })
+            exercise?.let { add(it.next.topic.title to null) }
+        }
+        TopBar(crumbs) {
+            if (exercise?.review == true) Text(
+                "Review",
+                Modifier.background(Look.WarnBg, RoundedCornerShape(50)).padding(horizontal = 10.dp, vertical = 2.dp),
+                color = Look.Warn,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
             )
-        },
-    ) { padding ->
-        Box(Modifier.fillMaxSize().padding(padding)) {
-            when (val s = state) {
-                is StudyState.Answering -> AnsweringView(s, viewModel::onInput, viewModel::submit)
-                is StudyState.Reviewing -> ReviewingView(s, viewModel::rate)
-                StudyState.Done -> DoneView(onBack)
+            if (course != null && unit?.theory != null) TheoryButton(course.accent()) { go.theory(course.id, unit.id, back = true) }
+        }
+        when (val s = state) {
+            is StudyState.Exercise -> ExerciseBody(s, course!!, links!!, images, today, viewModel, go)
+            is StudyState.Done -> DoneBody(s, viewModel.unitId != null, today, go)
+            StudyState.Missing -> Page {
+                Text("Nothing to show here.", color = Look.Muted)
+                Button(onClick = go::back) { Text("Back") }
             }
         }
     }
-
-    val topic = state.topic
-    if (confirmRemove && topic != null) {
-        ConfirmDialog(
-            "Remove topic",
-            "Are you sure you want to remove \"${topic.subject}\"? This cannot be undone.",
-            onConfirm = { viewModel.removeCurrentTopic(); confirmRemove = false },
-            onDismiss = { confirmRemove = false },
-        )
-    }
-}
-
-/** Scrollable column centred and capped at [ContentWidth]. */
-@Composable
-private fun CenteredColumn(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    Box(modifier.fillMaxWidth().verticalScroll(rememberScrollState()), contentAlignment = Alignment.TopCenter) {
-        Column(Modifier.widthIn(max = ContentWidth).fillMaxWidth().padding(32.dp)) { content() }
-    }
 }
 
 @Composable
-private fun Subject(text: String) =
-    Text(text, style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
-
-@Composable
-private fun AnsweringView(state: StudyState.Answering, onInput: (String) -> Unit, onSubmit: () -> Unit) {
-    val focus = remember(state.exercise) { FocusRequester() }
-    LaunchedEffect(state.exercise) { focus.requestFocus() }
-    val multiBlank = AnswerChecker.blankKeys(state.exercise).size > 1
-
-    CenteredColumn {
-        Subject(state.topic.subject)
-        Spacer(Modifier.height(24.dp))
-        Text(maskBlanks(state.exercise.task), style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
-        Spacer(Modifier.height(24.dp))
-        OutlinedTextField(
-            value = state.input,
-            onValueChange = onInput,
-            label = { Text(if (multiBlank) "Your answers (comma-separated)" else "Your answer") },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth().focusRequester(focus).onEnter(onSubmit),
-        )
-        Spacer(Modifier.height(16.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            Button(onClick = onSubmit) { Text("Submit") }
+private fun ExerciseBody(
+    state: StudyState.Exercise,
+    course: Course,
+    links: CourseLinks,
+    images: ImageLoader,
+    today: LocalDate,
+    viewModel: StudyViewModel,
+    go: Navigator,
+) {
+    val accent = course.accent()
+    Page(Modifier.verticalScroll(rememberScrollState())) {
+        state.outcome?.let { outcome ->
+            val checks = outcome.checks
+            val (fg, bg) = when {
+                checks.any { it.result == com.polylingy.content.ItemResult.WRONG } -> Look.Wrong to Look.WrongBg
+                checks.any { it.result == com.polylingy.content.ItemResult.TYPO } -> Look.Warn to Look.WarnBg
+                else -> Look.Green to Color(0xFFE4F0E7)
+            }
+            Column(Modifier.fillMaxWidth().background(bg, RoundedCornerShape(10.dp)).padding(horizontal = 18.dp, vertical = 12.dp)) {
+                Text(checkLine(checks), color = fg, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                progressLine(outcome) { dayPhrase(it, today) }?.let { Text(it, color = fg) }
+            }
+        }
+        val onLink: (Block.Link) -> Unit = { link -> links.target(link)?.let { go.theory(course.id, it.unitId, it.section, back = true) } }
+        ContentTheme(ContentColors.forAccent(course.theme?.accent), images, links.names) {
+            ExerciseView(
+                exercise = state.next.exercise,
+                response = state.response,
+                checks = state.checks,
+                onChange = viewModel::change,
+                onSubmit = viewModel::check,
+                onLink = onLink,
+                seed = state.seed,
+            )
+            // The topic's explanation stands in for an exercise that has none of its own (content-format.md, explanations).
+            val topicExplanation = state.next.topic.explanation
+            if (state.outcome != null && state.next.exercise.explanation == null && topicExplanation != null) {
+                ExplanationView(topicExplanation, onLink)
+            }
+        }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            val colors = ButtonDefaults.buttonColors(containerColor = accent)
+            if (state.outcome == null) {
+                Button(onClick = viewModel::check, colors = colors, shape = RoundedCornerShape(8.dp)) { Text("Check") }
+                if (state.next.exercise.hasBlanks()) Text("Tab — next blank · Enter — check", color = Look.Faint, fontSize = 13.sp)
+            } else {
+                Button(onClick = viewModel::next, colors = colors, shape = RoundedCornerShape(8.dp)) { Text("Next →") }
+            }
         }
     }
 }
 
-private fun modeColor(result: AutoCheck) = when (result) {
-    AutoCheck.CORRECT -> Color(0xFFA5D6A7)
-    AutoCheck.PARTIAL -> Color(0xFFFFE082)
-    AutoCheck.INCORRECT -> Color(0xFFEF9A9A)
-}
-
-private fun annotated(parts: List<TaskPart>): AnnotatedString = buildAnnotatedString {
-    for (part in parts) when (part) {
-        is TaskPart.Plain -> append(part.text)
-        is TaskPart.Filled -> withStyle(
-            SpanStyle(color = if (part.correct) Color(0xFF2E7D32) else Color(0xFFC62828), fontWeight = FontWeight.Bold),
-        ) { append(part.text) }
-    }
-}
+private fun Exercise.hasBlanks() = this is Exercise.Gaps || this is Exercise.Pictures || this is Exercise.Table
 
 @Composable
-private fun ReviewingView(state: StudyState.Reviewing, onRate: (Boolean) -> Unit) {
-    val focus = remember(state) { FocusRequester() }
-    LaunchedEffect(state) { focus.requestFocus() }
-
-    Column(
-        Modifier.fillMaxSize().focusRequester(focus).focusable().onKeyEvent {
-            if (it.type != KeyEventType.KeyDown) return@onKeyEvent false
-            when (it.key) {
-                Key.One, Key.NumPad1 -> { onRate(false); true }
-                Key.Two, Key.NumPad2 -> { onRate(true); true }
-                else -> false
+private fun DoneBody(state: StudyState.Done, inUnit: Boolean, today: LocalDate, go: Navigator) {
+    val counts = state.counts
+    Box(Modifier.fillMaxWidth().padding(top = 72.dp), contentAlignment = Alignment.TopCenter) {
+        Column(Modifier.padding(horizontal = 32.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Box(Modifier.size(72.dp).background(Color(0xFFE4F0E7), CircleShape), contentAlignment = Alignment.Center) {
+                Text("✓", color = Look.Green, fontSize = 34.sp, fontWeight = FontWeight.Bold)
             }
-        },
-    ) {
-        CenteredColumn(Modifier.weight(1f)) {
-            Subject(state.topic.subject)
-            Spacer(Modifier.height(24.dp))
+            Text("That’s all for today", style = MaterialTheme.typography.headlineMedium)
+            val where = if (inUnit) "in this unit" else "in this course"
             Text(
-                annotated(annotateTask(state.exercise.task, state.check)),
-                style = MaterialTheme.typography.bodyLarge,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(Modifier.height(12.dp))
-            Text(
-                state.phrase,
-                fontWeight = FontWeight.Bold,
+                counts.nextReview?.let { "Nothing is due $where. The next review is ${dayPhrase(it, today)}." }
+                    ?: "Everything $where is learned for good.",
+                color = Look.Muted,
                 fontSize = 17.sp,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-                    .background(modeColor(state.check.result), RoundedCornerShape(8.dp))
-                    .padding(vertical = 10.dp, horizontal = 16.dp),
             )
-            state.exercise.explanation?.let {
-                Spacer(Modifier.height(16.dp))
-                ExplanationBox("Specific explanation", Color(0xFFDEF3C8), AnnotatedString(it))
-            }
-            state.topic.explanation?.let {
-                Spacer(Modifier.height(16.dp))
-                ExplanationBox("Explanation", Color(0xFFE3F2FD), it.render())
-            }
-        }
-        HorizontalDivider(thickness = 1.5.dp, color = Color(0xFFE0E0E0))
-        Box(
-            Modifier.fillMaxWidth().padding(start = 32.dp, end = 32.dp, top = 12.dp, bottom = 20.dp),
-            contentAlignment = Alignment.Center,
-        ) {
+            Text(
+                "${counts.studied} of ${counts.total} studied · ${counts.learnedForGood} learned for good",
+                Modifier.background(Look.Card, RoundedCornerShape(10.dp)).border(1.dp, Look.Line, RoundedCornerShape(10.dp))
+                    .padding(horizontal = 18.dp, vertical = 12.dp),
+                color = Look.Muted,
+            )
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedButton(onClick = { onRate(false) }) { Text("Incorrect") }
-                Button(onClick = { onRate(true) }) { Text("Correct") }
+                Button(onClick = go::back, shape = RoundedCornerShape(8.dp)) { Text(if (inUnit) "Back to the unit" else "Back to the course") }
+                StubButton("Extra practice")
             }
         }
-    }
-}
-
-private fun Explanation.render(): AnnotatedString = when (format) {
-    ExplanationFormat.TEXT -> AnnotatedString(text)
-    ExplanationFormat.HTML -> htmlToAnnotatedString(text)
-}
-
-@Composable
-private fun ExplanationBox(label: String, color: Color, text: AnnotatedString) {
-    Column(Modifier.fillMaxWidth().background(color, RoundedCornerShape(8.dp)).padding(12.dp)) {
-        Text(label, style = MaterialTheme.typography.labelSmall, color = Color(0xFF616161))
-        Spacer(Modifier.height(4.dp))
-        Text(text, style = MaterialTheme.typography.bodyMedium)
-    }
-}
-
-@Composable
-private fun DoneView(onBack: () -> Unit) {
-    Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-        Text("All done for today!", style = MaterialTheme.typography.headlineSmall)
-        Spacer(Modifier.height(8.dp))
-        Text("Come back tomorrow to continue.", style = MaterialTheme.typography.bodyMedium)
-        Spacer(Modifier.height(32.dp))
-        Button(onClick = onBack) { Text("Back to home") }
     }
 }
