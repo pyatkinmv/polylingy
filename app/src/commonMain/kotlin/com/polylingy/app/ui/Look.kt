@@ -63,7 +63,6 @@ object Look {
     val Faint = Color(0xFF8A8273)
     val Line = Color(0xFFE6DFD0)
     val LineHover = Color(0xFFD6CCB8)
-    val Panel = Color(0xFFF3EEE2)
     val Green = Color(0xFF2F7A4F)
     val Wrong = Color(0xFFB3261E)
     val WrongBg = Color(0xFFF7E1DD)

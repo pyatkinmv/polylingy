@@ -9,10 +9,10 @@
 | Содержимое | `content/src/commonTest` | разметка, `validate()` каждого блока и типа упражнения, строгий разбор, туда-обратно |
 | Правила | `core/src/commonTest` | файл курса (`CourseJson`), `CourseService`, `TextMatcher`, чекеры, каждая политика, сценарии `learning-model.md` (`ScenarioTest`), `StudyService` |
 | Эталон SM-2 | `core/src/jvmTest/.../Sm2GoldenTest.kt` | 856 сдач из 0.1 через новый `replay()` |
-| Хранилище | `client/src/desktopTest` | SQLite, импорт/экспорт JSON и zip, картинки, старая база 0.1, пример курса |
-| ViewModel | `app/src/desktopTest/.../courses` | логика экранов без UI |
+| Хранилище | `client/src/desktopTest` | SQLite, нечитаемые курсы, импорт/экспорт JSON и zip, картинки, пример курса и курсы из `examples/` |
+| ViewModel | `app/src/desktopTest/.../courses` | логика списка курсов без UI |
 | Витрина | `app/src/desktopTest/.../ui/ShowcaseUiTest.kt` | каждый тип упражнения и страница теории из примера курса: ввод, проверка, узкое окно; скриншоты `ex-*.png`, `theory*.png` |
-| **UI** | `app/src/desktopTest/.../ui/*UiTest.kt` | настоящие экраны: клики, ввод, клавиши, что видно на экране |
+| **UI** | `app/src/desktopTest/.../ui/*UiTest.kt` | настоящие экраны: список курсов (`CourseListUiTest`), путь от курса через теорию и упражнения до «на сегодня всё» и повторения на следующий день (`StudyUiTest`) |
 | **Скриншоты** | те же UI-тесты, вызов `screenshot("имя")` | PNG в `app/build/screenshots/` для просмотра глазами |
 
 ## UI-тесты
@@ -22,20 +22,26 @@
 Запускают настоящий `App` без окна, в сцене размером с окно приложения (832×720), на базе в памяти и с часами, которые можно двигать. Файловые диалоги заменены заглушкой `FakeFiles`. Всё нужное — в `UiTestSupport.kt`:
 
 ```kotlin
-@Test fun threeCorrectAnswersByKeyboardFinishTheDay() = appTest(seed = { it.seedCourse(colors) }) {
-    click("Start")
-    repeat(3) {
-        answer("rojo, roja")           // ввод + Enter
-        rateWithKey(Key.Two)           // «Correct» клавишей 2
-    }
-    text("All done for today!").assertIsDisplayed()
-    screenshot("study-done")
+@Test fun theNextDayTheCourseShowsWhatIsDue() = appTest(seed) {
+    click("Grammar in Use")
+    click("Present simple")
+    click("Continue →")
+    fill(1, "works")                   // ввод в пропуск 1
+    click("Check")
+    click("Next →")
+    text("That’s all for today").assertIsDisplayed()
+
+    clock.now = LocalDateTime(2026, 1, 16, 9, 0)
+    click("Courses")
+    text("to do today").assertIsDisplayed()
+    screenshot("course-list-due")
 }
 ```
 
 - `appTest(seed = …) { … }` — запуск приложения с подготовленными данными (`seedSample()`, `seedCourse(json)`).
 - `files.open("имя.json", json)` — что «выберет» пользователь в диалоге импорта; `files.saved` — что приложение сохранило.
-- `click("текст")`, `menu("пункт")`, `text("текст")` — поиск и действия по видимому тексту.
+- `click("текст")`, `menu("пункт")` (меню «⋯»), `fill(n, "текст")` (пропуск n), `text("текст")` — поиск и действия по видимому тексту.
+- `appTest(storage = { … })` — своя база, например файл с нечитаемым курсом.
 - `clock.now = …` — сдвинуть время, например, чтобы тема вернулась на повторение.
 - Случайность зафиксирована (`Random(7)`), поэтому прогоны повторяемы.
 
@@ -56,6 +62,6 @@
 - системные диалоги открытия и сохранения файла;
 - настоящее окно: размер, минимальный размер, ресайз;
 - отрисовка шрифтов Windows в реальном окне;
-- установщик `.msi`.
+- импорт настоящих курсов из `examples/` через диалог.
 
-Запуск приложения: `./gradlew :app:run`.
+Установщик `.msi` пока не проверяем: собираем и запускаем локально, `scripts/relaunch.ps1` (или `./gradlew :app:run`).

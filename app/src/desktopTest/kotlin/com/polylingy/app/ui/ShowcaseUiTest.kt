@@ -162,7 +162,7 @@ class ShowcaseUiTest {
             click("Check")
         }
         assertEquals(ItemResult.WRONG, result!![0].result)
-        assertEquals("so I’m going to bed.", result!![0].rightAnswer)
+        assertEquals("so I’m going to bed.", result[0].rightAnswer)
     }
 
     @Test fun order() {
