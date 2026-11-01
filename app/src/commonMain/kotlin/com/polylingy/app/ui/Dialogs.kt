@@ -17,11 +17,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onPreviewKeyEvent
-import androidx.compose.ui.input.key.type
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
@@ -93,14 +88,4 @@ fun MessageDialog(title: String, text: String, onDismiss: () -> Unit) {
 private fun TextFieldValue.limitTo(max: Int): TextFieldValue {
     if (text.length <= max) return this
     return TextFieldValue(text.take(max), TextRange(minOf(selection.start, max), minOf(selection.end, max)))
-}
-
-/** Runs [action] when Enter is pressed in this element. */
-fun Modifier.onEnter(action: () -> Unit): Modifier = onPreviewKeyEvent {
-    if (it.type == KeyEventType.KeyDown && (it.key == Key.Enter || it.key == Key.NumPadEnter)) {
-        action()
-        true
-    } else {
-        false
-    }
 }
