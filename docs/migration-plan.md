@@ -22,9 +22,9 @@
 | Правило | Где описано |
 |---|---|
 | `content` и `content-compose` не знают о курсах, журнале, политиках; зависят только от kotlinx | content-format, раздел 8 |
-| Тип задаётся у упражнения; новый тип — ровно 4 места: модель + `validate()`, `TaskView`, `TaskChecker`, образец | content-format, разделы 5 и 8 |
+| Тип задаётся у упражнения; новый тип — ровно 4 места: модель + `validate()`, `ExerciseView`, `ExerciseChecker`, образец | content-format, разделы 5 и 8 |
 | Выбор вида и чекера — исчерпывающий `when` по sealed-классу, без реестров и `Map<String, …>` | content-format, раздел 8 |
-| `TaskView` не знает, что верно (получает готовые `results`); `TaskChecker` не знает, как это выглядит | content-format, раздел 8 |
+| `ExerciseView` не знает, что верно (получает готовые `results`); `ExerciseChecker` не знает, как это выглядит | content-format, раздел 8 |
 | Строки сравнивает только `TextMatcher` | learning-model, раздел 3 |
 | В JSON нет размеров; раскладку решает приложение | content-format, раздел 1 |
 | Четыре политики — чистые функции над полными данными: `GradingRule<G>`, `MasteryPolicy<G>`, `Scheduler<M, G>`, `TopicPicker`; связаны типами в `CourseRules<M, G>` | learning-model, разделы 4 и 5 |
@@ -35,11 +35,11 @@
 
 | Сейчас | Что будет | Этап |
 |---|---|---|
-| `core/content/Course.kt` (`Topic`, `Exercise` с `{0}`, `Explanation`) | новая модель курса в `core` + `Exercise`/`Task` из `content` | 2 |
+| `core/content/Course.kt` (`Topic`, `Exercise` с `{0}`, `Explanation`) | новая модель курса в `core` + `Exercise` из `content` | 2 |
 | `client/CourseFile.kt` (ручной разбор, старый формат) | `CourseJson` в `core` (строгий kotlinx) + `CourseArchive` в `client` (zip, картинки) | 2 |
 | `client/SampleCourse.kt` | новый пример курса в новом формате | 2 |
-| `core/rules/AnswerChecker.kt` | `TextMatcher` + `TaskChecker` по типам | 3 |
-| `app/study/TaskText.kt`, `app/ui/SimpleHtml.kt` | `content-compose`: `InlineText`, блоки, `TaskView` | 3 |
+| `core/rules/AnswerChecker.kt` | `TextMatcher` + `ExerciseChecker` по типам | 3 |
+| `app/study/TaskText.kt`, `app/ui/SimpleHtml.kt` | `content-compose`: `InlineText`, блоки, `ExerciseView` | 3 |
 | `core/journal/Events.kt` (`AnswerSubmitted` с `input: String`, `AutoCheck`) | новое событие с `response` и `results`, `schemaVersion` = 1 заново | 4 |
 | `GraduationPolicy`, `RepetitionPolicy`/`Sm2Policy`, `TopicPicker`, `TopicProgress`, `replay()` | четыре политики, `TopicState`, новый `replay()` | 4 |
 | `core/study/StudyService.kt` | новый `StudyService`: следующий топик и упражнение, приём ответа | 4 |
@@ -49,7 +49,7 @@
 
 ## 3. Этапы
 
-### Этап 1. Модуль `content`: модель, разметка, разбор, проверка
+### Этап 1. Модуль `content`: модель, разметка, разбор, проверка — сделано
 
 Новый Gradle-модуль `:content` (KMP, `commonMain`, пакет `com.polylingy.content`). Зависимости: только kotlinx-serialization.
 
@@ -60,10 +60,10 @@
 - `Block` — sealed: `section`, `text`, `situation`, `image`, `table`, `quote`, `examples`, `words`, `tip`, `seeAlso`;
   плюс `Unknown` для мягкого режима.
 - `Content` — sealed: `Blocks` (`markdown` и `html` — TODO, в модели не заводим, пока не нужны).
-- `Exercise(id, instruction?, explanation?, task: Task)`; `Task` — sealed: `Gaps`, `Choice`, `Pictures`, `Table`,
-  `Match`, `Order`; плюс `Unknown`.
-- `Response` — sealed, по одному на тип: что ввёл ученик. `@Serializable`: оно пойдёт в журнал.
-- `ItemResult` (`CORRECT` / `TYPO` / `WRONG`) — здесь же, потому что его показывает `TaskView`.
+- `Exercise` — sealed: `Gaps`, `Choice`, `Pictures`, `Table`, `Match`, `Order`, плюс `Unknown`; общие поля
+  (`id`, `instruction`, `explanation`) — в интерфейсе, JSON плоский.
+- `Response` — sealed: что ввёл ученик (`Blanks` — для gaps, pictures и table; `Choice`, `Match`, `Order`). `@Serializable`: оно пойдёт в журнал.
+- `ItemResult` (`CORRECT` / `TYPO` / `WRONG`) — здесь же, потому что его показывает `ExerciseView`.
 - `validate(at: Path): List<Problem>` у каждого типа и блока: правила из content-format, раздел 5.
 - `ContentJson` — строгий kotlinx-`Json` с `"type"` как дискриминатором и мягкий вариант для более новых файлов
   (незнакомые поля игнорируются, незнакомые типы становятся `Unknown`).
@@ -124,7 +124,7 @@
 - `TextMatcher`: `match(input, variants, allowTypos): CORRECT | TYPO | WRONG`. Нормализация и опечатки —
   ровно как в learning-model, раздел 3. Большая таблица тестов: апострофы, регистр, пробелы, точка,
   слова < 4 букв, `a`/`an`, пропущенная буква не опечатка, одна опечатка на пункт.
-- `TaskChecker` для каждого типа: `check(task, response, settings): List<ItemResult>`, по пункту на пропуск,
+- `ExerciseChecker` для каждого типа: `check(task, response, settings): List<ItemResult>`, по пункту на пропуск,
   выбор, пару, предложение. Выбор, сопоставление и порядок проверяются точно.
 
 Новый модуль `:content-compose` (Compose MP, зависит от `:content`):
@@ -133,7 +133,7 @@
   `content-compose` о файлах не знает;
 - `InlineText` — отрисовка `Inline`;
 - `BlockView` — все блоки с правилами раскладки из content-format, раздел 4, включая узкое окно;
-- `TaskView` для каждого типа:
+- `ExerciseView` для каждого типа:
   - ввод (`response`, `onChange`);
   - проверенное состояние (`results`): верно, опечатка с правильным вариантом, ошибка с правильным ответом,
     `note` под неверным пунктом;
@@ -245,7 +245,7 @@ UI-тесты в `app/desktopTest` на экране-витрине: кажды�
   **заглушкой** (ничего не делает, к ней вернёмся).
 - Теория: `BlockView`; открывается сама, если юнит не начат; иначе — по кнопке.
 - Упражнение:
-  - `TaskView`, «Проверить»;
+  - `ExerciseView`, «Проверить»;
   - разметка и итог: строка проверки и строка прогресса (раздел 6);
   - объяснение;
   - «Следующее»;

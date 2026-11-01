@@ -51,8 +51,10 @@
 | `{{ответ}}` | пропуск; только в полях упражнений |
 | `{{’s working\|is working}}` | пропуск с несколькими верными вариантами |
 | `\n` | перенос строки |
+| `\*`, `\{`, `\}`, `\|`, `\\` | сам символ, без разметки |
 
 Разметка проверяется при импорте: незакрытые `**`, `{{` — ошибка. Пропуск вне упражнения — ошибка.
+Пустой текст — ошибка везде, кроме ячеек таблиц.
 
 ## 4. Содержимое (`Content`) и блоки теории
 
@@ -146,7 +148,8 @@
 { "type": "order",
   "items": [ { "answer": "Is it raining now?", "accept": ["Is it now raining?"] } ] }
 ```
-Слова берутся из `answer` и перемешиваются; `accept` — другие верные порядки (из тех же слов). Проверка точная.
+Плитки — слова из `answer`, перемешанные; знак в конце предложения (`.?!…`) — не плитка, он стоит на месте.
+`accept` — другие верные порядки из тех же плиток и с тем же знаком в конце. Проверка точная.
 
 ## 6. Объяснения
 
@@ -176,9 +179,9 @@
 
 ```
 content/          чистый Kotlin, без Compose и SQL:
-                  Inline, Image, Table, Block, Content, Exercise, Task, разбор и validate()
-content-compose/  отрисовка: блоки, TaskView на каждый тип, ContentTheme (акцент, шрифты)
-core/             зависит от content: курсы, журнал, политики, TaskChecker на каждый тип
+                  Inline, Image, Side, Cell, Block, Content, Exercise, Response, разбор и validate()
+content-compose/  отрисовка: блоки, ExerciseView на каждый тип, ContentTheme (акцент, шрифты)
+core/             зависит от content: курсы, журнал, политики, ExerciseChecker на каждый тип
 client/           импорт/экспорт файлов и zip, картинки, SQLite
 app/              экраны, собирает всё вместе
 ```
@@ -186,26 +189,31 @@ app/              экраны, собирает всё вместе
 `content` и `content-compose` ничего не знают о курсах, журнале и политиках — их можно вынести в отдельную библиотеку.
 
 ```kotlin
-@Serializable sealed interface Task { fun validate(at: Path): List<Problem> }
+/** Тип упражнения — подкласс; общие поля — в самом интерфейсе. JSON плоский: `{"id", "type", "instruction", …поля типа}`. */
+@Serializable sealed interface Exercise {
+    val id: Uuid; val instruction: Inline?; val explanation: Content?
+    val itemCount: Int
+    fun validate(at: Path): List<Problem>
+}
 
 @Serializable @SerialName("match")
-data class Match(val pairs: List<Pair<Side, Side>>, val extra: List<Side> = emptyList()) : Task
+data class Match(override val id: Uuid, …, val pairs: List<List<Side>>, val extra: List<Side> = emptyList()) : Exercise
 
 // content-compose: только отрисовка; что верно, не знает — получает готовые results
-interface TaskView<T : Task> {
-    @Composable fun Show(task: T, state: AnswerState, results: List<ItemResult>?, onChange: (Response) -> Unit)
+interface ExerciseView<E : Exercise, R : Response> {
+    @Composable fun Show(exercise: E, response: R, results: List<ItemResult>?, onChange: (R) -> Unit)
 }
 
 // core: только проверка; как это выглядит, не знает
-interface TaskChecker<T : Task, R : Response> {
-    fun check(task: T, response: R, settings: CheckSettings): List<ItemResult>
+interface ExerciseChecker<E : Exercise, R : Response> {
+    fun check(exercise: E, response: R, settings: CheckSettings): List<ItemResult>
 }
 ```
 
 Выбор вида и чекера — исчерпывающий `when` по sealed-классу: забытый тип не скомпилируется.
 
 **Новый тип упражнения — ровно четыре места**, больше нигде:
-модель с `validate()` в `content`, `TaskView` в `content-compose`, `TaskChecker` в `core`,
+модель с `validate()` в `content`, `ExerciseView` в `content-compose`, `ExerciseChecker` в `core`,
 файл-образец в тестах (раздел 10). Экран упражнения, журнал, политики и `replay()` о типах не знают.
 
 **Журнал** хранит ответ и результат проверки по пунктам на момент ответа
