@@ -78,6 +78,9 @@ class InlineTest {
 
     @Test fun crossedMarks() = assertTrue(problems("**a *b** c*").any { "another mark open inside" in it })
 
+    @Test fun plainTextDropsMarkup() =
+        assertEquals("He’s cycling now.\nI am working", Inline("He**’s cycling** *now*.\nI {{am working|’m working}}").plainText())
+
     @Test fun equalityIsByText() {
         assertEquals(Inline("a **b**"), Inline("a **b**"))
         assertEquals(Inline("a").hashCode(), Inline("a").hashCode())

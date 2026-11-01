@@ -66,3 +66,6 @@ internal class Checks(private val out: MutableList<Problem>) {
 }
 
 internal fun checks(body: Checks.() -> Unit): List<Problem> = buildList { Checks(this).body() }
+
+/** Checks a text outside an exercise: not empty, well-formed markup, no blanks. */
+fun Inline.validate(at: Path): List<Problem> = checks { text(this@validate, at) }
