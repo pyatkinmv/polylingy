@@ -210,18 +210,20 @@ app/              экраны, собирает всё вместе
 @Serializable @SerialName("match")
 data class Match(override val id: Uuid, …, val pairs: List<List<Side>>, val extra: List<Side> = emptyList()) : Exercise
 
-// content-compose: только отрисовка; что верно, не знает — получает готовые results
-interface ExerciseView<E : Exercise, R : Response> {
-    @Composable fun Show(exercise: E, response: R, results: List<ItemResult>?, onChange: (R) -> Unit)
-}
+// content-compose: только отрисовка; что верно, не знает — получает готовые checks
+@Composable fun ExerciseView(exercise: Exercise, response: Response, checks: List<ItemCheck>?, onChange: (Response) -> Unit, …)
 
 // core: только проверка; как это выглядит, не знает
-interface ExerciseChecker<E : Exercise, R : Response> {
-    fun check(exercise: E, response: R, settings: CheckSettings): List<ItemResult>
+fun interface ExerciseChecker<E : Exercise, R : Response> {
+    fun check(exercise: E, response: R, settings: CheckSettings): List<ItemCheck>
 }
+
+/** Результат пункта и правильный ответ для показа: при опечатке — тот вариант, к которому ответ был близок. */
+data class ItemCheck(val result: ItemResult, val rightAnswer: String)
 ```
 
-Выбор вида и чекера — исчерпывающий `when` по sealed-классу: забытый тип не скомпилируется.
+Выбор вида и чекера — исчерпывающий `when` по sealed-классу (`ExerciseView`, `Checking.check`): забытый тип
+не скомпилируется. В журнал идут только `ItemResult`, правильный ответ для показа берётся из упражнения заново.
 
 **Новый тип упражнения — ровно четыре места**, больше нигде:
 модель с `validate()` в `content`, `ExerciseView` в `content-compose`, `ExerciseChecker` в `core`,

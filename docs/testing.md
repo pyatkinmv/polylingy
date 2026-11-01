@@ -10,6 +10,7 @@
 | Правила | `core/src/commonTest` | файл курса (`CourseJson`), `CourseService`, SM-2, сдача темы, `replay()` |
 | Хранилище | `client/src/desktopTest` | SQLite, импорт/экспорт JSON и zip, картинки, старая база 0.1, пример курса |
 | ViewModel | `app/src/desktopTest/.../courses` | логика экранов без UI |
+| Витрина | `app/src/desktopTest/.../ui/ShowcaseUiTest.kt` | каждый тип упражнения и страница теории из примера курса: ввод, проверка, узкое окно; скриншоты `ex-*.png`, `theory*.png` |
 | **UI** | `app/src/desktopTest/.../ui/*UiTest.kt` | настоящие экраны: клики, ввод, клавиши, что видно на экране |
 | **Скриншоты** | те же UI-тесты, вызов `screenshot("имя")` | PNG в `app/build/screenshots/` для просмотра глазами |
 

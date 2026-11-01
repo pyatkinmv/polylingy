@@ -95,7 +95,7 @@
               "id": "5a3f1e2d-7b6c-4d8e-9f00-1a2b3c4d5e21",
               "type": "gaps",
               "instruction": "Complete the sentences. Use the present continuous.",
-              "example": "Please be quiet. I **’m working**. (work)",
+              "example": "Please be quiet. I**’m working**. (work)",
               "items": [
                 { "text": "Listen! Somebody {{is singing}} next door.", "hint": "sing" },
                 { "text": "Why {{are}} you {{wearing}} a coat? It’s warm.", "hint": "wear" },

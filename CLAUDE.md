@@ -20,6 +20,7 @@ Versions live in `gradle/libs.versions.toml`.
 | Module | Purpose |
 |--------|---------|
 | `content/` | Course content, independent of the rest: text markup, theory blocks, exercise types, `validate()`, strict JSON (`ContentJson`) |
+| `content-compose/` | Draws content: `ContentView` (theory blocks), `ExerciseView` (every exercise type), `ContentTheme`, `ImageLoader`; knows nothing of courses or checking |
 | `core/` | Pure business logic, no UI/SQL/IO: course model and file (`CourseJson`), journal events, rules (SM-2, graduation), `replay()`, ports, `CourseService` |
 | `client/` | Storage adapters: SQLite (`LocalStorage`), course import/export with pictures (`CourseLibrary`), sample course; `desktopMain` has zip, picture files, HTTP and the DB in `<Documents>/polylingy` |
 | `app/` | Compose UI: screens, ViewModels, `AppContainer` (manual DI); `desktopMain` has `main()` and native file dialogs |
@@ -34,6 +35,7 @@ Key files:
 - `content/src/commonMain/kotlin/com/polylingy/content/` — `Inline`, `Block`, `Exercise`, `ContentJson`
 - `core/src/commonMain/kotlin/com/polylingy/core/content/CourseJson.kt` — reading and writing course files, all checks
 - `client/src/commonMain/kotlin/com/polylingy/client/CourseLibrary.kt` — import/export with pictures
+- `core/src/commonMain/kotlin/com/polylingy/core/rules/TextMatcher.kt`, `ExerciseChecker.kt` — checking answers
 - `core/src/commonMain/kotlin/com/polylingy/core/progress/Replay.kt` — derives all progress from the journal
 - `core/src/commonMain/kotlin/com/polylingy/core/rules/` — SM-2, graduation, pickers, answer checking
 - `core/src/commonMain/kotlin/com/polylingy/core/journal/Events.kt` — journal event format (`schemaVersion`)
