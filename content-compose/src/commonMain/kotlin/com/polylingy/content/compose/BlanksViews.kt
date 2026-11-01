@@ -49,9 +49,6 @@ private fun BlankText(
     }
 }
 
-private fun hasMistake(checks: List<ItemCheck>?, from: Int, count: Int) =
-    checks != null && (from until from + count).any { checks[it].result != ItemResult.CORRECT }
-
 @Composable
 internal fun GapsView(exercise: Exercise.Gaps, response: Response.Blanks, checks: List<ItemCheck>?, onChange: (Response) -> Unit, onSubmit: () -> Unit) {
     val offsets = offsets(exercise.items.map { it.text })
@@ -64,7 +61,7 @@ internal fun GapsView(exercise: Exercise.Gaps, response: Response.Blanks, checks
         }
         WordBank(exercise.wordBank)
         exercise.items.forEachIndexed { i, item ->
-            Item(i + 1, item.note, hasMistake(checks, offsets[i], item.text.blanks.size)) {
+            Item(i + 1, item.note, showNote = checks != null) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), itemVerticalAlignment = Alignment.CenterVertically) {
                     BlankText(item.text, offsets[i], response, checks, onChange, onSubmit)
                     item.hint?.let { Text("($it)", color = colors.muted, style = MaterialTheme.typography.bodySmall) }
@@ -88,7 +85,7 @@ internal fun PicturesView(exercise: Exercise.Pictures, response: Response.Blanks
                 ) {
                     Picture(item.image, Modifier.fillMaxWidth())
                     BlankText(item.text, offsets[i], response, checks, onChange, onSubmit)
-                    if (hasMistake(checks, offsets[i], item.text.blanks.size)) {
+                    if (checks != null) {
                         item.note?.let { InlineText(it, style = MaterialTheme.typography.bodySmall.copy(color = colors.muted)) }
                     }
                 }

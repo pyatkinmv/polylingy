@@ -69,6 +69,23 @@ class StudyServiceTest {
         assertEquals("1.2", study.next(course.id)!!.topic.title)
     }
 
+    @Test fun countsSplitTopicsByStateAndKnowTheNextReview() {
+        val (study, course) = service(twoUnits())
+        assertEquals(ProgressCounts(0, 0, 0, 0, 3, 0, null), study.progress(course.id)!!.counts)
+        repeat(3) { study.answerRight(course, study.next(course.id)!!) }
+        study.answerWrong(course, study.next(course.id)!!)
+        val progress = study.progress(course.id)!!
+        assertEquals(ProgressCounts(0, 1, 0, 1, 1, 1, LocalDate(2026, 11, 3)), progress.counts)
+        assertEquals(1, progress.counts.today)
+        assertEquals(3, progress.counts.total)
+        assertEquals(ProgressCounts(0, 0, 0, 0, 1, 0, null), progress.units[1].counts)
+
+        clock.now = at(LocalDate(2026, 11, 3))
+        val tuesday = study.progress(course.id)!!
+        assertEquals(1, tuesday.counts.due, "passed yesterday, due today")
+        assertEquals(1, tuesday.counts.studied, "a due topic still counts as studied")
+    }
+
     @Test fun outcomeTellsTheStatusBeforeAndAfter() {
         val (study, course) = service(twoUnits(""", "rules": { "preset": "quick" }"""))
         val next = study.next(course.id)!!

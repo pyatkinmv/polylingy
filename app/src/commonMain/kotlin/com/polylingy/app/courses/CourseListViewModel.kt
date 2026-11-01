@@ -2,6 +2,7 @@ package com.polylingy.app.courses
 
 import androidx.lifecycle.ViewModel
 import com.polylingy.app.PickedFile
+import com.polylingy.client.BrokenCourse
 import com.polylingy.client.CourseExport
 import com.polylingy.client.CourseLibrary
 import com.polylingy.content.Problem
@@ -9,6 +10,8 @@ import com.polylingy.core.content.Course
 import com.polylingy.core.content.CourseFormatException
 import com.polylingy.core.content.CourseService
 import com.polylingy.core.ports.CourseRepository
+import com.polylingy.core.study.ProgressCounts
+import com.polylingy.core.study.StudyService
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,15 +28,24 @@ sealed interface ImportOutcome {
     data class Failed(val fileName: String, val problems: List<Problem>) : ImportOutcome
 }
 
+/** A course on the list with how it stands today. */
+data class CourseRow(val course: Course, val counts: ProgressCounts)
+
 class CourseListViewModel(
     private val library: CourseLibrary,
     private val service: CourseService,
     private val repository: CourseRepository,
+    private val study: StudyService,
+    private val brokenCourses: () -> List<BrokenCourse>,
 ) : ViewModel() {
     private val _courses = MutableStateFlow(load())
+    private val _broken = MutableStateFlow(brokenCourses())
 
     /** Oldest course first. */
-    val courses: StateFlow<List<Course>> = _courses.asStateFlow()
+    val courses: StateFlow<List<CourseRow>> = _courses.asStateFlow()
+
+    /** Stored courses this version can't read; shown so they can be looked at and removed. */
+    val broken: StateFlow<List<BrokenCourse>> = _broken.asStateFlow()
 
     fun import(file: PickedFile): ImportOutcome {
         log.info { "User imports ${file.name} (${file.bytes.size} bytes)" }
@@ -53,10 +65,12 @@ class CourseListViewModel(
         return runCatching { library.export(courseId) }.onFailure { log.warn(it) { "Export of course $courseId failed" } }
     }
 
-    fun rename(courseId: Uuid, name: String) {
-        log.info { "User renames course $courseId to \"$name\"" }
-        service.rename(courseId, name)
-        refresh()
+    /** Saves a new name and description; a failure carries the message to show (e.g. bad markup). */
+    fun editDetails(courseId: Uuid, name: String, description: String): Result<Course> {
+        log.info { "User edits course $courseId: name \"$name\"" }
+        return runCatching { service.editDetails(courseId, name, description) }
+            .onFailure { log.warn { "Editing course $courseId failed: ${it.message}" } }
+            .also { refresh() }
     }
 
     fun delete(courseId: Uuid) {
@@ -67,7 +81,10 @@ class CourseListViewModel(
 
     fun refresh() {
         _courses.value = load()
+        _broken.value = brokenCourses()
     }
 
-    private fun load() = repository.all().sortedBy { it.createdAt }
+    private fun load() = repository.all().sortedBy { it.createdAt }.map { course ->
+        CourseRow(course, study.progress(course.id)?.counts ?: ProgressCounts(0, 0, 0, 0, 0, 0, null))
+    }
 }

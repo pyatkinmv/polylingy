@@ -20,22 +20,61 @@ import com.polylingy.core.ports.EventLog
 import com.polylingy.core.rules.CheckSettings
 import com.polylingy.core.rules.Checking
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.datetime.LocalDate
 import kotlin.random.Random
 import kotlin.uuid.Uuid
 
 private val log = KotlinLogging.logger {}
 
-data class TopicProgress(val topic: Topic, val status: TopicStatus)
+/** A topic's status today; [studied] — it has been passed at least once, so it counts as studied even while due again. */
+data class TopicProgress(val topic: Topic, val status: TopicStatus, val studied: Boolean)
+
+/**
+ * How a set of topics stands today, for the numbers on a course or unit card. Every topic is in exactly one of
+ * [learnedForGood], [resting] (passed, comes back on a later day), [due], [learning] (a round under way) and [new].
+ */
+data class ProgressCounts(
+    val learnedForGood: Int,
+    val resting: Int,
+    val due: Int,
+    val learning: Int,
+    val new: Int,
+    val studied: Int,
+    /** The earliest day a resting topic comes back, if any. */
+    val nextReview: LocalDate?,
+) {
+    val total: Int get() = learnedForGood + resting + due + learning + new
+
+    /** What waits today: reviews and rounds under way. New topics are not counted: there is no daily limit for them. */
+    val today: Int get() = due + learning
+
+    companion object {
+        fun of(topics: List<TopicProgress>): ProgressCounts {
+            val statuses = topics.map { it.status }
+            return ProgressCounts(
+                learnedForGood = statuses.count { it == TopicStatus.Learned },
+                resting = statuses.count { it is TopicStatus.Passed },
+                due = statuses.count { it == TopicStatus.Due },
+                learning = statuses.count { it == TopicStatus.InProgress },
+                new = statuses.count { it == TopicStatus.New },
+                studied = topics.count { it.studied },
+                nextReview = statuses.filterIsInstance<TopicStatus.Passed>().minOfOrNull { it.due },
+            )
+        }
+    }
+}
 
 /** A unit is learned when all its topics are; [started] — some topic of it has been answered. */
 data class UnitProgress(val unit: CourseUnit, val topics: List<TopicProgress>) {
     val learned: Boolean get() = topics.all { it.status == TopicStatus.Learned }
     val started: Boolean get() = topics.any { it.status != TopicStatus.New }
+    val counts: ProgressCounts get() = ProgressCounts.of(topics)
 }
 
 /** Every topic's status today: by unit for a course with units, flat for one without. */
 data class CourseProgress(val course: Course, val units: List<UnitProgress>, val topics: List<TopicProgress>) {
     val allTopics: List<TopicProgress> get() = units.flatMap { it.topics } + topics
+    val counts: ProgressCounts get() = ProgressCounts.of(allTopics)
 }
 
 /** What to show: an exercise of a topic, with the unit it belongs to. */
@@ -54,8 +93,8 @@ class StudyService(
 ) {
     fun progress(courseId: Uuid): CourseProgress? {
         val course = courses.get(courseId) ?: return null
-        val statuses = statuses(course)
-        fun of(topics: List<Topic>) = topics.map { TopicProgress(it, statuses.getValue(it.id)) }
+        val progress = topicProgress(course)
+        fun of(topics: List<Topic>) = topics.map { progress.getValue(it.id) }
         return CourseProgress(course, course.units.map { UnitProgress(it, of(it.topics)) }, of(course.topics))
     }
 
@@ -117,11 +156,17 @@ class StudyService(
 
     private fun Course.rules(): CourseRules<*, *> = rules.toRules(random)
 
-    private fun statuses(course: Course): Map<Uuid, TopicStatus> = statusesWith(course, course.rules())
+    private fun statuses(course: Course): Map<Uuid, TopicStatus> = topicProgress(course).mapValues { it.value.status }
 
-    private fun <M, G> statusesWith(course: Course, rules: CourseRules<M, G>): Map<Uuid, TopicStatus> {
+    private fun topicProgress(course: Course): Map<Uuid, TopicProgress> = progressWith(course, course.rules())
+
+    private fun <M, G> progressWith(course: Course, rules: CourseRules<M, G>): Map<Uuid, TopicProgress> {
         val today = clock.now().localDate
-        return replay(course, journal.all(), rules).mapValues { it.value.status(rules.scheduler, today) }
+        val states = replay(course, journal.all(), rules)
+        return course.allTopics.associate { topic ->
+            val state = states.getValue(topic.id)
+            topic.id to TopicProgress(topic, state.status(rules.scheduler, today), studied = state.memory != null)
+        }
     }
 
     private fun exerciseOf(course: Course, topic: Topic, lastExercise: Uuid?): NextExercise? {

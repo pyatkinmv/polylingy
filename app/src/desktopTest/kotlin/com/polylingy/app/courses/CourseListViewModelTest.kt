@@ -12,11 +12,11 @@ import kotlin.test.assertTrue
 class CourseListViewModelTest {
     private val clock = MovableClock()
     private val container = testContainer(clock)
-    private val vm = CourseListViewModel(container.library, container.courseService, container.storage.courses)
+    private val vm = CourseListViewModel(container.library, container.courseService, container.storage.courses, container.study, container.storage::brokenCourses)
 
     @AfterTest fun close() = container.storage.close()
 
-    private val names get() = vm.courses.value.map { it.name }
+    private val names get() = vm.courses.value.map { it.course.name }
 
     private fun file(name: String) = PickedFile("$name.json", """{ "formatVersion": 1, "name": "$name",
         "topics": [ { "title": "T", "exercises": [ { "type": "gaps", "items": [ { "text": "{{a}}" } ] } ] } ] }""".toByteArray())
@@ -34,18 +34,26 @@ class CourseListViewModelTest {
         assertEquals(emptyList(), names)
     }
 
-    @Test fun renameAndDelete() {
+    @Test fun editDetailsAndDelete() {
         vm.import(file("Old"))
-        val id = vm.courses.value.single().id
-        vm.rename(id, "New")
+        val id = vm.courses.value.single().course.id
+        assertTrue(vm.editDetails(id, "New", "Short *note*").isSuccess)
         assertEquals(listOf("New"), names)
+        assertEquals("Short *note*", vm.courses.value.single().course.description?.text)
+        assertEquals("** at 1 is not closed", vm.editDetails(id, "New", "**x").exceptionOrNull()?.message)
         vm.delete(id)
         assertEquals(emptyList(), names)
     }
 
+    @Test fun eachCourseComesWithItsCounts() {
+        vm.import(file("Spanish"))
+        val counts = vm.courses.value.single().counts
+        assertEquals(1 to 0, counts.new to counts.studied)
+    }
+
     @Test fun exportThenImportAddsACopy() {
         vm.import(file("Spanish Basics"))
-        val exported = vm.export(vm.courses.value.single().id).getOrThrow()
+        val exported = vm.export(vm.courses.value.single().course.id).getOrThrow()
         assertEquals("spanish_basics.json", exported.fileName)
         vm.import(PickedFile(exported.fileName, exported.bytes))
         assertEquals(listOf("Spanish Basics", "Spanish Basics (2)"), names)

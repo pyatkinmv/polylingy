@@ -70,20 +70,31 @@ class CourseServiceTest {
         assertEquals("x".repeat(46) + " (2)", second.name)
     }
 
-    @Test fun renameBumpsTheRevisionAndKeepsNamesUnique() {
+    @Test fun editDetailsBumpsTheRevisionAndKeepsNamesUnique() {
         val french = service.import(file("French"))
         val spanish = service.import(file("Spanish"))
-        assertEquals("french (2)", service.rename(spanish.id, "  french ").name)
-        val renamed = service.rename(french.id, "French")
-        assertEquals("French", renamed.name)
-        assertEquals(2, renamed.revision)
+        assertEquals("french (2)", service.editDetails(spanish.id, "  french ", "").name)
+        val edited = service.editDetails(french.id, "French", "  Verbs and *nouns*. ")
+        assertEquals("French", edited.name)
+        assertEquals("Verbs and *nouns*.", edited.description?.text)
+        assertEquals(2, edited.revision)
+        assertNull(service.editDetails(french.id, "French", " ").description, "a blank description is removed")
     }
 
-    @Test fun renameChecksTheName() {
+    @Test fun editDetailsChecksNameAndDescription() {
         val course = service.import(file())
-        assertFailsWith<IllegalArgumentException> { service.rename(course.id, " ") }
-        assertFailsWith<IllegalArgumentException> { service.rename(course.id, "x".repeat(51)) }
-        assertFailsWith<IllegalArgumentException> { service.rename(kotlin.uuid.Uuid.random(), "Y") }
+        assertFailsWith<IllegalArgumentException> { service.editDetails(course.id, " ", "") }
+        assertFailsWith<IllegalArgumentException> { service.editDetails(course.id, "x".repeat(51), "") }
+        assertFailsWith<IllegalArgumentException> { service.editDetails(kotlin.uuid.Uuid.random(), "Y", "") }
+        val markup = assertFailsWith<IllegalArgumentException> { service.editDetails(course.id, "Y", "**open") }
+        assertEquals("** at 1 is not closed", markup.message)
+        assertFailsWith<IllegalArgumentException> { service.editDetails(course.id, "Y", "a {{blank}}") }
+    }
+
+    @Test fun aCourseFromANewerFormatCantBeEdited() {
+        val newer = CourseJson.read(CourseSamples.flat.replace("\"formatVersion\": 1", "\"formatVersion\": 2"), clock.now().instant).course
+        val course = service.import(newer)
+        assertFailsWith<IllegalArgumentException> { service.editDetails(course.id, "Other", "") }
     }
 
     @Test fun deleteRemovesTheCourse() {

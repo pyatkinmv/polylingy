@@ -1,29 +1,24 @@
 package com.polylingy.app.courses
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Card
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -33,101 +28,179 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.polylingy.app.APP_VERSION
 import com.polylingy.app.CourseFiles
+import com.polylingy.app.course.accent
 import com.polylingy.app.ui.ConfirmDialog
-import com.polylingy.app.ui.CourseNameDialog
+import com.polylingy.app.ui.CourseDetailsDialog
+import com.polylingy.app.ui.CourseMark
+import com.polylingy.app.ui.Look
 import com.polylingy.app.ui.MessageDialog
+import com.polylingy.app.ui.Page
+import com.polylingy.app.ui.ProgressDetails
+import com.polylingy.app.ui.ProgressNumbers
+import com.polylingy.app.ui.Tile
+import com.polylingy.client.BrokenCourse
 import com.polylingy.content.Problem
+import com.polylingy.content.compose.annotated
 import com.polylingy.core.content.Course
+import kotlinx.datetime.LocalDate
+import kotlin.uuid.Uuid
 
 private sealed interface CourseDialog {
-    data class Rename(val course: Course) : CourseDialog
-    data class Remove(val course: Course) : CourseDialog
+    data class Edit(val course: Course, val error: String? = null) : CourseDialog
+    data class Remove(val id: Uuid, val name: String) : CourseDialog
     data class Message(val title: String, val text: String) : CourseDialog
 }
 
 /** At most this many problems are listed in a dialog; the full list is in the log. */
 private const val SHOWN_PROBLEMS = 15
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CourseListScreen(viewModel: CourseListViewModel, files: CourseFiles) {
+fun CourseListScreen(viewModel: CourseListViewModel, files: CourseFiles, today: LocalDate, onOpen: (Uuid) -> Unit) {
     val courses by viewModel.courses.collectAsState()
+    val broken by viewModel.broken.collectAsState()
     var dialog by remember { mutableStateOf<CourseDialog?>(null) }
     val close = { dialog = null }
 
     LaunchedEffect(Unit) { viewModel.refresh() }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Polylingy") },
-                actions = {
-                    TextButton(onClick = {
-                        val file = files.open() ?: return@TextButton
+    Box(Modifier.fillMaxSize()) {
+        Column(Modifier.fillMaxSize()) {
+            Row(Modifier.height(58.dp).padding(horizontal = 32.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("Polylingy", color = Look.Green, fontWeight = FontWeight.Bold, fontSize = 19.sp)
+                Box(Modifier.weight(1f))
+                OutlinedButton(
+                    onClick = {
+                        val file = files.open() ?: return@OutlinedButton
                         dialog = when (val outcome = viewModel.import(file)) {
                             is ImportOutcome.Failed -> CourseDialog.Message("Couldn't import ${outcome.fileName}", problemList(outcome.problems))
                             is ImportOutcome.Imported -> importedMessage(outcome)
                         }
-                    }) { Text("Import") }
-                    Spacer(Modifier.width(8.dp))
-                },
-            )
-        },
-    ) { padding ->
-        Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.TopCenter) {
-            LazyColumn(
-                modifier = Modifier.widthIn(max = 720.dp).fillMaxWidth(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                item {
-                    Text(
-                        "Studying is being rebuilt. For now, courses can be imported, exported, renamed and removed.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.Gray,
-                    )
-                }
-                items(courses, key = { it.id.toString() }) { course ->
-                    CourseCard(
-                        course = course,
-                        onRename = { dialog = CourseDialog.Rename(course) },
+                    },
+                    shape = RoundedCornerShape(8.dp),
+                ) { Text("＋ Import", color = Look.Ink) }
+            }
+            HorizontalDivider(color = Look.Line)
+            Page(Modifier.verticalScroll(rememberScrollState())) {
+                Text("Courses", style = MaterialTheme.typography.headlineMedium)
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    for (row in courses) CourseTile(
+                        row,
+                        today,
+                        onOpen = { onOpen(row.course.id) },
+                        onEdit = { dialog = CourseDialog.Edit(row.course) },
                         onExport = {
-                            viewModel.export(course.id)
+                            viewModel.export(row.course.id)
                                 .onSuccess { files.save(it.fileName, it.bytes) }
-                                .onFailure { dialog = CourseDialog.Message("Couldn't export \"${course.name}\"", it.message ?: "Unknown error") }
+                                .onFailure { dialog = CourseDialog.Message("Couldn't export \"${row.course.name}\"", it.message ?: "Unknown error") }
                         },
-                        onRemove = { dialog = CourseDialog.Remove(course) },
+                        onRemove = { dialog = CourseDialog.Remove(row.course.id, row.course.name) },
+                    )
+                    for (course in broken) BrokenTile(
+                        course,
+                        onShow = { dialog = CourseDialog.Message("Can't open \"${course.label}\"", problemList(course.problems)) },
+                        onRemove = { dialog = CourseDialog.Remove(course.id, course.label) },
                     )
                 }
             }
-            Text(
-                "v$APP_VERSION",
-                style = MaterialTheme.typography.labelSmall,
-                color = Color.Gray,
-                modifier = Modifier.align(Alignment.BottomEnd).padding(8.dp),
-            )
         }
+        Text("$APP_VERSION", Modifier.align(Alignment.BottomStart).padding(horizontal = 32.dp, vertical = 12.dp), color = Look.Faint, fontSize = 11.sp)
     }
 
     when (val d = dialog) {
         null -> {}
-        is CourseDialog.Rename -> CourseNameDialog(
-            "Rename course",
-            initial = d.course.name,
-            onConfirm = { viewModel.rename(d.course.id, it); close() },
+        is CourseDialog.Edit -> CourseDetailsDialog(
+            name = d.course.name,
+            description = d.course.description?.text.orEmpty(),
+            error = d.error,
+            onConfirm = { name, description ->
+                viewModel.editDetails(d.course.id, name, description)
+                    .onSuccess { close() }
+                    .onFailure { dialog = d.copy(error = it.message) }
+            },
             onDismiss = close,
         )
         is CourseDialog.Remove -> ConfirmDialog(
             "Remove course",
-            "Are you sure you want to remove \"${d.course.name}\"? This cannot be undone.",
-            onConfirm = { viewModel.delete(d.course.id); close() },
+            "Are you sure you want to remove \"${d.name}\"? This cannot be undone.",
+            onConfirm = { viewModel.delete(d.id); close() },
             onDismiss = close,
         )
         is CourseDialog.Message -> MessageDialog(d.title, d.text, onDismiss = close)
+    }
+}
+
+@Composable
+private fun CourseTile(row: CourseRow, today: LocalDate, onOpen: () -> Unit, onEdit: () -> Unit, onExport: () -> Unit, onRemove: () -> Unit) {
+    val course = row.course
+    Tile(onClick = onOpen, hoverContent = { ProgressDetails(course.name, row.counts) }) {
+        CourseMark(course.name, course.accent())
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(course.name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if (course.studyOnly) Text(
+                    "Newer version",
+                    Modifier.background(Look.WarnBg, RoundedCornerShape(50)).padding(horizontal = 9.dp, vertical = 1.dp),
+                    color = Look.Warn,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+            course.description?.let {
+                Text(it.annotated(), style = MaterialTheme.typography.bodyMedium, color = Look.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+        }
+        ProgressNumbers(row.counts, today)
+        CourseMenu(
+            listOf(
+                MenuItem("Edit name and description…", enabled = !course.studyOnly, onEdit),
+                MenuItem("Export", enabled = !course.studyOnly, onExport),
+                MenuItem("Remove", enabled = true, onRemove),
+            ),
+            note = if (course.studyOnly) "Update Polylingy to edit or export this course" else null,
+        )
+    }
+}
+
+private val BrokenCourse.label: String get() = name ?: "Unknown course"
+
+/** A stored course this version can't read: what is wrong, and a way to remove it. */
+@Composable
+private fun BrokenTile(course: BrokenCourse, onShow: () -> Unit, onRemove: () -> Unit) {
+    Tile(onClick = onShow) {
+        Box(Modifier.size(42.dp).background(Look.WrongBg, RoundedCornerShape(10.dp)), contentAlignment = Alignment.Center) {
+            Text("!", color = Look.Wrong, fontWeight = FontWeight.Bold)
+        }
+        Column(Modifier.weight(1f)) {
+            Text(course.label, style = MaterialTheme.typography.titleMedium)
+            Text("Can't open this course", color = Look.Wrong, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+            course.problems.firstOrNull()?.let { Text(it.toString(), color = Look.Muted, fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis) }
+        }
+        CourseMenu(listOf(MenuItem("Show problems", enabled = true, onShow), MenuItem("Remove", enabled = true, onRemove)))
+    }
+}
+
+private class MenuItem(val label: String, val enabled: Boolean, val action: () -> Unit)
+
+/** A "⋯" button opening a menu of actions; [note] explains disabled ones. */
+@Composable
+private fun CourseMenu(items: List<MenuItem>, note: String? = null) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { open = true }) { Text("⋯", color = Look.Faint, fontSize = 22.sp) }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            for (item in items) DropdownMenuItem(
+                text = { Text(item.label, color = if (item.label == "Remove") Look.Wrong else androidx.compose.ui.graphics.Color.Unspecified) },
+                enabled = item.enabled,
+                onClick = { open = false; item.action() },
+            )
+            note?.let { Text(it, Modifier.padding(horizontal = 12.dp, vertical = 6.dp), color = Look.Faint, fontSize = 12.sp) }
+        }
     }
 }
 
@@ -135,9 +208,9 @@ private fun importedMessage(outcome: ImportOutcome.Imported): CourseDialog.Messa
     val course = outcome.course
     return when {
         course.studyOnly -> CourseDialog.Message(
-            "Update Polylingy",
-            "\"${course.name}\" was made with a newer version of Polylingy. Parts this version doesn't know are left out, " +
-                "and the course can't be exported until the app is updated.\n\n${problemList(outcome.warnings)}",
+            "\"${course.name}\" was made with a newer Polylingy",
+            "It is imported and you can study it. Until you update Polylingy it can't be edited or exported, " +
+                "and parts this version doesn't know are skipped:\n\n${problemList(outcome.warnings)}",
         )
         outcome.warnings.isNotEmpty() -> CourseDialog.Message("Imported \"${course.name}\" with warnings", problemList(outcome.warnings))
         else -> null
@@ -148,47 +221,4 @@ private fun problemList(problems: List<Problem>): String {
     val shown = problems.take(SHOWN_PROBLEMS).joinToString("\n") { "• $it" }
     val more = problems.size - SHOWN_PROBLEMS
     return if (more > 0) "$shown\n…and $more more" else shown
-}
-
-@Composable
-private fun CourseCard(course: Course, onRename: () -> Unit, onExport: () -> Unit, onRemove: () -> Unit) {
-    Card(Modifier.fillMaxWidth()) {
-        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(course.name, style = MaterialTheme.typography.titleMedium)
-                course.description?.let {
-                    Spacer(Modifier.height(4.dp))
-                    Text(it.plainText(), style = MaterialTheme.typography.bodySmall)
-                }
-                Spacer(Modifier.height(4.dp))
-                Text(summary(course), style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-            }
-            OverflowMenu(
-                "Rename course" to onRename,
-                "Export course" to onExport,
-                "Remove course" to onRemove,
-            )
-        }
-    }
-}
-
-private fun summary(course: Course): String {
-    val size = if (course.units.isNotEmpty()) count(course.units.size, "unit") else count(course.topics.size, "topic")
-    return if (course.studyOnly) "$size · made with a newer version" else size
-}
-
-private fun count(n: Int, noun: String) = "$n $noun${if (n == 1) "" else "s"}"
-
-/** A "⋮" button opening a menu of labelled actions. */
-@Composable
-fun OverflowMenu(vararg items: Pair<String, () -> Unit>) {
-    var open by remember { mutableStateOf(false) }
-    Box {
-        IconButton(onClick = { open = true }) { Text("⋮", style = MaterialTheme.typography.titleLarge) }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            for ((label, action) in items) {
-                DropdownMenuItem(text = { Text(label) }, onClick = { open = false; action() })
-            }
-        }
-    }
 }

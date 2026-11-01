@@ -27,7 +27,7 @@ Versions live in `gradle/libs.versions.toml`.
 
 Dependencies point only towards `core` (and `core` → `content`). Root package: `com.polylingy`.
 
-The app is being rewritten to a new model on the `next` branch (`docs/migration-plan.md`); studying is switched off until stage 6.
+The app is being rewritten to a new model on the `next` branch (`docs/migration-plan.md`); stage 6 brought the study screens back.
 
 Key files:
 - `app/src/desktopMain/kotlin/com/polylingy/app/Main.kt` — entry point: opens storage, seeds the sample course, opens the window

@@ -1,5 +1,8 @@
 package com.polylingy.app.ui
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
@@ -24,28 +27,43 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.polylingy.core.content.CourseService
 
-/** Asks for a course name: non-blank, at most [CourseService.MAX_NAME_LENGTH] characters. */
+/**
+ * Edits a course's name (non-blank, at most [CourseService.MAX_NAME_LENGTH] characters) and description (optional,
+ * the same markup as in course files). [error] is what saving said last time, e.g. about bad markup.
+ */
 @Composable
-fun CourseNameDialog(title: String, initial: String = "", onConfirm: (String) -> Unit, onDismiss: () -> Unit) {
-    var value by remember { mutableStateOf(TextFieldValue(initial, TextRange(initial.length))) }
-    val valid = value.text.isNotBlank()
+fun CourseDetailsDialog(name: String, description: String, error: String?, onConfirm: (String, String) -> Unit, onDismiss: () -> Unit) {
+    var nameValue by remember { mutableStateOf(TextFieldValue(name, TextRange(name.length))) }
+    var descriptionValue by remember { mutableStateOf(description) }
+    val valid = nameValue.text.isNotBlank()
     val focus = remember { FocusRequester() }
     LaunchedEffect(Unit) { focus.requestFocus() }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(title) },
+        title = { Text("Name and description") },
         text = {
-            OutlinedTextField(
-                value = value,
-                onValueChange = { value = it.limitTo(CourseService.MAX_NAME_LENGTH) },
-                label = { Text("Course name") },
-                singleLine = true,
-                supportingText = { Text("${value.text.length}/${CourseService.MAX_NAME_LENGTH}") },
-                modifier = Modifier.focusRequester(focus).onEnter { if (valid) onConfirm(value.text) },
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = nameValue,
+                    onValueChange = { nameValue = it.limitTo(CourseService.MAX_NAME_LENGTH) },
+                    label = { Text("Name") },
+                    singleLine = true,
+                    supportingText = { Text("${nameValue.text.length}/${CourseService.MAX_NAME_LENGTH}, different from your other courses") },
+                    modifier = Modifier.fillMaxWidth().focusRequester(focus),
+                )
+                OutlinedTextField(
+                    value = descriptionValue,
+                    onValueChange = { descriptionValue = it },
+                    label = { Text("Description") },
+                    minLines = 3,
+                    isError = error != null,
+                    supportingText = { Text(error ?: "Optional. **bold** and *italic* work as in the course file") },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         },
-        confirmButton = { Button(onClick = { onConfirm(value.text) }, enabled = valid) { Text("OK") } },
+        confirmButton = { Button(onClick = { onConfirm(nameValue.text, descriptionValue) }, enabled = valid) { Text("Save") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }
