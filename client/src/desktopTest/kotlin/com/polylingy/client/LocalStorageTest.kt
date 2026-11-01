@@ -2,13 +2,13 @@ package com.polylingy.client
 
 import com.polylingy.content.Exercise
 import com.polylingy.content.Inline
+import com.polylingy.content.ItemResult
+import com.polylingy.content.Response
 import com.polylingy.core.content.Course
 import com.polylingy.core.content.CourseJson
 import com.polylingy.core.content.Topic
 import com.polylingy.core.journal.AnswerSubmitted
-import com.polylingy.core.journal.AutoCheck
 import com.polylingy.core.journal.EventEnvelope
-import com.polylingy.core.journal.Rating
 import com.polylingy.core.journal.ZonedInstant
 import kotlinx.datetime.TimeZone
 import java.nio.file.Files
@@ -35,7 +35,7 @@ private fun event(at: Long = 0) = EventEnvelope(
     eventId = Uuid.random(),
     deviceId = Uuid.random(),
     occurredAt = ZonedInstant(Instant.fromEpochSeconds(at), moscow),
-    event = AnswerSubmitted(Uuid.random(), Uuid.random(), Uuid.random(), "x", AutoCheck.CORRECT, Rating.CORRECT),
+    event = AnswerSubmitted(Uuid.random(), Uuid.random(), Uuid.random(), 1, Response.Blanks(listOf("x")), listOf(ItemResult.CORRECT)),
 )
 
 class LocalStorageTest {

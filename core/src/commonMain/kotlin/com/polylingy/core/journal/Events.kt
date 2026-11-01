@@ -1,5 +1,7 @@
 package com.polylingy.core.journal
 
+import com.polylingy.content.ItemResult
+import com.polylingy.content.Response
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlin.uuid.Uuid
@@ -24,29 +26,20 @@ data class EventEnvelope(
 @Serializable
 sealed interface Event
 
-/** The user answered one exercise and (optionally) rated the answer. */
+/**
+ * The learner answered one exercise. It keeps the facts: what was entered and what checking said about each item at
+ * that moment. Grades, rounds and schedules are derived from these by replay() with the course's current policies,
+ * and old answers are never checked again, so editing an exercise doesn't rewrite the past.
+ */
 @Serializable
 @SerialName("AnswerSubmitted")
 data class AnswerSubmitted(
     val courseId: Uuid,
     val topicId: Uuid,
     val exerciseId: Uuid,
-    val input: String,
-    /** Null when the exercise has no automatic check. */
-    val autoCheck: AutoCheck? = null,
-    /** Null when the course has no self-rating. */
-    val rating: Rating? = null,
+    /** The course's revision when the answer was given: which version of the exercise was on screen. */
+    val courseRevision: Int,
+    val response: Response,
+    /** One per item of the exercise: blank, choice, pair or sentence. */
+    val results: List<ItemResult>,
 ) : Event
-
-@Serializable
-enum class AutoCheck { CORRECT, PARTIAL, INCORRECT }
-
-/** A self-rating on a course-defined [scale], e.g. `("binary", "correct")`. */
-@Serializable
-data class Rating(val scale: String, val value: String) {
-    companion object {
-        const val BINARY = "binary"
-        val CORRECT = Rating(BINARY, "correct")
-        val INCORRECT = Rating(BINARY, "incorrect")
-    }
-}

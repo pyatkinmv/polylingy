@@ -6,7 +6,6 @@ import com.polylingy.content.Inline
 import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
-import kotlinx.serialization.json.JsonObject
 import kotlin.time.Instant
 import kotlin.uuid.Uuid
 
@@ -28,8 +27,8 @@ data class Course(
     val updatedAt: Instant,
     val theme: Theme? = null,
     val settings: CourseSettings = CourseSettings(),
-    /** Course policies, kept as written until they are implemented (docs/migration-plan.md, stage 4). */
-    val rules: JsonObject? = null,
+    /** Course policies; without them, the ladder preset. */
+    val rules: RulesSpec? = null,
     val units: List<CourseUnit> = emptyList(),
     val topics: List<Topic> = emptyList(),
     /**

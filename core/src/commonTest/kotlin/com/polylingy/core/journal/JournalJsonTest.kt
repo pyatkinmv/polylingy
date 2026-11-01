@@ -1,5 +1,7 @@
 package com.polylingy.core.journal
 
+import com.polylingy.content.ItemResult
+import com.polylingy.content.Response
 import com.polylingy.core.PolylingyJson
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
@@ -23,21 +25,23 @@ class JournalJsonTest {
             eventId = Uuid.random(),
             deviceId = Uuid.random(),
             occurredAt = zoned,
-            event = AnswerSubmitted(Uuid.random(), Uuid.random(), Uuid.random(), "rojo, rosa", AutoCheck.PARTIAL, Rating.INCORRECT),
+            event = AnswerSubmitted(Uuid.random(), Uuid.random(), Uuid.random(), 3, Response.Blanks(listOf("rojo", "rosa")), listOf(ItemResult.CORRECT, ItemResult.TYPO)),
         )
         val json = PolylingyJson.encodeToString(EventEnvelope.serializer(), envelope)
         assertTrue("\"type\":\"AnswerSubmitted\"" in json, json)
+        assertTrue("\"response\":{\"type\":\"blanks\"" in json, json)
         assertEquals(envelope, PolylingyJson.decodeFromString(EventEnvelope.serializer(), json))
     }
 
-    @Test fun optionalFieldsAndUnknownKeysAreTolerated() {
+    @Test fun unknownKeysAreTolerated() {
         val id = "00000000-0000-0000-0000-000000000000"
         val json = """
             {"eventId":"$id","deviceId":"$id","occurredAt":"$zoned","schemaVersion":1,"addedLater":true,
-             "event":{"type":"AnswerSubmitted","courseId":"$id","topicId":"$id","exerciseId":"$id","input":"x"}}
+             "event":{"type":"AnswerSubmitted","courseId":"$id","topicId":"$id","exerciseId":"$id","courseRevision":1,
+               "response":{"type":"choice","picked":["a"]},"results":["WRONG"],"timeSpent":12}}
         """.trimIndent()
         val event = PolylingyJson.decodeFromString(EventEnvelope.serializer(), json).event as AnswerSubmitted
-        assertEquals(null, event.autoCheck)
-        assertEquals(null, event.rating)
+        assertEquals(Response.Choice(listOf("a")), event.response)
+        assertEquals(listOf(ItemResult.WRONG), event.results)
     }
 }
