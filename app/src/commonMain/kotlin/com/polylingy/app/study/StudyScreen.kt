@@ -37,10 +37,12 @@ import com.polylingy.app.ui.Page
 import com.polylingy.app.ui.StubButton
 import com.polylingy.app.ui.TopBar
 import com.polylingy.app.ui.dayPhrase
+import com.polylingy.content.Block
 import com.polylingy.content.Exercise
 import com.polylingy.content.compose.ContentColors
 import com.polylingy.content.compose.ContentTheme
 import com.polylingy.content.compose.ExerciseView
+import com.polylingy.content.compose.ExplanationView
 import com.polylingy.content.compose.ImageLoader
 import com.polylingy.core.content.Course
 import kotlinx.datetime.LocalDate
@@ -106,6 +108,7 @@ private fun ExerciseBody(
                 progressLine(outcome) { dayPhrase(it, today) }?.let { Text(it, color = fg) }
             }
         }
+        val onLink: (Block.Link) -> Unit = { link -> links.target(link)?.let { go.theory(course.id, it.unitId, it.section, back = true) } }
         ContentTheme(ContentColors.forAccent(course.theme?.accent), images, links.names) {
             ExerciseView(
                 exercise = state.next.exercise,
@@ -113,9 +116,14 @@ private fun ExerciseBody(
                 checks = state.checks,
                 onChange = viewModel::change,
                 onSubmit = viewModel::check,
-                onLink = { link -> links.target(link)?.let { go.theory(course.id, it.unitId, it.section, back = true) } },
+                onLink = onLink,
                 seed = state.seed,
             )
+            // The topic's explanation stands in for an exercise that has none of its own (content-format.md, explanations).
+            val topicExplanation = state.next.topic.explanation
+            if (state.outcome != null && state.next.exercise.explanation == null && topicExplanation != null) {
+                ExplanationView(topicExplanation, onLink)
+            }
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             val colors = ButtonDefaults.buttonColors(containerColor = accent)
