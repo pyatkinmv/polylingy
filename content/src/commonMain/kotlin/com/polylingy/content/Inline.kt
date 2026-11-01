@@ -36,6 +36,19 @@ class Inline(val text: String) {
         }
     }
 
+    /** The text without markup; a blank shows as its answer. For places that can't show formatting. */
+    fun plainText(): String = buildString { plain(nodes) }
+
+    private fun StringBuilder.plain(nodes: List<InlineNode>) {
+        for (node in nodes) when (node) {
+            is InlineNode.Text -> append(node.text)
+            is InlineNode.Bold -> plain(node.children)
+            is InlineNode.Italic -> plain(node.children)
+            is InlineNode.Blank -> append(node.answer)
+            InlineNode.LineBreak -> append('\n')
+        }
+    }
+
     override fun equals(other: Any?): Boolean = other is Inline && other.text == text
     override fun hashCode(): Int = text.hashCode()
     override fun toString(): String = text

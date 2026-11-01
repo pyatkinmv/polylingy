@@ -13,28 +13,32 @@ import com.polylingy.app.App
 import com.polylingy.app.AppContainer
 import com.polylingy.app.CourseFiles
 import com.polylingy.app.MovableClock
-import com.polylingy.client.CourseFile
+import com.polylingy.app.PickedFile
+import com.polylingy.app.testContainer
+import com.polylingy.client.CourseSource
 import com.polylingy.client.DesktopStorage
-import com.polylingy.client.seedSampleCourse
+import com.polylingy.client.sampleCourse
 import java.awt.image.BufferedImage
 import java.io.File
 import javax.imageio.ImageIO
-import kotlin.random.Random
 
 /** File dialogs replaced by a fixed answer; remembers what the app tried to save. */
-class FakeFiles(var toOpen: String? = null) : CourseFiles {
-    var saved: Pair<String, String>? = null
+class FakeFiles(var toOpen: PickedFile? = null) : CourseFiles {
+    var saved: Pair<String, ByteArray>? = null
     override fun open() = toOpen
-    override fun save(suggestedName: String, content: String): Boolean {
-        saved = suggestedName to content
+    override fun save(suggestedName: String, bytes: ByteArray): Boolean {
+        saved = suggestedName to bytes
         return true
+    }
+
+    fun open(name: String, json: String) {
+        toOpen = PickedFile(name, json.toByteArray())
     }
 }
 
-fun AppContainer.seedSample() = seedSampleCourse(storage, clock, DesktopStorage.sampleCourseJson())
+fun AppContainer.seedSample() = library.seedSample(sampleCourse())
 
-fun AppContainer.seedCourse(json: String) =
-    courseService.import(CourseFile.parseCourse(json, clock.now().instant, clock.now().zone))
+fun AppContainer.seedCourse(json: String) = library.import(CourseSource("seed.json", json)).course
 
 class AppHarness(val test: ComposeUiTest, val container: AppContainer, val clock: MovableClock, val files: FakeFiles)
 
@@ -47,7 +51,7 @@ fun appTest(seed: (AppContainer) -> Unit = {}, block: AppHarness.() -> Unit) =
         val clock = MovableClock()
         val files = FakeFiles()
         DesktopStorage.inMemory().use { storage ->
-            val container = AppContainer(storage, files, clock, Random(7))
+            val container = testContainer(clock, files, storage)
             seed(container)
             setContent { App(container) }
             AppHarness(this, container, clock, files).block()

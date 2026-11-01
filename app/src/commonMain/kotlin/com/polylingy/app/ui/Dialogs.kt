@@ -1,12 +1,7 @@
 package com.polylingy.app.ui
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -73,42 +68,6 @@ fun MessageDialog(title: String, text: String, onDismiss: () -> Unit) {
         title = { Text(title) },
         text = { Text(text) },
         confirmButton = { Button(onClick = onDismiss) { Text("OK") } },
-    )
-}
-
-/**
- * Lets the user paste a topic as JSON. [onSubmit] returns an error message to show
- * under the field, or null when the topic was added and the dialog can close.
- */
-@Composable
-fun AddTopicDialog(onSubmit: (String) -> String?, onDismiss: () -> Unit) {
-    var json by remember { mutableStateOf("") }
-    var error by remember { mutableStateOf<String?>(null) }
-    val focus = remember { FocusRequester() }
-    LaunchedEffect(Unit) { focus.requestFocus() }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Add topic") },
-        text = {
-            Column(Modifier.widthIn(min = 480.dp)) {
-                OutlinedTextField(
-                    value = json,
-                    onValueChange = {
-                        json = it
-                        error = null
-                    },
-                    label = { Text("Topic JSON") },
-                    isError = error != null,
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 200.dp).focusRequester(focus),
-                )
-                error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
-            }
-        },
-        confirmButton = {
-            Button(onClick = { error = onSubmit(json) }, enabled = json.isNotBlank()) { Text("OK") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }
 

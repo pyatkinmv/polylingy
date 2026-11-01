@@ -35,7 +35,7 @@ fun replay(
     events: List<EventEnvelope>,
     rules: LearningRules = LearningRules(),
 ): Map<Uuid, TopicState> {
-    val courseOfTopic = courses.flatMap { course -> course.topics.map { it.id to course.id } }.toMap()
+    val courseOfTopic = courses.flatMap { course -> course.allTopics.map { it.id to course.id } }.toMap()
     val states = courseOfTopic.keys.associateWith { TopicState(TopicProgress(it)) }.toMutableMap()
 
     // Stable sort: events with the same instant keep their journal (append) order.

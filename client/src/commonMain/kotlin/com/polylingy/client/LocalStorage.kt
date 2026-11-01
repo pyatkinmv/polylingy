@@ -4,6 +4,7 @@ import app.cash.sqldelight.db.SqlDriver
 import com.polylingy.client.db.PolylingyDb
 import com.polylingy.core.PolylingyJson
 import com.polylingy.core.content.Course
+import com.polylingy.core.content.CourseJson
 import com.polylingy.core.journal.EventEnvelope
 import com.polylingy.core.ports.CourseRepository
 import com.polylingy.core.ports.EventLog
@@ -38,7 +39,7 @@ internal class SqlCourseRepository(private val db: PolylingyDb) : CourseReposito
         db.courseDocumentQueries.selectById(id.toString()).executeAsOneOrNull()?.let(::decode)
 
     override fun save(course: Course) {
-        val body = PolylingyJson.encodeToString(Course.serializer(), course)
+        val body = CourseJson.write(course)
         db.courseDocumentQueries.upsert(course.id.toString(), course.revision.toLong(), course.updatedAt.toString(), body)
     }
 
@@ -46,7 +47,7 @@ internal class SqlCourseRepository(private val db: PolylingyDb) : CourseReposito
         db.courseDocumentQueries.deleteById(id.toString())
     }
 
-    private fun decode(body: String) = PolylingyJson.decodeFromString(Course.serializer(), body)
+    private fun decode(body: String) = CourseJson.readStored(body)
 }
 
 internal class SqlEventLog(private val db: PolylingyDb) : EventLog {

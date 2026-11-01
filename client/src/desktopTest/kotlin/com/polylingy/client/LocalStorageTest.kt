@@ -1,7 +1,9 @@
 package com.polylingy.client
 
+import com.polylingy.content.Exercise
+import com.polylingy.content.Inline
 import com.polylingy.core.content.Course
-import com.polylingy.core.content.Exercise
+import com.polylingy.core.content.CourseJson
 import com.polylingy.core.content.Topic
 import com.polylingy.core.journal.AnswerSubmitted
 import com.polylingy.core.journal.AutoCheck
@@ -14,18 +16,19 @@ import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlin.time.Instant
 import kotlin.uuid.Uuid
 
 private val moscow = TimeZone.of("Europe/Moscow")
 
-private fun course(name: String = "c", createdAt: Instant = Instant.fromEpochSeconds(0)) = Course(
+internal fun course(name: String = "c", createdAt: Instant = Instant.fromEpochSeconds(0)) = Course(
     id = Uuid.random(),
     name = name,
     createdAt = createdAt,
     revision = 1,
     updatedAt = createdAt,
-    topics = listOf(Topic(Uuid.random(), "t", exercises = listOf(Exercise(Uuid.random(), "{0}", mapOf("0" to "x"))))),
+    topics = listOf(Topic(Uuid.random(), "t", exercises = listOf(Exercise.Gaps(Uuid.random(), items = listOf(Exercise.GapItem(Inline("{{x}}"))))))),
 )
 
 private fun event(at: Long = 0) = EventEnvelope(
@@ -44,7 +47,7 @@ class LocalStorageTest {
         tempDir.toFile().deleteRecursively()
     }
 
-    // ── course documents ────────────────────────────────────────────────────
+    // course documents
 
     @Test fun savedCourseReadsBackEqual() {
         val c = course()
@@ -68,7 +71,20 @@ class LocalStorageTest {
         assertNull(storage.courses.get(c.id))
     }
 
-    // ── journal ─────────────────────────────────────────────────────────────
+    @Test fun aStudyOnlyCourseIsStoredAsItCame() {
+        val text = """{ "formatVersion": 2, "name": "Future", "level": "C1",
+            "topics": [ { "title": "T", "exercises": [ { "type": "dictation", "audio": "a.mp3" } ] } ] }"""
+        val c = CourseJson.read(text, Instant.fromEpochSeconds(0)).course
+        storage.courses.save(c)
+        val back = storage.courses.get(c.id)!!
+        assertTrue(back.studyOnly)
+        assertEquals(c.ids(), back.ids())
+        assertTrue("dictation" in back.sourceJson!!)
+    }
+
+    private fun Course.ids() = listOf(id) + topics.map { it.id } + topics.flatMap { t -> t.exercises.map { it.id } }
+
+    // journal
 
     @Test fun eventsReadBackInAppendOrder() {
         val events = listOf(event(30), event(10), event(20))
@@ -83,20 +99,22 @@ class LocalStorageTest {
         assertEquals(listOf(e), storage.journal.all())
     }
 
-    // ── installation ────────────────────────────────────────────────────────
+    // installation
+
+    @Test fun dataLivesInDocumentsPolylingy() = assertEquals("polylingy", DesktopStorage.defaultDataDir().fileName.toString())
 
     @Test fun deviceIdIsStable() = assertEquals(storage.deviceId, storage.deviceId)
 
     @Test fun dataAndDeviceIdSurviveReopeningTheFile() {
-        val file = tempDir.resolve("nested/polylingy.db")
+        val dir = tempDir.resolve("nested")
         val c = course()
         val e = event()
-        val deviceId = DesktopStorage.open(file).use { first ->
+        val deviceId = DesktopStorage.open(dir).use { first ->
             first.courses.save(c)
             first.journal.append(e)
             first.deviceId
         }
-        DesktopStorage.open(file).use { second ->
+        DesktopStorage.open(dir).use { second ->
             assertEquals(listOf(c), second.courses.all())
             assertEquals(listOf(e), second.journal.all())
             assertEquals(deviceId, second.deviceId)

@@ -28,6 +28,7 @@ kotlin {
         }
         getByName("desktopMain").dependencies {
             implementation(compose.desktop.currentOs)
+            implementation(libs.logback.classic)
         }
         getByName("desktopTest").languageSettings.optIn("androidx.compose.ui.test.ExperimentalTestApi")
         getByName("desktopTest").dependencies {
@@ -62,6 +63,7 @@ kotlin.sourceSets.commonMain { kotlin.srcDir(generateAppVersion) }
 tasks.withType<Test>().configureEach {
     val screenshots = layout.buildDirectory.dir("screenshots")
     systemProperty("polylingy.screenshots", screenshots.get().asFile.absolutePath)
+    systemProperty("polylingy.logs", layout.buildDirectory.dir("test-logs").get().asFile.absolutePath)
     outputs.dir(screenshots)
     jvmArgs("--enable-native-access=ALL-UNNAMED")
 }
@@ -83,7 +85,7 @@ compose.desktop {
             description = "Spaced-repetition language learning"
             vendor = "Polylingy"
             // From ./gradlew :app:suggestRuntimeModules; java.desktop is always included.
-            modules("java.instrument", "java.sql", "jdk.unsupported")
+            modules("java.instrument", "java.net.http", "java.sql", "jdk.unsupported", "java.naming")
 
             windows {
                 iconFile = project.file("icons/polylingy.ico")

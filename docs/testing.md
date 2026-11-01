@@ -6,13 +6,16 @@
 
 | Уровень | Где | Что проверяет |
 |---|---|---|
-| Правила | `core/src/commonTest` | SM-2, сдача темы, `replay()`, проверка ответа, сценарии `StudyService` / `CourseService` |
-| Хранилище | `client/src/desktopTest` | SQLite, импорт/экспорт JSON, пример курса |
-| ViewModel | `app/src/desktopTest/.../courses`, `.../study` | логика экранов без UI |
+| Содержимое | `content/src/commonTest` | разметка, `validate()` каждого блока и типа упражнения, строгий разбор, туда-обратно |
+| Правила | `core/src/commonTest` | файл курса (`CourseJson`), `CourseService`, SM-2, сдача темы, `replay()` |
+| Хранилище | `client/src/desktopTest` | SQLite, импорт/экспорт JSON и zip, картинки, старая база 0.1, пример курса |
+| ViewModel | `app/src/desktopTest/.../courses` | логика экранов без UI |
 | **UI** | `app/src/desktopTest/.../ui/*UiTest.kt` | настоящие экраны: клики, ввод, клавиши, что видно на экране |
 | **Скриншоты** | те же UI-тесты, вызов `screenshot("имя")` | PNG в `app/build/screenshots/` для просмотра глазами |
 
 ## UI-тесты
+
+Покрытие строк для `content`, `core` и `client` проверяет Kover: меньше 90 % — `check` падает. Отчёт: `./gradlew koverHtmlReport`.
 
 Запускают настоящий `App` без окна, в сцене размером с окно приложения (832×720), на базе в памяти и с часами, которые можно двигать. Файловые диалоги заменены заглушкой `FakeFiles`. Всё нужное — в `UiTestSupport.kt`:
 
@@ -29,6 +32,7 @@
 ```
 
 - `appTest(seed = …) { … }` — запуск приложения с подготовленными данными (`seedSample()`, `seedCourse(json)`).
+- `files.open("имя.json", json)` — что «выберет» пользователь в диалоге импорта; `files.saved` — что приложение сохранило.
 - `click("текст")`, `menu("пункт")`, `text("текст")` — поиск и действия по видимому тексту.
 - `clock.now = …` — сдвинуть время, например, чтобы тема вернулась на повторение.
 - Случайность зафиксирована (`Random(7)`), поэтому прогоны повторяемы.

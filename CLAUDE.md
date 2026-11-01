@@ -19,15 +19,21 @@ Versions live in `gradle/libs.versions.toml`.
 
 | Module | Purpose |
 |--------|---------|
-| `core/` | Pure business logic, no UI/SQL/IO: content models, journal events, rules (SM-2, graduation, topic picking, answer checking), `replay()`, ports, `StudyService` / `CourseService` |
-| `client/` | Storage adapters: SQLite (`LocalStorage`), course file import/export (`CourseFile`), sample course; `desktopMain` opens the DB in `<Documents>/polylingy` |
+| `content/` | Course content, independent of the rest: text markup, theory blocks, exercise types, `validate()`, strict JSON (`ContentJson`) |
+| `core/` | Pure business logic, no UI/SQL/IO: course model and file (`CourseJson`), journal events, rules (SM-2, graduation), `replay()`, ports, `CourseService` |
+| `client/` | Storage adapters: SQLite (`LocalStorage`), course import/export with pictures (`CourseLibrary`), sample course; `desktopMain` has zip, picture files, HTTP and the DB in `<Documents>/polylingy` |
 | `app/` | Compose UI: screens, ViewModels, `AppContainer` (manual DI); `desktopMain` has `main()` and native file dialogs |
 
-Dependencies point only towards `core`. Root package: `com.polylingy`.
+Dependencies point only towards `core` (and `core` → `content`). Root package: `com.polylingy`.
+
+The app is being rewritten to a new model on the `next` branch (`docs/migration-plan.md`); studying is switched off until stage 6.
 
 Key files:
 - `app/src/desktopMain/kotlin/com/polylingy/app/Main.kt` — entry point: opens storage, seeds the sample course, opens the window
 - `app/src/commonMain/kotlin/com/polylingy/app/AppContainer.kt` — builds every long-lived object (clock, random, services)
+- `content/src/commonMain/kotlin/com/polylingy/content/` — `Inline`, `Block`, `Exercise`, `ContentJson`
+- `core/src/commonMain/kotlin/com/polylingy/core/content/CourseJson.kt` — reading and writing course files, all checks
+- `client/src/commonMain/kotlin/com/polylingy/client/CourseLibrary.kt` — import/export with pictures
 - `core/src/commonMain/kotlin/com/polylingy/core/progress/Replay.kt` — derives all progress from the journal
 - `core/src/commonMain/kotlin/com/polylingy/core/rules/` — SM-2, graduation, pickers, answer checking
 - `core/src/commonMain/kotlin/com/polylingy/core/journal/Events.kt` — journal event format (`schemaVersion`)
@@ -46,9 +52,11 @@ Key files:
 ```
 <Documents>/polylingy/
   polylingy.db       # course_document, journal_event, setting
+  images/<courseId>/ # pictures of each course: images/… from its archive, remote/<hash> downloaded by URL
+  logs/              # polylingy.log, one file per day, kept 14 days
 ```
 
-Courses get in and out via JSON import/export (files from the first app version, without ids, still import).
+Courses get in and out as files: `course.json` alone or a zip with `course.json` and `images/` (`docs/content-format.md`). Data from 0.1 is not supported: its database was thrown away.
 
 ## Essential Commands
 
@@ -97,6 +105,7 @@ Do not commit directly to `master`.
 |------|-------------|
 | `docs/architecture.md` | Architecture: modules, documents vs journal, replay, behaviour decisions, known debts, sync concept, open questions |
 | `docs/learning-model.md` | Target learning model (draft): units, rounds, grades, course policies, checking and typos |
+| `docs/migration-plan.md` | The rewrite to the new model: stages, invariants, decisions |
 | `docs/content-format.md` | Target course format (draft): theory blocks, exercise types, explanations, import, validation, `formatVersion` |
 | `docs/testing.md` | How changes are verified: test levels, UI tests, screenshots, manual checks |
 | `.claude/docs/architectural_patterns.md` | Code conventions: ports, DI, ViewModels, testing helpers |
