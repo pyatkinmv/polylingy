@@ -33,7 +33,9 @@ class StudyUiTest {
                 "explanation": { "format": "blocks", "blocks": [
                   { "type": "text", "text": "Negatives keep **-ing**: I’m not reading, she isn’t reading." },
                   { "type": "seeAlso", "links": [ { "section": "$sectionB" } ] } ] } } ] },
-              { "title": "Questions", "exercises": [ { "type": "choice",
+              { "title": "Questions",
+                "explanation": { "format": "blocks", "blocks": [ { "type": "text", "text": "Questions put **am / is / are** first." } ] },
+                "exercises": [ { "type": "choice",
                 "items": [ { "text": "What {{are you doing}}?", "options": ["do you do", "are you doing"] } ] } ] } ] },
           { "title": "Present simple", "subtitle": "I do",
             "topics": [ { "title": "Habits", "exercises": [ { "type": "gaps", "items": [ { "text": "She {{works}} here." } ] } ] } ] } ] }"""
@@ -81,6 +83,8 @@ class StudyUiTest {
         click("Next →")
         click("are you doing")
         click("Check")
+        text("Questions put am / is / are first.").assertIsDisplayed()
+        screenshot("exercise-topic-explanation")
         click("Next →")
         text("That’s all for today").assertIsDisplayed()
         text("Nothing is due in this unit. The next review is tomorrow.").assertIsDisplayed()

@@ -3,6 +3,7 @@ package com.polylingy.client
 import com.polylingy.content.Exercise
 import com.polylingy.core.content.CourseFormatException
 import com.polylingy.core.content.CourseService
+import com.polylingy.core.content.images
 import com.polylingy.core.journal.ZonedInstant
 import com.polylingy.core.ports.Clock
 import com.sun.net.httpserver.HttpServer
@@ -47,6 +48,19 @@ class CourseLibraryTest {
     """
 
     private fun problems(source: CourseSource) = assertFailsWith<CourseFormatException> { library.import(source) }.problems.map { it.toString() }
+
+    /** The example courses in `examples/` are what a person tries first: they must always import cleanly. */
+    @Test fun theExampleCoursesImportWithoutWarnings() {
+        val examples = java.io.File("../examples")
+        for (file in listOf("english-grammar.zip", "irregular-verbs.json")) {
+            val (course, warnings) = library.import(file, examples.resolve(file).readBytes())
+            assertEquals(emptyList(), warnings, file)
+            assertTrue(course.allTopics.size >= 8, "$file has a real number of topics")
+        }
+        val grammar = storage.courses.all().first { it.name.startsWith("English Grammar") }
+        assertEquals(4, grammar.units.size)
+        assertTrue(grammar.images().all { library.image(grammar.id, it.second.src) != null }, "every picture is stored")
+    }
 
     @Test fun aZipWithItsPicturesIsImportedAndThePicturesStored() {
         val zip = CourseArchive.zip(course("images/cat.png"), mapOf("images/cat.png" to png, "images/unused.png" to png))

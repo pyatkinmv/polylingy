@@ -1,0 +1,879 @@
+{
+  "formatVersion": 1,
+  "name": "Irregular verbs",
+  "description": "Sixteen common verbs: past simple and past participle, in random order.",
+  "theme": {
+    "accent": "#9A4B12"
+  },
+  "rules": {
+    "picker": {
+      "type": "random"
+    }
+  },
+  "topics": [
+    {
+      "title": "be — was / were — been",
+      "explanation": {
+        "format": "blocks",
+        "blocks": [
+          {
+            "type": "table",
+            "head": [
+              "verb",
+              "past simple",
+              "past participle"
+            ],
+            "rows": [
+              [
+                "be",
+                "was / were",
+                "been"
+              ]
+            ]
+          },
+          {
+            "type": "text",
+            "text": "Past simple: *I **was** at home yesterday.*  ·  present perfect: *Have you ever **been** to Rome?*"
+          }
+        ]
+      },
+      "exercises": [
+        {
+          "type": "gaps",
+          "instruction": "Use the right form of *be*.",
+          "items": [
+            {
+              "text": "I {{was}} at home yesterday."
+            },
+            {
+              "text": "Have you ever {{been}} to Rome?"
+            }
+          ]
+        },
+        {
+          "type": "choice",
+          "instruction": "Choose the past simple.",
+          "items": [
+            {
+              "text": "be → {{was}}",
+              "options": [
+                "was",
+                "beed"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "begin — began — begun",
+      "explanation": {
+        "format": "blocks",
+        "blocks": [
+          {
+            "type": "table",
+            "head": [
+              "verb",
+              "past simple",
+              "past participle"
+            ],
+            "rows": [
+              [
+                "begin",
+                "began",
+                "begun"
+              ]
+            ]
+          },
+          {
+            "type": "text",
+            "text": "Past simple: *The film **began** at eight.*  ·  present perfect: *It has already **begun**.*"
+          }
+        ]
+      },
+      "exercises": [
+        {
+          "type": "gaps",
+          "instruction": "Use the right form of *begin*.",
+          "items": [
+            {
+              "text": "The film {{began}} at eight."
+            },
+            {
+              "text": "It has already {{begun}}."
+            }
+          ]
+        },
+        {
+          "type": "choice",
+          "instruction": "Choose the past simple.",
+          "items": [
+            {
+              "text": "begin → {{began}}",
+              "options": [
+                "began",
+                "begined"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "break — broke — broken",
+      "explanation": {
+        "format": "blocks",
+        "blocks": [
+          {
+            "type": "table",
+            "head": [
+              "verb",
+              "past simple",
+              "past participle"
+            ],
+            "rows": [
+              [
+                "break",
+                "broke",
+                "broken"
+              ]
+            ]
+          },
+          {
+            "type": "text",
+            "text": "Past simple: *He **broke** his arm last year.*  ·  present perfect: *Someone has **broken** the window.*"
+          }
+        ]
+      },
+      "exercises": [
+        {
+          "type": "gaps",
+          "instruction": "Use the right form of *break*.",
+          "items": [
+            {
+              "text": "He {{broke}} his arm last year."
+            },
+            {
+              "text": "Someone has {{broken}} the window."
+            }
+          ]
+        },
+        {
+          "type": "choice",
+          "instruction": "Choose the past simple.",
+          "items": [
+            {
+              "text": "break → {{broke}}",
+              "options": [
+                "broke",
+                "breaked"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "bring — brought — brought",
+      "explanation": {
+        "format": "blocks",
+        "blocks": [
+          {
+            "type": "table",
+            "head": [
+              "verb",
+              "past simple",
+              "past participle"
+            ],
+            "rows": [
+              [
+                "bring",
+                "brought",
+                "brought"
+              ]
+            ]
+          },
+          {
+            "type": "text",
+            "text": "Past simple: *She **brought** a cake to the party.*  ·  present perfect: *Have you **brought** your passport?*"
+          }
+        ]
+      },
+      "exercises": [
+        {
+          "type": "gaps",
+          "instruction": "Use the right form of *bring*.",
+          "items": [
+            {
+              "text": "She {{brought}} a cake to the party."
+            },
+            {
+              "text": "Have you {{brought}} your passport?"
+            }
+          ]
+        },
+        {
+          "type": "choice",
+          "instruction": "Choose the past simple.",
+          "items": [
+            {
+              "text": "bring → {{brought}}",
+              "options": [
+                "brought",
+                "bringed"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "buy — bought — bought",
+      "explanation": {
+        "format": "blocks",
+        "blocks": [
+          {
+            "type": "table",
+            "head": [
+              "verb",
+              "past simple",
+              "past participle"
+            ],
+            "rows": [
+              [
+                "buy",
+                "bought",
+                "bought"
+              ]
+            ]
+          },
+          {
+            "type": "text",
+            "text": "Past simple: *I **bought** new shoes on Monday.*  ·  present perfect: *We’ve just **bought** a car.*"
+          }
+        ]
+      },
+      "exercises": [
+        {
+          "type": "gaps",
+          "instruction": "Use the right form of *buy*.",
+          "items": [
+            {
+              "text": "I {{bought}} new shoes on Monday."
+            },
+            {
+              "text": "We’ve just {{bought}} a car."
+            }
+          ]
+        },
+        {
+          "type": "choice",
+          "instruction": "Choose the past simple.",
+          "items": [
+            {
+              "text": "buy → {{bought}}",
+              "options": [
+                "bought",
+                "buyed"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "catch — caught — caught",
+      "explanation": {
+        "format": "blocks",
+        "blocks": [
+          {
+            "type": "table",
+            "head": [
+              "verb",
+              "past simple",
+              "past participle"
+            ],
+            "rows": [
+              [
+                "catch",
+                "caught",
+                "caught"
+              ]
+            ]
+          },
+          {
+            "type": "text",
+            "text": "Past simple: *The cat **caught** a mouse.*  ·  present perfect: *Have you ever **caught** a fish?*"
+          }
+        ]
+      },
+      "exercises": [
+        {
+          "type": "gaps",
+          "instruction": "Use the right form of *catch*.",
+          "items": [
+            {
+              "text": "The cat {{caught}} a mouse."
+            },
+            {
+              "text": "Have you ever {{caught}} a fish?"
+            }
+          ]
+        },
+        {
+          "type": "choice",
+          "instruction": "Choose the past simple.",
+          "items": [
+            {
+              "text": "catch → {{caught}}",
+              "options": [
+                "caught",
+                "catched"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "choose — chose — chosen",
+      "explanation": {
+        "format": "blocks",
+        "blocks": [
+          {
+            "type": "table",
+            "head": [
+              "verb",
+              "past simple",
+              "past participle"
+            ],
+            "rows": [
+              [
+                "choose",
+                "chose",
+                "chosen"
+              ]
+            ]
+          },
+          {
+            "type": "text",
+            "text": "Past simple: *She **chose** the red dress.*  ·  present perfect: *Have you **chosen** a book?*"
+          }
+        ]
+      },
+      "exercises": [
+        {
+          "type": "gaps",
+          "instruction": "Use the right form of *choose*.",
+          "items": [
+            {
+              "text": "She {{chose}} the red dress."
+            },
+            {
+              "text": "Have you {{chosen}} a book?"
+            }
+          ]
+        },
+        {
+          "type": "choice",
+          "instruction": "Choose the past simple.",
+          "items": [
+            {
+              "text": "choose → {{chose}}",
+              "options": [
+                "chose",
+                "choosed"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "come — came — come",
+      "explanation": {
+        "format": "blocks",
+        "blocks": [
+          {
+            "type": "table",
+            "head": [
+              "verb",
+              "past simple",
+              "past participle"
+            ],
+            "rows": [
+              [
+                "come",
+                "came",
+                "come"
+              ]
+            ]
+          },
+          {
+            "type": "text",
+            "text": "Past simple: *They **came** home late.*  ·  present perfect: *Spring has **come** early this year.*"
+          }
+        ]
+      },
+      "exercises": [
+        {
+          "type": "gaps",
+          "instruction": "Use the right form of *come*.",
+          "items": [
+            {
+              "text": "They {{came}} home late."
+            },
+            {
+              "text": "Spring has {{come}} early this year."
+            }
+          ]
+        },
+        {
+          "type": "choice",
+          "instruction": "Choose the past simple.",
+          "items": [
+            {
+              "text": "come → {{came}}",
+              "options": [
+                "came",
+                "comed"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "do — did — done",
+      "explanation": {
+        "format": "blocks",
+        "blocks": [
+          {
+            "type": "table",
+            "head": [
+              "verb",
+              "past simple",
+              "past participle"
+            ],
+            "rows": [
+              [
+                "do",
+                "did",
+                "done"
+              ]
+            ]
+          },
+          {
+            "type": "text",
+            "text": "Past simple: *I **did** my homework after dinner.*  ·  present perfect: *Have you **done** the shopping?*"
+          }
+        ]
+      },
+      "exercises": [
+        {
+          "type": "gaps",
+          "instruction": "Use the right form of *do*.",
+          "items": [
+            {
+              "text": "I {{did}} my homework after dinner."
+            },
+            {
+              "text": "Have you {{done}} the shopping?"
+            }
+          ]
+        },
+        {
+          "type": "choice",
+          "instruction": "Choose the past simple.",
+          "items": [
+            {
+              "text": "do → {{did}}",
+              "options": [
+                "did",
+                "doed"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "drink — drank — drunk",
+      "explanation": {
+        "format": "blocks",
+        "blocks": [
+          {
+            "type": "table",
+            "head": [
+              "verb",
+              "past simple",
+              "past participle"
+            ],
+            "rows": [
+              [
+                "drink",
+                "drank",
+                "drunk"
+              ]
+            ]
+          },
+          {
+            "type": "text",
+            "text": "Past simple: *He **drank** two cups of tea.*  ·  present perfect: *Who has **drunk** my coffee?*"
+          }
+        ]
+      },
+      "exercises": [
+        {
+          "type": "gaps",
+          "instruction": "Use the right form of *drink*.",
+          "items": [
+            {
+              "text": "He {{drank}} two cups of tea."
+            },
+            {
+              "text": "Who has {{drunk}} my coffee?"
+            }
+          ]
+        },
+        {
+          "type": "choice",
+          "instruction": "Choose the past simple.",
+          "items": [
+            {
+              "text": "drink → {{drank}}",
+              "options": [
+                "drank",
+                "drinked"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "eat — ate — eaten",
+      "explanation": {
+        "format": "blocks",
+        "blocks": [
+          {
+            "type": "table",
+            "head": [
+              "verb",
+              "past simple",
+              "past participle"
+            ],
+            "rows": [
+              [
+                "eat",
+                "ate",
+                "eaten"
+              ]
+            ]
+          },
+          {
+            "type": "text",
+            "text": "Past simple: *We **ate** pizza on Friday.*  ·  present perfect: *I’ve never **eaten** sushi.*"
+          }
+        ]
+      },
+      "exercises": [
+        {
+          "type": "gaps",
+          "instruction": "Use the right form of *eat*.",
+          "items": [
+            {
+              "text": "We {{ate}} pizza on Friday."
+            },
+            {
+              "text": "I’ve never {{eaten}} sushi."
+            }
+          ]
+        },
+        {
+          "type": "choice",
+          "instruction": "Choose the past simple.",
+          "items": [
+            {
+              "text": "eat → {{ate}}",
+              "options": [
+                "ate",
+                "eated"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "forget — forgot — forgotten",
+      "explanation": {
+        "format": "blocks",
+        "blocks": [
+          {
+            "type": "table",
+            "head": [
+              "verb",
+              "past simple",
+              "past participle"
+            ],
+            "rows": [
+              [
+                "forget",
+                "forgot",
+                "forgotten"
+              ]
+            ]
+          },
+          {
+            "type": "text",
+            "text": "Past simple: *I **forgot** her birthday.*  ·  present perfect: *Have you **forgotten** my name?*"
+          }
+        ]
+      },
+      "exercises": [
+        {
+          "type": "gaps",
+          "instruction": "Use the right form of *forget*.",
+          "items": [
+            {
+              "text": "I {{forgot}} her birthday."
+            },
+            {
+              "text": "Have you {{forgotten}} my name?"
+            }
+          ]
+        },
+        {
+          "type": "choice",
+          "instruction": "Choose the past simple.",
+          "items": [
+            {
+              "text": "forget → {{forgot}}",
+              "options": [
+                "forgot",
+                "forgetted"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "give — gave — given",
+      "explanation": {
+        "format": "blocks",
+        "blocks": [
+          {
+            "type": "table",
+            "head": [
+              "verb",
+              "past simple",
+              "past participle"
+            ],
+            "rows": [
+              [
+                "give",
+                "gave",
+                "given"
+              ]
+            ]
+          },
+          {
+            "type": "text",
+            "text": "Past simple: *He **gave** me a present.*  ·  present perfect: *She has **given** up smoking.*"
+          }
+        ]
+      },
+      "exercises": [
+        {
+          "type": "gaps",
+          "instruction": "Use the right form of *give*.",
+          "items": [
+            {
+              "text": "He {{gave}} me a present."
+            },
+            {
+              "text": "She has {{given}} up smoking."
+            }
+          ]
+        },
+        {
+          "type": "choice",
+          "instruction": "Choose the past simple.",
+          "items": [
+            {
+              "text": "give → {{gave}}",
+              "options": [
+                "gave",
+                "gived"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "know — knew — known",
+      "explanation": {
+        "format": "blocks",
+        "blocks": [
+          {
+            "type": "table",
+            "head": [
+              "verb",
+              "past simple",
+              "past participle"
+            ],
+            "rows": [
+              [
+                "know",
+                "knew",
+                "known"
+              ]
+            ]
+          },
+          {
+            "type": "text",
+            "text": "Past simple: *I **knew** the answer.*  ·  present perfect: *I’ve **known** him for years.*"
+          }
+        ]
+      },
+      "exercises": [
+        {
+          "type": "gaps",
+          "instruction": "Use the right form of *know*.",
+          "items": [
+            {
+              "text": "I {{knew}} the answer."
+            },
+            {
+              "text": "I’ve {{known}} him for years."
+            }
+          ]
+        },
+        {
+          "type": "choice",
+          "instruction": "Choose the past simple.",
+          "items": [
+            {
+              "text": "know → {{knew}}",
+              "options": [
+                "knew",
+                "knowed"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "see — saw — seen",
+      "explanation": {
+        "format": "blocks",
+        "blocks": [
+          {
+            "type": "table",
+            "head": [
+              "verb",
+              "past simple",
+              "past participle"
+            ],
+            "rows": [
+              [
+                "see",
+                "saw",
+                "seen"
+              ]
+            ]
+          },
+          {
+            "type": "text",
+            "text": "Past simple: *We **saw** a great film.*  ·  present perfect: *Have you **seen** my keys?*"
+          }
+        ]
+      },
+      "exercises": [
+        {
+          "type": "gaps",
+          "instruction": "Use the right form of *see*.",
+          "items": [
+            {
+              "text": "We {{saw}} a great film."
+            },
+            {
+              "text": "Have you {{seen}} my keys?"
+            }
+          ]
+        },
+        {
+          "type": "choice",
+          "instruction": "Choose the past simple.",
+          "items": [
+            {
+              "text": "see → {{saw}}",
+              "options": [
+                "saw",
+                "seed"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "write — wrote — written",
+      "explanation": {
+        "format": "blocks",
+        "blocks": [
+          {
+            "type": "table",
+            "head": [
+              "verb",
+              "past simple",
+              "past participle"
+            ],
+            "rows": [
+              [
+                "write",
+                "wrote",
+                "written"
+              ]
+            ]
+          },
+          {
+            "type": "text",
+            "text": "Past simple: *She **wrote** a letter to her aunt.*  ·  present perfect: *He has **written** three books.*"
+          }
+        ]
+      },
+      "exercises": [
+        {
+          "type": "gaps",
+          "instruction": "Use the right form of *write*.",
+          "items": [
+            {
+              "text": "She {{wrote}} a letter to her aunt."
+            },
+            {
+              "text": "He has {{written}} three books."
+            }
+          ]
+        },
+        {
+          "type": "choice",
+          "instruction": "Choose the past simple.",
+          "items": [
+            {
+              "text": "write → {{wrote}}",
+              "options": [
+                "wrote",
+                "writed"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
