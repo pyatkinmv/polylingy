@@ -9,8 +9,6 @@ import com.polylingy.core.content.CourseSamples.TOPIC_ID
 import com.polylingy.core.content.CourseSamples.UNIT_ID
 import com.polylingy.core.content.CourseSamples.flatWith
 import com.polylingy.core.content.CourseSamples.flatWithExercise
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.jsonObject
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -39,7 +37,7 @@ class CourseJsonTest {
         assertEquals("Units on *present* tenses.", course.description?.text)
         assertEquals("#2F6B5E", course.theme?.accent)
         assertFalse(course.settings.allowTypos)
-        assertEquals(JsonPrimitive("sm2"), course.rules!!["scheduler"]!!.jsonObject["type"])
+        assertEquals(RulesSpec(Preset.SM2, grading = GradingSpec.Threshold(0.75)), course.rules)
         val unit = course.units.single()
         assertEquals(Uuid.parse(UNIT_ID), unit.id)
         assertEquals("I am doing", unit.subtitle?.text)
@@ -149,6 +147,25 @@ class CourseJsonTest {
         ),
         problems(flatWith("""{ "title": " ", "explanation": { "format": "blocks", "blocks": [] }, "exercises": [] }""")),
     )
+
+    @Test fun rulesAreChecked() {
+        val text = flatWithExercise("""{ "type": "gaps", "items": [ { "text": "{{a}}" } ] }""").replace("\"name\": \"X\"", """"name": "X",
+            "rules": { "grading": { "type": "threshold", "min": 1.5 }, "mastery": { "type": "consecutive", "learning": 0, "review": 0 },
+              "scheduler": { "type": "ladder", "days": [1, 0] } }""")
+        assertEquals(
+            listOf(
+                "rules.grading.min: must be more than 0 and at most 1, like 0.75",
+                "rules.mastery.learning: must be at least 1",
+                "rules.mastery.review: must be at least 1",
+                "rules.scheduler.days[1]: must be at least 1 day",
+            ),
+            problems(text),
+        )
+        val empty = text.replace("[1, 0]", "[]").replace("1.5", "0.5").replace("\"learning\": 0, \"review\": 0", "\"learning\": 2, \"review\": 1")
+        assertEquals(listOf("rules.scheduler.days: needs at least one interval"), problems(empty))
+        val unknownPreset = flatWithExercise("""{ "type": "gaps", "items": [ { "text": "{{a}}" } ] }""").replace("\"name\": \"X\"", """"name": "X", "rules": { "preset": "turbo" }""")
+        assertTrue(problems(unknownPreset).single().startsWith("rules.preset: "), problems(unknownPreset).single())
+    }
 
     @Test fun linksMustPointAtSomethingThatExists() {
         val text = CourseSamples.units

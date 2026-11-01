@@ -110,14 +110,13 @@
 ```kotlin
 enum class Phase { LEARNING, REVIEW }
 
-/** Один засчитанный ответ раунда: оценка плюс исходные факты, если политике нужно больше. */
-data class Attempt<G>(val grade: G, val check: CheckResult?, val at: ZonedInstant)
+/** Один засчитанный ответ раунда: оценка плюс исходные факты (результаты пунктов), если политике нужно больше. */
+data class Attempt<G>(val grade: G, val results: List<ItemResult>, val at: ZonedInstant)
 typealias Round<G> = List<Attempt<G>>
 
-/** Из ответа (ввод, самооценка, всё, что есть в событии) и результата проверки получить оценку.
- *  null — ответ не учитывать. */
+/** Из ответа (всё, что есть в событии: ввод и результаты пунктов) получить оценку. null — ответ не учитывать. */
 fun interface GradingRule<G> {
-    fun grade(answer: AnswerSubmitted, check: CheckResult?): G?
+    fun grade(answer: AnswerSubmitted): G?
 }
 
 /** Весь текущий раунд целиком: освоен ли топик? */
@@ -136,7 +135,7 @@ interface Scheduler<M, G> {
 fun interface TopicPicker {
     fun pick(candidates: List<Candidate>, current: Uuid?): Uuid?
 }
-data class Candidate(val topicId: Uuid, val phase: Phase)
+data class Candidate(val topicId: Uuid, val phase: Phase, val started: Boolean)   // started — раунд идёт
 
 /** Набор политик курса. Типы гарантируют, что оценивание, освоение и расписание совместимы. */
 class CourseRules<M, G>(
@@ -239,12 +238,15 @@ enum class AnkiGrade { AGAIN, HARD, GOOD, EASY }
 
 ```json
 "rules": {
-  "grading":   { "type": "threshold", "min": 0.8 },
+  "preset":    "ladder",                                   // quick | ladder | sm2; по умолчанию ladder
+  "grading":   { "type": "threshold", "min": 0.8 },         // all-correct | threshold
   "mastery":   { "type": "consecutive", "learning": 3, "review": 1 },
-  "scheduler": { "type": "sm2" },
-  "picker":    { "type": "reviews-first" }
+  "scheduler": { "type": "sm2" },                           // once | ladder (days, retire) | sm2
+  "picker":    { "type": "reviews-first" }                  // reviews-first | random
 }
 ```
+
+Набор (`preset`) задаёт все четыре части; любая из четырёх, указанная в файле, заменяет свою часть набора.
 
 Реестр политик собирает из этого `CourseRules`. Несовместимую пару (оценивание даёт `AnkiGrade`,
 а SM-2 ждёт `PassFail`) реестр отвергает при импорте с понятной ошибкой.
@@ -302,6 +304,10 @@ enum class AnkiGrade { AGAIN, HARD, GOOD, EASY }
 - **Теория юнита** открывается сама, если в журнале нет ни одного ответа ни по одному топику юнита.
   Иначе — только по кнопке «Теория», которая доступна всегда. Флаг «теория прочитана» не хранится.
 - Ушёл посреди раунда — при следующем входе раунд продолжается: он восстанавливается из журнала.
+  Начатый раунд пикер всегда предлагает первым.
+- **Досрочная практика** (топик пройден, срок ещё не наступил, или выучен) — обычный раунд: когда он закончен,
+  расписание считает новый срок от сегодняшнего дня. Выученный топик после чистого раунда остаётся выученным,
+  после раунда с ошибкой возвращается на первую ступень.
 
 ## 8. Что хранится
 

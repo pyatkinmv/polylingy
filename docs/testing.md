@@ -7,7 +7,8 @@
 | Уровень | Где | Что проверяет |
 |---|---|---|
 | Содержимое | `content/src/commonTest` | разметка, `validate()` каждого блока и типа упражнения, строгий разбор, туда-обратно |
-| Правила | `core/src/commonTest` | файл курса (`CourseJson`), `CourseService`, SM-2, сдача темы, `replay()` |
+| Правила | `core/src/commonTest` | файл курса (`CourseJson`), `CourseService`, `TextMatcher`, чекеры, каждая политика, сценарии `learning-model.md` (`ScenarioTest`), `StudyService` |
+| Эталон SM-2 | `core/src/jvmTest/.../Sm2GoldenTest.kt` | 856 сдач из 0.1 через новый `replay()` |
 | Хранилище | `client/src/desktopTest` | SQLite, импорт/экспорт JSON и zip, картинки, старая база 0.1, пример курса |
 | ViewModel | `app/src/desktopTest/.../courses` | логика экранов без UI |
 | Витрина | `app/src/desktopTest/.../ui/ShowcaseUiTest.kt` | каждый тип упражнения и страница теории из примера курса: ввод, проверка, узкое окно; скриншоты `ex-*.png`, `theory*.png` |

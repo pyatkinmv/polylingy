@@ -21,7 +21,7 @@ Versions live in `gradle/libs.versions.toml`.
 |--------|---------|
 | `content/` | Course content, independent of the rest: text markup, theory blocks, exercise types, `validate()`, strict JSON (`ContentJson`) |
 | `content-compose/` | Draws content: `ContentView` (theory blocks), `ExerciseView` (every exercise type), `ContentTheme`, `ImageLoader`; knows nothing of courses or checking |
-| `core/` | Pure business logic, no UI/SQL/IO: course model and file (`CourseJson`), journal events, rules (SM-2, graduation), `replay()`, ports, `CourseService` |
+| `core/` | Pure business logic, no UI/SQL/IO: course model and file (`CourseJson`), journal events, checking, course policies, `replay()`, ports, `CourseService` / `StudyService` |
 | `client/` | Storage adapters: SQLite (`LocalStorage`), course import/export with pictures (`CourseLibrary`), sample course; `desktopMain` has zip, picture files, HTTP and the DB in `<Documents>/polylingy` |
 | `app/` | Compose UI: screens, ViewModels, `AppContainer` (manual DI); `desktopMain` has `main()` and native file dialogs |
 
@@ -36,7 +36,8 @@ Key files:
 - `core/src/commonMain/kotlin/com/polylingy/core/content/CourseJson.kt` — reading and writing course files, all checks
 - `client/src/commonMain/kotlin/com/polylingy/client/CourseLibrary.kt` — import/export with pictures
 - `core/src/commonMain/kotlin/com/polylingy/core/rules/TextMatcher.kt`, `ExerciseChecker.kt` — checking answers
-- `core/src/commonMain/kotlin/com/polylingy/core/progress/Replay.kt` — derives all progress from the journal
+- `core/src/commonMain/kotlin/com/polylingy/core/learning/` — the four policies, presets, `replay()` (derives all progress from the journal)
+- `core/src/commonMain/kotlin/com/polylingy/core/study/StudyService.kt` — what to show next, answering, progress for screens
 - `core/src/commonMain/kotlin/com/polylingy/core/rules/` — SM-2, graduation, pickers, answer checking
 - `core/src/commonMain/kotlin/com/polylingy/core/journal/Events.kt` — journal event format (`schemaVersion`)
 - `client/src/commonMain/sqldelight/` — SQLite schema; Kotlin is generated from it

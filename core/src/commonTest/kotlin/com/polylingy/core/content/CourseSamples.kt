@@ -13,7 +13,7 @@ object CourseSamples {
           "description": "Units on *present* tenses.",
           "theme": { "accent": "#2F6B5E" },
           "settings": { "allowTypos": false },
-          "rules": { "scheduler": { "type": "sm2" } },
+          "rules": { "preset": "sm2", "grading": { "type": "threshold", "min": 0.75 } },
           "units": [
             { "id": "$UNIT_ID", "title": "Present continuous", "subtitle": "I am doing",
               "theory": { "format": "blocks", "blocks": [

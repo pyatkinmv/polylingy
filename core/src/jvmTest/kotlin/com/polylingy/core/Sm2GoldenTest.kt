@@ -1,11 +1,13 @@
 package com.polylingy.core
 
-import com.polylingy.core.journal.AnswerSubmitted
-import com.polylingy.core.journal.AutoCheck
 import com.polylingy.core.journal.EventEnvelope
-import com.polylingy.core.journal.Rating
 import com.polylingy.core.journal.ZonedInstant
-import com.polylingy.core.progress.replay
+import com.polylingy.core.learning.AllCorrect
+import com.polylingy.core.learning.Consecutive
+import com.polylingy.core.learning.CourseRules
+import com.polylingy.core.learning.ReviewsFirst
+import com.polylingy.core.learning.Sm2Scheduler
+import com.polylingy.core.learning.replay
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
@@ -15,7 +17,8 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.uuid.Uuid
+import kotlin.test.assertNotNull
+import kotlin.time.Duration.Companion.minutes
 
 @Serializable
 private data class GoldenSession(val day: LocalDate, val answers: List<Boolean>)
@@ -29,13 +32,16 @@ private data class GoldenScenario(val sessions: List<GoldenSession>, val expecte
 /**
  * Guards the SM-2 schedule. `sm2_golden.json` holds 200 random answer histories (each session
  * running until graduation) with the results of the app's first implementation of these rules.
- * The journal + replay() must reproduce every graduation exactly; a failure means the scheduling
- * rules changed, which should be a deliberate decision.
+ * The journal + replay() with SM-2 and 3 in a row in every round must reproduce every graduation
+ * exactly; a failure means the scheduling rules changed, which should be a deliberate decision.
  */
 class Sm2GoldenTest {
     private val scenarios: List<GoldenScenario> = Json.decodeFromString(
         requireNotNull(javaClass.getResource("/sm2_golden.json")).readText(),
     )
+
+    /** How 0.1 worked: 3 right in a row in learning and in review alike. */
+    private val rules = CourseRules(AllCorrect, Consecutive(learning = 3, review = 3), Sm2Scheduler, ReviewsFirst)
 
     @Test fun replayMatchesTheGoldenScheduleAfterEveryGraduation() {
         var graduations = 0
@@ -45,27 +51,21 @@ class Sm2GoldenTest {
             val events = mutableListOf<EventEnvelope>()
 
             scenario.sessions.zip(scenario.expected).forEachIndexed { k, (session, expected) ->
-                session.answers.forEachIndexed { i, correct -> events += answerOn(course.id, topic, session.day, i, correct) }
-                val progress = replay(listOf(course), events).getValue(topic.id).progress
+                session.answers.forEachIndexed { i, correct ->
+                    val at = ZonedInstant(session.day.atTime(LocalTime(8, 0)).toInstant(TimeZone.UTC) + i.minutes, TimeZone.UTC)
+                    events += answer(course, topic, correct, at)
+                }
+                val state = replay(course, events, rules).getValue(topic.id)
+                val memory = assertNotNull(state.memory)
 
                 val where = "scenario $s, graduation $k"
-                assertEquals(expected.intervalDays, progress.intervalDays, "$where: interval")
-                assertEquals(expected.nextReviewDate, progress.nextReviewDate, "$where: next review")
-                assertEquals(expected.easeFactor, progress.easeFactor, 1e-9, "$where: ease factor")
+                assertEquals(emptyList(), state.round, "$where: round finished")
+                assertEquals(expected.intervalDays, memory.intervalDays, "$where: interval")
+                assertEquals(expected.nextReviewDate, memory.due, "$where: next review")
+                assertEquals(expected.easeFactor, memory.easeFactor, 1e-9, "$where: ease factor")
                 graduations++
             }
         }
         assertEquals(856, graduations)
     }
-
-    private fun answerOn(courseId: Uuid, topic: com.polylingy.core.content.Topic, day: LocalDate, index: Int, correct: Boolean) =
-        EventEnvelope(
-            eventId = Uuid.random(),
-            deviceId = Uuid.NIL,
-            occurredAt = ZonedInstant(day.atTime(LocalTime(8, 0)).toInstant(TimeZone.UTC) + kotlin.time.Duration.parse("${index}m"), TimeZone.UTC),
-            event = AnswerSubmitted(
-                courseId, topic.id, topic.exercises.first().id, input = "",
-                autoCheck = null, rating = if (correct) Rating.CORRECT else Rating.INCORRECT,
-            ),
-        )
 }
