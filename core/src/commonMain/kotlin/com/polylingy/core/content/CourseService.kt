@@ -1,7 +1,10 @@
 package com.polylingy.core.content
 
 import com.polylingy.content.Block
+import com.polylingy.content.Inline
+import com.polylingy.content.Path
 import com.polylingy.content.mapLinks
+import com.polylingy.content.validate
 import com.polylingy.content.withId
 import com.polylingy.core.ports.Clock
 import com.polylingy.core.ports.CourseRepository
@@ -25,10 +28,18 @@ class CourseService(private val courses: CourseRepository, private val clock: Cl
         return saved
     }
 
-    /** Renames a course; a name another course has gets a number, like on import. */
-    fun rename(courseId: Uuid, name: String): Course {
-        val saved = save(course(courseId).copy(name = uniqueName(name, except = courseId)))
-        log.info { "Renamed course $courseId to \"${saved.name}\"" }
+    /**
+     * Changes a course's name and description. A name another course has gets a number, like on import;
+     * a blank description removes it. Bad markup in the description is an [IllegalArgumentException] with the problem.
+     * Not for a course from a newer format: it is written back as it came.
+     */
+    fun editDetails(courseId: Uuid, name: String, description: String): Course {
+        val course = course(courseId)
+        require(!course.studyOnly) { "\"${course.name}\" was made with a newer version of Polylingy and can't be changed" }
+        val text = description.trim().takeIf { it.isNotEmpty() }?.let(::Inline)
+        text?.validate(Path("description"))?.firstOrNull()?.let { throw IllegalArgumentException(it.message) }
+        val saved = save(course.copy(name = uniqueName(name, except = courseId), description = text))
+        log.info { "Edited course $courseId: name \"${saved.name}\", description ${if (text == null) "none" else "${text.text.length} characters"}" }
         return saved
     }
 

@@ -86,6 +86,29 @@ class LocalStorageTest {
 
     // journal
 
+    @Test fun aCourseThatNoLongerReadsIsLeftOutAndListedAsBroken() {
+        val good = course("Good")
+        val broken = course("Old format")
+        DesktopStorage.open(tempDir).use {
+            it.courses.save(good)
+            it.courses.save(broken)
+        }
+        java.sql.DriverManager.getConnection("jdbc:sqlite:${tempDir.resolve("polylingy.db")}").use { connection ->
+            connection.prepareStatement("UPDATE course_document SET body = replace(body, '\"topics\"', '\"topix\"') WHERE id = ?").use {
+                it.setString(1, broken.id.toString())
+                it.executeUpdate()
+            }
+        }
+        DesktopStorage.open(tempDir).use { reopened ->
+            assertEquals(listOf(good), reopened.courses.all())
+            val listed = reopened.brokenCourses().single()
+            assertEquals(broken.id to "Old format", listed.id to listed.name)
+            assertTrue(listed.problems.isNotEmpty())
+            reopened.courses.delete(broken.id)
+            assertEquals(emptyList(), reopened.brokenCourses())
+        }
+    }
+
     @Test fun eventsReadBackInAppendOrder() {
         val events = listOf(event(30), event(10), event(20))
         events.forEach(storage.journal::append)

@@ -4,6 +4,8 @@ import androidx.compose.ui.graphics.toAwtImage
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
@@ -17,6 +19,7 @@ import com.polylingy.app.PickedFile
 import com.polylingy.app.testContainer
 import com.polylingy.client.CourseSource
 import com.polylingy.client.DesktopStorage
+import com.polylingy.client.LocalStorage
 import com.polylingy.client.sampleCourse
 import java.awt.image.BufferedImage
 import java.io.File
@@ -46,11 +49,17 @@ class AppHarness(val test: ComposeUiTest, val container: AppContainer, val clock
  * Runs the real [App] headless in a window-sized scene, on an in-memory database with a
  * movable clock. [seed] prepares data before the first frame.
  */
-fun appTest(seed: (AppContainer) -> Unit = {}, block: AppHarness.() -> Unit) =
-    runDesktopComposeUiTest(width = 832, height = 720) {
+fun appTest(
+    seed: (AppContainer) -> Unit = {},
+    storage: () -> LocalStorage = DesktopStorage::inMemory,
+    width: Int = 832,
+    height: Int = 720,
+    block: AppHarness.() -> Unit,
+) =
+    runDesktopComposeUiTest(width = width, height = height) {
         val clock = MovableClock()
         val files = FakeFiles()
-        DesktopStorage.inMemory().use { storage ->
+        storage().use { storage ->
             val container = testContainer(clock, files, storage)
             seed(container)
             setContent { App(container) }
@@ -65,10 +74,21 @@ fun AppHarness.click(text: String) {
     test.waitForIdle()
 }
 
-/** Opens the n-th "⋮" overflow menu on screen and picks [item]. */
+/** Opens the n-th "⋯" menu on screen and picks [item]. */
 fun AppHarness.menu(item: String, index: Int = 0) {
-    test.onAllNodesWithText("⋮")[index].performClick()
+    openMenu(index)
     click(item)
+}
+
+fun AppHarness.openMenu(index: Int = 0) {
+    test.onAllNodesWithText("⋯")[index].performClick()
+    test.waitForIdle()
+}
+
+/** Types into the n-th blank of the exercise on screen. */
+fun AppHarness.fill(blank: Int, text: String) {
+    test.onNode(hasContentDescription("Blank $blank")).performTextInput(text)
+    test.waitForIdle()
 }
 
 /**

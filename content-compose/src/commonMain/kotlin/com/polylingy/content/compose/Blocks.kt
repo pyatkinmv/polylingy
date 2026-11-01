@@ -19,9 +19,23 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import kotlinx.coroutines.delay
+import kotlin.uuid.Uuid
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.semantics.contentDescription
@@ -44,13 +58,41 @@ import com.polylingy.content.Inline
 private val NarrowWidth = 560.dp
 private val AsideMaxWidth = 280.dp
 
-/** A page of content: unit theory or an explanation. [onLink] is called for a "see also" link. */
+/**
+ * A page of content: unit theory or an explanation. [onLink] is called for a "see also" link.
+ * [highlight] is the id of a section to scroll to and light up for a moment, when the page is opened by a link.
+ */
 @Composable
-fun ContentView(content: Content, modifier: Modifier = Modifier, onLink: (Block.Link) -> Unit = {}) {
-    when (content) {
-        is Content.Blocks -> Blocks(content.blocks, modifier, onLink)
-        is Content.Unknown -> NewerVersion(modifier)
+fun ContentView(content: Content, modifier: Modifier = Modifier, onLink: (Block.Link) -> Unit = {}, highlight: Uuid? = null) {
+    CompositionLocalProvider(LocalHighlight provides highlight) {
+        when (content) {
+            is Content.Blocks -> Blocks(content.blocks, modifier, onLink)
+            is Content.Unknown -> NewerVersion(modifier)
+        }
     }
+}
+
+private val LocalHighlight = staticCompositionLocalOf<Uuid?> { null }
+
+/** How long a section opened by a link stays lit. */
+private const val HIGHLIGHT_MILLIS = 2500L
+
+/** Brings the section into view and lights it up for a while, if it is the one a link opened. */
+@Composable
+private fun Modifier.highlightedSection(id: Uuid?): Modifier {
+    if (id == null || id != LocalHighlight.current) return this
+    val requester = remember { BringIntoViewRequester() }
+    var lit by remember { mutableStateOf(true) }
+    val background by animateColorAsState(if (lit) colors.accentSoft else Color.Transparent, tween(600))
+    LaunchedEffect(id) {
+        requester.bringIntoView()
+        delay(HIGHLIGHT_MILLIS)
+        lit = false
+    }
+    return bringIntoViewRequester(requester)
+        .semantics { contentDescription = "Linked section" }
+        .background(background, RoundedCornerShape(10.dp))
+        .padding(10.dp)
 }
 
 @Composable
@@ -64,7 +106,7 @@ private fun Blocks(blocks: List<Block>, modifier: Modifier = Modifier, onLink: (
 @Composable
 fun BlockView(block: Block, onLink: (Block.Link) -> Unit = {}) {
     when (block) {
-        is Block.Section -> Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+        is Block.Section -> Row(Modifier.highlightedSection(block.id), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
             Text(block.label, Modifier.width(32.dp), style = MaterialTheme.typography.headlineMedium, color = colors.accent)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 block.title?.let { InlineText(it, style = MaterialTheme.typography.titleMedium) }

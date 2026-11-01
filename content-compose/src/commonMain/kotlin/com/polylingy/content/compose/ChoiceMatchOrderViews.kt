@@ -73,7 +73,7 @@ internal fun ChoiceView(exercise: Exercise.Choice, response: Response.Choice, ch
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         exercise.items.forEachIndexed { i, item ->
             val check = checks?.get(i)
-            Item(i + 1, item.note, check != null && check.result != ItemResult.CORRECT) {
+            Item(i + 1, item.note, showNote = check != null) {
                 InlineFlow(item.text) {
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                         for (option in shuffled[i]) {
@@ -179,7 +179,7 @@ internal fun OrderView(exercise: Exercise.Order, response: Response.Order, check
             val placed = response.sentences[i]
             val check = checks?.get(i)
             fun update(words: List<String>) = onChange(Response.Order(response.sentences.toMutableList().also { it[i] = words }))
-            Item(i + 1, item.note, check != null && check.result != ItemResult.CORRECT) {
+            Item(i + 1, item.note, showNote = check != null) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     FlowRow(
                         Modifier.fillMaxWidth().heightIn(min = 40.dp).semantics { contentDescription = "Sentence ${i + 1}" },

@@ -20,6 +20,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.isShiftPressed
@@ -36,6 +37,7 @@ import com.polylingy.content.Block
 import com.polylingy.content.Exercise
 import com.polylingy.content.ItemCheck
 import com.polylingy.content.ItemResult
+import com.polylingy.content.MAX_BLANK_LENGTH
 import com.polylingy.content.Response
 
 /**
@@ -83,7 +85,7 @@ fun ExplanationView(content: com.polylingy.content.Content, onLink: (Block.Link)
     }
 }
 
-/** A numbered item with an optional note under it, shown once the item has a mistake. */
+/** A numbered item with an optional note under it, shown once the exercise is checked. */
 @Composable
 internal fun Item(number: Int, note: com.polylingy.content.Inline?, showNote: Boolean, content: @Composable () -> Unit) {
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -110,21 +112,23 @@ internal fun WordBank(words: List<String>) {
 
 /**
  * A blank to type into. Tab and Shift+Tab move between blanks; Enter submits. Its width follows what is typed,
- * so it doesn't give away the length of the answer.
+ * so it doesn't give away the length of the answer, up to [MAX_BLANK_LENGTH] characters: then it takes no more
+ * and its line becomes a frame, so the learner sees why.
  */
 @Composable
 internal fun BlankField(value: String, onValueChange: (String) -> Unit, label: String, onSubmit: () -> Unit) {
     val focus = LocalFocusManager.current
-    val line = colors.ink
+    val full = value.length >= MAX_BLANK_LENGTH
+    val line = if (full) colors.typo else colors.ink
     BasicTextField(
         value = value,
-        onValueChange = { onValueChange(it.replace("\n", "")) },
+        onValueChange = { onValueChange(it.replace("\n", "").take(MAX_BLANK_LENGTH)) },
         singleLine = true,
         textStyle = LocalTextStyle.current.copy(color = colors.ink),
         cursorBrush = SolidColor(colors.accent),
         keyboardOptions = KeyboardOptions.Default,
         modifier = Modifier
-            .width((maxOf(5, value.length + 1) * 10).dp)
+            .width((maxOf(5, minOf(value.length, MAX_BLANK_LENGTH) + 1) * 10).dp)
             .semantics { contentDescription = label }
             .onPreviewKeyEvent {
                 if (it.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
@@ -134,7 +138,10 @@ internal fun BlankField(value: String, onValueChange: (String) -> Unit, label: S
                     else -> false
                 }
             }
-            .drawBehind { drawLine(line, Offset(0f, size.height), Offset(size.width, size.height), 2.dp.toPx()) }
+            .drawBehind {
+                if (full) drawRect(line, style = Stroke(1.5.dp.toPx()))
+                else drawLine(line, Offset(0f, size.height), Offset(size.width, size.height), 2.dp.toPx())
+            }
             .padding(horizontal = 4.dp, vertical = 2.dp),
     )
 }

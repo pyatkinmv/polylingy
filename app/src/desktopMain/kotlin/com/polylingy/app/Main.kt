@@ -21,6 +21,9 @@ private val AppIcon = BitmapPainter(
         .toComposeImageBitmap(),
 )
 
+/** Decodes PNG, JPEG, GIF, WebP and the rest that Skia knows. */
+val SkiaImageDecoder = ImageDecoder { Image.makeFromEncoded(it).toComposeImageBitmap() }
+
 fun main() {
     val dataDir = DesktopStorage.defaultDataDir()
     // Read by logback.xml; must be set before the first logger is created.
@@ -46,7 +49,7 @@ fun main() {
         ) {
             window.minimumSize = Dimension(480, 400)
             val container = remember {
-                AppContainer(storage, DesktopCourseFiles(window), images, fetcher, CourseArchive).also {
+                AppContainer(storage, DesktopCourseFiles(window), images, fetcher, CourseArchive, SkiaImageDecoder).also {
                     it.library.seedSample(sampleCourse())
                 }
             }

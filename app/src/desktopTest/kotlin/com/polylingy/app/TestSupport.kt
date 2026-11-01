@@ -35,4 +35,4 @@ fun testContainer(
     clock: Clock = MovableClock(),
     files: CourseFiles = NoFiles(),
     storage: LocalStorage = DesktopStorage.inMemory(),
-) = AppContainer(storage, files, MemoryImageStore(), { error("offline") }, CourseArchive, clock, Random(7))
+) = AppContainer(storage, files, MemoryImageStore(), { error("offline") }, CourseArchive, SkiaImageDecoder, clock, Random(7))
