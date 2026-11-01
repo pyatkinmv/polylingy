@@ -30,6 +30,9 @@ data class Problem(val path: Path, val message: String, val kind: Kind = Kind.ER
 /** How many blanks `{{…}}` a text may or must have. */
 internal enum class BlankRule { NONE, ANY, AT_LEAST_ONE, EXACTLY_ONE }
 
+/** The longest answer a blank accepts: the field stops taking characters here, so every variant must fit. */
+const val MAX_BLANK_LENGTH = 40
+
 /** Collects problems while a validate() walks a tree. */
 internal class Checks(private val out: MutableList<Problem>) {
     fun error(at: Path, message: String) {
@@ -57,6 +60,9 @@ internal class Checks(private val out: MutableList<Problem>) {
             BlankRule.ANY -> {}
             BlankRule.AT_LEAST_ONE -> require(count >= 1, at, "needs at least one blank {{…}}")
             BlankRule.EXACTLY_ONE -> require(count == 1, at, "needs exactly one blank {{…}}, found $count")
+        }
+        for (blank in inline.blanks) for (variant in blank.variants) {
+            require(variant.length <= MAX_BLANK_LENGTH, at, "answer \"$variant\" is longer than $MAX_BLANK_LENGTH characters")
         }
     }
 

@@ -1,5 +1,7 @@
 package com.polylingy.core.content
 
+import com.polylingy.content.Block
+import com.polylingy.content.Content
 import com.polylingy.core.FixedClock
 import com.polylingy.core.InMemoryCourseRepository
 import com.polylingy.core.at
@@ -10,6 +12,7 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.uuid.Uuid
 
 class CourseServiceTest {
     private val clock = FixedClock(at(LocalDate(2026, 11, 1)))
@@ -35,6 +38,16 @@ class CourseServiceTest {
         assertTrue(first.ids().intersect(second.ids().toSet()).isEmpty())
         assertEquals(first.allTopics.map { it.title }, second.allTopics.map { it.title })
         assertEquals("English Grammar in Use (3)", service.import(sample).name)
+    }
+
+    @Test fun aCopyLinksToItsOwnUnits() {
+        val sample = CourseJson.read(CourseSamples.units, clock.now().instant).course
+        val copy = sample.withFreshIds()
+        val theory = copy.units.single().theory as Content.Blocks
+        val links = ((theory.blocks[1] as Block.Section).blocks.single() as Block.SeeAlso).links
+        assertEquals(copy.units.single().id, links[1].unit)
+        assertEquals(Uuid.parse(CourseSamples.SECTION_A), links[0].section, "section ids stay")
+        assertEquals(emptyList(), copy.validate())
     }
 
     @Test fun aCourseSharingAnyIdWithAnotherIsCopied() {

@@ -6,6 +6,8 @@ object CourseSamples {
     const val UNIT_ID = "0a1b2c3d-0000-4000-8000-000000000002"
     const val TOPIC_ID = "0a1b2c3d-0000-4000-8000-000000000003"
     const val EXERCISE_ID = "0a1b2c3d-0000-4000-8000-000000000004"
+    const val SECTION_A = "0a1b2c3d-0000-4000-8000-0000000000a1"
+    const val SECTION_B = "0a1b2c3d-0000-4000-8000-0000000000b1"
 
     /** A course with one unit: theory, two topics, and links between them. */
     val units = """
@@ -17,12 +19,12 @@ object CourseSamples {
           "units": [
             { "id": "$UNIT_ID", "title": "Present continuous", "subtitle": "I am doing",
               "theory": { "format": "blocks", "blocks": [
-                { "type": "section", "label": "A", "blocks": [ { "type": "text", "text": "He**’s cycling**." } ] },
-                { "type": "section", "label": "B", "blocks": [
-                  { "type": "seeAlso", "links": [ { "theory": "A" }, { "unit": "$UNIT_ID" } ] } ] } ] },
+                { "type": "section", "id": "$SECTION_A", "label": "A", "blocks": [ { "type": "text", "text": "He**’s cycling**." } ] },
+                { "type": "section", "id": "$SECTION_B", "label": "B", "blocks": [
+                  { "type": "seeAlso", "links": [ { "section": "$SECTION_A" }, { "unit": "$UNIT_ID" } ] } ] } ] },
               "topics": [
                 { "id": "$TOPIC_ID", "title": "Things happening now",
-                  "explanation": { "format": "blocks", "blocks": [ { "type": "seeAlso", "links": [ { "theory": "B" } ] } ] },
+                  "explanation": { "format": "blocks", "blocks": [ { "type": "seeAlso", "links": [ { "section": "$SECTION_B" } ] } ] },
                   "exercises": [
                     { "id": "$EXERCISE_ID", "type": "gaps", "items": [ { "text": "Listen! Somebody {{is singing}}." } ] },
                     { "type": "choice", "items": [ { "text": "It {{’s raining}}.", "options": ["rains", "’s raining"] } ] } ] },

@@ -13,6 +13,7 @@
         "blocks": [
           {
             "type": "section",
+            "id": "5a3f1e2d-7b6c-4d8e-9f00-1a2b3c4d5ea1",
             "label": "A",
             "title": "Happening now",
             "blocks": [
@@ -107,7 +108,7 @@
                 "blocks": [
                   { "type": "text", "text": "Negatives and questions keep **-ing**:" },
                   { "type": "examples", "items": [ { "text": "I **’m not reading** it now.", "not": "I don’t read it now" } ] },
-                  { "type": "seeAlso", "links": [ { "theory": "A" } ] }
+                  { "type": "seeAlso", "links": [ { "section": "5a3f1e2d-7b6c-4d8e-9f00-1a2b3c4d5ea1" } ] }
                 ]
               }
             }

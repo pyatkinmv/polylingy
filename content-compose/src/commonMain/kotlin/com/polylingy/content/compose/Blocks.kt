@@ -119,8 +119,9 @@ fun BlockView(block: Block, onLink: (Block.Link) -> Unit = {}) {
         }
         is Block.SeeAlso -> FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("See also", color = colors.muted)
+            val names = LocalLinkNames.current
             for (link in block.links) Text(
-                link.theory?.let { "Section $it" } ?: "Another unit",
+                names.name(link) ?: "Theory",
                 Modifier.clickable { onLink(link) },
                 color = colors.accent,
                 fontWeight = FontWeight.Medium,
