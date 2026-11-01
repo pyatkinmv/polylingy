@@ -5,6 +5,8 @@ import com.polylingy.content.Exercise
 import com.polylingy.content.Problem
 import com.polylingy.core.content.CourseSamples.COURSE_ID
 import com.polylingy.core.content.CourseSamples.EXERCISE_ID
+import com.polylingy.core.content.CourseSamples.SECTION_A
+import com.polylingy.core.content.CourseSamples.SECTION_B
 import com.polylingy.core.content.CourseSamples.TOPIC_ID
 import com.polylingy.core.content.CourseSamples.UNIT_ID
 import com.polylingy.core.content.CourseSamples.flatWith
@@ -169,18 +171,34 @@ class CourseJsonTest {
 
     @Test fun linksMustPointAtSomethingThatExists() {
         val text = CourseSamples.units
-            .replace("{ \"theory\": \"B\" }", "{ \"theory\": \"Z\" }")
+            .replace("{ \"section\": \"$SECTION_B\" }", "{ \"section\": \"$TOPIC_ID\" }")
             .replace("{ \"unit\": \"$UNIT_ID\" }", "{ \"unit\": \"$COURSE_ID\" }")
         assertEquals(
             listOf(
                 "units[0].theory.blocks[1].blocks[0].links[1].unit: this course has no unit with id \"$COURSE_ID\"",
-                "units[0].topics[0].explanation.blocks[0].links[0].theory: this unit's theory has no section \"Z\"",
+                "units[0].topics[0].explanation.blocks[0].links[0].section: this course has no theory section with id \"$TOPIC_ID\"",
             ),
             problems(text),
         )
         val flatLink = flatWithExercise("""{ "type": "gaps", "items": [ { "text": "{{a}}" } ],
-            "explanation": { "format": "blocks", "blocks": [ { "type": "seeAlso", "links": [ { "theory": "A" } ] } ] } }""")
-        assertEquals(listOf("topics[0].exercises[0].explanation.blocks[0].links[0].theory: a course without units has no theory to link to"), problems(flatLink))
+            "explanation": { "format": "blocks", "blocks": [ { "type": "seeAlso", "links": [ { "section": "$SECTION_A" } ] } ] } }""")
+        assertEquals(listOf("topics[0].exercises[0].explanation.blocks[0].links[0].section: this course has no theory section with id \"$SECTION_A\""), problems(flatLink))
+    }
+
+    @Test fun sectionIdsAreUniqueWithinTheCourse() {
+        val text = CourseSamples.units.replace("\"id\": \"$SECTION_B\"", "\"id\": \"$SECTION_A\"")
+        assertEquals(
+            listOf(
+                "units[0].theory.blocks[1].id: another section of this course has the id \"$SECTION_A\"",
+                "units[0].topics[0].explanation.blocks[0].links[0].section: this course has no theory section with id \"$SECTION_B\"",
+            ),
+            problems(text),
+        )
+    }
+
+    @Test fun aSectionIdMustBeAUuid() {
+        val text = CourseSamples.units.replace("\"id\": \"$SECTION_A\"", "\"id\": \"not-finished\"")
+        assertTrue(problems(text).single().startsWith("units[0].theory.blocks[0].id"), problems(text).single())
     }
 
     // newer format

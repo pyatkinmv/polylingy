@@ -8,13 +8,14 @@ import com.polylingy.content.Path
 import com.polylingy.content.Problem
 import com.polylingy.content.validate
 import com.polylingy.content.walk
+import kotlin.uuid.Uuid
 
 private val Accent = Regex("#[0-9A-Fa-f]{6}")
 
 /**
  * Everything wrong with this course, each with its path: the course structure here, the content of units,
- * topics and exercises by their own validate(). A `seeAlso` link must point at a theory section of its unit
- * or at a unit of the course.
+ * topics and exercises by their own validate(). A `seeAlso` link must point at a theory section of the course
+ * (by the section's id, unique within the course) or at a unit of the course.
  */
 fun Course.validate(): List<Problem> = buildList {
     fun error(at: Path, message: String) = add(Problem(at, message))
@@ -32,10 +33,11 @@ fun Course.validate(): List<Problem> = buildList {
         units.isEmpty() && topics.isEmpty() -> error(root, "needs units or topics")
     }
 
-    val unitIds = units.map { it.id.toString() }.toSet()
+    /** Every page of the course with its path, theory pages first; theory sections are what links point at. */
+    val theories = mutableListOf<Pair<Path, Content>>()
+    val pages = mutableListOf<Pair<Path, Content>>()
 
-    /** Checks a topic and collects its pages (explanations) for the link check. */
-    fun topic(topic: Topic, at: Path, pages: MutableList<Pair<Path, Content>>) {
+    fun topic(topic: Topic, at: Path) {
         if (topic.title.isBlank()) error(at / "title", "must not be empty")
         topic.explanation?.let {
             addAll(it.validate(at / "explanation"))
@@ -49,45 +51,37 @@ fun Course.validate(): List<Problem> = buildList {
         }
     }
 
-    /** [sections] are the labels of the unit's theory, or null where there is no unit. */
-    fun links(pages: List<Pair<Path, Content>>, sections: Set<String>?) {
-        for ((pageAt, page) in pages) for ((at, block) in page.walk(pageAt)) {
-            if (block !is Block.SeeAlso) continue
-            block.links.forEachIndexed { i, link ->
-                val linkAt = (at / "links")[i]
-                link.theory?.let {
-                    when {
-                        sections == null -> error(linkAt / "theory", "a course without units has no theory to link to")
-                        it !in sections -> error(linkAt / "theory", "this unit's theory has no section \"$it\"")
-                    }
-                }
-                link.unit?.let { if (it !in unitIds) error(linkAt / "unit", "this course has no unit with id \"$it\"") }
-            }
-        }
-    }
-
     units.forEachIndexed { u, unit ->
         val at = (root / "units")[u]
         if (unit.title.isBlank()) error(at / "title", "must not be empty")
         unit.subtitle?.let { addAll(it.validate(at / "subtitle")) }
-        val pages = mutableListOf<Pair<Path, Content>>()
         unit.theory?.let {
             addAll(it.validate(at / "theory"))
-            pages += at / "theory" to it
+            theories += at / "theory" to it
         }
         if (unit.topics.isEmpty()) error(at / "topics", "needs at least one topic")
-        unit.topics.forEachIndexed { t, topic -> topic(topic, (at / "topics")[t], pages) }
-        links(pages, unit.theory.sectionLabels())
+        unit.topics.forEachIndexed { t, topic -> topic(topic, (at / "topics")[t]) }
+    }
+    topics.forEachIndexed { t, topic -> topic(topic, (root / "topics")[t]) }
+
+    val sectionIds = mutableSetOf<Uuid>()
+    val targets = mutableSetOf<Uuid>()
+    for ((pageAt, page) in theories + pages) for ((at, block) in page.walk(pageAt)) {
+        val id = (block as? Block.Section)?.id ?: continue
+        if (!sectionIds.add(id)) error(at / "id", "another section of this course has the id \"$id\"")
+        if (pageAt to page in theories) targets += id
     }
 
-    val pages = mutableListOf<Pair<Path, Content>>()
-    topics.forEachIndexed { t, topic -> topic(topic, (root / "topics")[t], pages) }
-    links(pages, null)
+    val unitIds = units.map { it.id }.toSet()
+    for ((pageAt, page) in theories + pages) for ((at, block) in page.walk(pageAt)) {
+        if (block !is Block.SeeAlso) continue
+        block.links.forEachIndexed { i, link ->
+            val linkAt = (at / "links")[i]
+            link.section?.let { if (it !in targets) error(linkAt / "section", "this course has no theory section with id \"$it\"") }
+            link.unit?.let { if (it !in unitIds) error(linkAt / "unit", "this course has no unit with id \"$it\"") }
+        }
+    }
 }
-
-/** Labels of the theory's top-level sections ("A", "B", …). */
-private fun Content?.sectionLabels(): Set<String> =
-    (this as? Content.Blocks)?.blocks.orEmpty().filterIsInstance<Block.Section>().map { it.label }.toSet()
 
 /** Every picture of the course — theory, explanations, exercises — with the path of its `src`. */
 fun Course.images(): List<Pair<Path, Image>> = buildList {

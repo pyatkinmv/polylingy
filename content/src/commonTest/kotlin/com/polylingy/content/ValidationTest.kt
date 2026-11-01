@@ -34,6 +34,13 @@ class ValidationTest {
             "exercises[0].items[0].text: needs at least one blank {{…}}")
     }
 
+    @Test fun anAnswerFitsTheBlank() {
+        val fits = "a".repeat(MAX_BLANK_LENGTH)
+        assertProblems(ex("gaps", """"items": [{ "text": "{{$fits}}" }]"""))
+        assertProblems(ex("table", """"rows": [["x", "{{short|${fits}b}}"]]"""),
+            "exercises[0].rows[0][1]: answer \"${fits}b\" is longer than 40 characters")
+    }
+
     @Test fun gapsCheckMarkupHintNoteExampleAndWordBank() = assertProblems(
         ex("gaps", """"example": "I {{am}}", "wordBank": [" "],
             "items": [{ "text": "a **{{b}}", "hint": "", "note": "{{x}}" }]"""),
@@ -165,10 +172,10 @@ class ValidationTest {
 
     @Test fun seeAlsoRules() {
         assertEquals(listOf("blocks[0].links: needs at least one link"), blockProblems("""{ "type": "seeAlso", "links": [] }"""))
-        assertEquals(listOf("blocks[0].links[0]: needs exactly one of \"theory\" or \"unit\""),
+        assertEquals(listOf("blocks[0].links[0]: needs exactly one of \"section\" or \"unit\""),
             blockProblems("""{ "type": "seeAlso", "links": [{}] }"""))
-        assertEquals(listOf("blocks[0].links[0]: needs exactly one of \"theory\" or \"unit\"", "blocks[0].links[0].unit: must not be empty"),
-            blockProblems("""{ "type": "seeAlso", "links": [{ "theory": "A", "unit": "" }] }"""))
+        assertEquals(listOf("blocks[0].links[0]: needs exactly one of \"section\" or \"unit\""),
+            blockProblems("""{ "type": "seeAlso", "links": [{ "section": "${Samples.SECTION_A}", "unit": "${Samples.ID}" }] }"""))
     }
 
     @Test fun theoryTableRules() {

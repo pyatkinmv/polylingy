@@ -4,6 +4,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
 import kotlinx.serialization.json.JsonObject
+import kotlin.uuid.Uuid
 
 /**
  * A page of free content: unit theory or an explanation after an exercise is checked.
@@ -38,10 +39,13 @@ sealed interface Content {
 sealed interface Block {
     fun validate(at: Path): List<Problem>
 
-    /** A lettered part of a page: the letter in the margin, the content beside it. */
+    /**
+     * A lettered part of a page: the letter in the margin, the content beside it.
+     * [id] is set only on sections a `seeAlso` link points at; it is unique within the course.
+     */
     @Serializable
     @SerialName("section")
-    data class Section(val label: String, val title: Inline? = null, val blocks: List<Block>) : Block {
+    data class Section(val id: Uuid? = null, val label: String, val title: Inline? = null, val blocks: List<Block>) : Block {
         override fun validate(at: Path) = checks {
             notBlank(label, at / "label")
             text(title, at / "title")
@@ -154,16 +158,14 @@ sealed interface Block {
         override fun validate(at: Path) = checks {
             require(links.isNotEmpty(), at / "links", "needs at least one link")
             links.forEachIndexed { i, link ->
-                require(listOfNotNull(link.theory, link.unit).size == 1, (at / "links")[i], "needs exactly one of \"theory\" or \"unit\"")
-                notBlank(link.theory, (at / "links")[i] / "theory")
-                notBlank(link.unit, (at / "links")[i] / "unit")
+                require(listOfNotNull(link.section, link.unit).size == 1, (at / "links")[i], "needs exactly one of \"section\" or \"unit\"")
             }
         }
     }
 
-    /** A link to a theory section of the same unit ([theory] = its label) or to another unit ([unit] = its id). */
+    /** A link to a theory section of any unit of the course ([section] = its id), or to the top of a unit's theory ([unit] = its id). */
     @Serializable
-    data class Link(val theory: String? = null, val unit: String? = null)
+    data class Link(val section: Uuid? = null, val unit: Uuid? = null)
 
     @Serializable(with = UnknownBlockSerializer::class)
     data class Unknown(val raw: JsonObject) : Block {

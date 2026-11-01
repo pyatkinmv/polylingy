@@ -57,3 +57,29 @@ fun Exercise.withId(id: Uuid): Exercise = when (this) {
     is Exercise.Order -> copy(id = id)
     is Exercise.Unknown -> copy(raw = JsonObject(raw + ("id" to JsonPrimitive(id.toString()))))
 }
+
+/** This page with every `seeAlso` link passed through [transform], nested ones included. Unknown content stays as it is. */
+fun Content.mapLinks(transform: (Block.Link) -> Block.Link): Content = when (this) {
+    is Content.Blocks -> copy(blocks = blocks.map { it.mapLinks(transform) })
+    is Content.Unknown -> this
+}
+
+private fun Block.mapLinks(transform: (Block.Link) -> Block.Link): Block = when (this) {
+    is Block.Section -> copy(blocks = blocks.map { it.mapLinks(transform) })
+    is Block.Situation -> copy(blocks = blocks.map { it.mapLinks(transform) }, aside = aside?.mapLinks(transform))
+    is Block.Quote -> copy(aside = aside?.mapLinks(transform))
+    is Block.Tip -> copy(blocks = blocks.map { it.mapLinks(transform) })
+    is Block.SeeAlso -> copy(links = links.map(transform))
+    is Block.Text, is Block.Picture, is Block.Table, is Block.Examples, is Block.Words, is Block.Unknown -> this
+}
+
+/** This exercise with the links of its explanation passed through [transform]. */
+fun Exercise.mapLinks(transform: (Block.Link) -> Block.Link): Exercise = when (this) {
+    is Exercise.Gaps -> copy(explanation = explanation?.mapLinks(transform))
+    is Exercise.Choice -> copy(explanation = explanation?.mapLinks(transform))
+    is Exercise.Pictures -> copy(explanation = explanation?.mapLinks(transform))
+    is Exercise.Table -> copy(explanation = explanation?.mapLinks(transform))
+    is Exercise.Match -> copy(explanation = explanation?.mapLinks(transform))
+    is Exercise.Order -> copy(explanation = explanation?.mapLinks(transform))
+    is Exercise.Unknown -> this
+}

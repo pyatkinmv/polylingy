@@ -6,6 +6,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import com.polylingy.content.Block
 
 /**
  * How content looks. Courses may set only [accent]; everything else belongs to the app, so a course can't
@@ -46,13 +47,27 @@ fun interface ImageLoader {
     fun load(src: String): ImageBitmap?
 }
 
+/**
+ * Gives a `seeAlso` link the words it shows, e.g. "B · Started, not finished"; only the app knows the course the link points into.
+ * Null falls back to a generic "Theory".
+ */
+fun interface LinkNames {
+    fun name(link: Block.Link): String?
+}
+
 internal val LocalContentColors = staticCompositionLocalOf { ContentColors(ContentColors.DefaultAccent) }
 internal val LocalImageLoader = staticCompositionLocalOf { ImageLoader { null } }
+internal val LocalLinkNames = staticCompositionLocalOf { LinkNames { null } }
 
-/** Provides colours and pictures to the content views inside. */
+/** Provides colours, pictures and link names to the content views inside. */
 @Composable
-fun ContentTheme(colors: ContentColors, images: ImageLoader = ImageLoader { null }, content: @Composable () -> Unit) {
-    CompositionLocalProvider(LocalContentColors provides colors, LocalImageLoader provides images, content = content)
+fun ContentTheme(
+    colors: ContentColors,
+    images: ImageLoader = ImageLoader { null },
+    links: LinkNames = LinkNames { null },
+    content: @Composable () -> Unit,
+) {
+    CompositionLocalProvider(LocalContentColors provides colors, LocalImageLoader provides images, LocalLinkNames provides links, content = content)
 }
 
 internal val colors: ContentColors @Composable get() = LocalContentColors.current

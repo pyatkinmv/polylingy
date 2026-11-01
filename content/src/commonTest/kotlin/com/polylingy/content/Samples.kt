@@ -3,6 +3,7 @@ package com.polylingy.content
 /** Valid content of every kind, as a course author (or Claude) would write it — the examples of content-format.md. */
 object Samples {
     const val ID = "6f1c2b8e-3d4a-4f5b-9c6d-7e8f9a0b1c2d"
+    const val SECTION_A = "6f1c2b8e-3d4a-4f5b-9c6d-7e8f9a0b1c2e"
 
     val gaps = """
         { "id": "$ID", "type": "gaps",
@@ -17,7 +18,7 @@ object Samples {
           "explanation": { "format": "blocks", "blocks": [
             { "type": "text", "text": "Negatives and questions keep **-ing**:" },
             { "type": "examples", "items": [ { "text": "I **’m not reading** it now.", "not": "I don’t read it now" } ] },
-            { "type": "seeAlso", "links": [ { "theory": "A" } ] } ] } }
+            { "type": "seeAlso", "links": [ { "section": "$SECTION_A" } ] } ] } }
     """.trimIndent()
 
     val choice = """
@@ -65,7 +66,7 @@ object Samples {
     /** Section A of a textbook unit, using every block type. */
     val theory = """
         { "format": "blocks", "blocks": [
-          { "type": "section", "label": "A", "title": "Happening now", "blocks": [
+          { "type": "section", "id": "$SECTION_A", "label": "A", "title": "Happening now", "blocks": [
             { "type": "text", "text": "Look at this situation:" },
             { "type": "situation",
               "aside": { "type": "image", "src": "images/u1-cycling.png", "alt": "A man cycling to work", "caption": "Tom on his way to work" },
@@ -85,6 +86,6 @@ object Samples {
             { "type": "words", "words": ["getting", "becoming", "changing"] },
             { "type": "table", "head": ["", "positive"], "rows": [["I", "I’m getting"]] },
             { "type": "tip", "blocks": [ { "type": "text", "text": "Use the present continuous for changes." } ] },
-            { "type": "seeAlso", "links": [ { "theory": "A" }, { "unit": "unit-3" } ] } ] } ] }
+            { "type": "seeAlso", "links": [ { "section": "$SECTION_A" }, { "unit": "$ID" } ] } ] } ] }
     """.trimIndent()
 }

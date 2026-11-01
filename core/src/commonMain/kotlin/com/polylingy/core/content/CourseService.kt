@@ -1,5 +1,7 @@
 package com.polylingy.core.content
 
+import com.polylingy.content.Block
+import com.polylingy.content.mapLinks
 import com.polylingy.content.withId
 import com.polylingy.core.ports.Clock
 import com.polylingy.core.ports.CourseRepository
@@ -66,11 +68,23 @@ class CourseService(private val courses: CourseRepository, private val clock: Cl
 fun Course.ids(): List<Uuid> =
     listOf(id) + units.map { it.id } + allTopics.flatMap { topic -> listOf(topic.id) + topic.exercises.map { it.id } }
 
+/**
+ * The same course under new ids of its own, its units, topics and exercises; links to units follow their new ids.
+ * Section ids stay: they only need to be unique within the course.
+ */
 fun Course.withFreshIds(): Course {
-    fun Topic.fresh() = copy(id = Uuid.random(), exercises = exercises.map { it.withId(Uuid.random()) })
+    val newUnitIds = units.associate { it.id to Uuid.random() }
+    val relink = { link: Block.Link -> link.copy(unit = link.unit?.let { newUnitIds[it] ?: it }) }
+    fun Topic.fresh() = copy(
+        id = Uuid.random(),
+        explanation = explanation?.mapLinks(relink),
+        exercises = exercises.map { it.withId(Uuid.random()).mapLinks(relink) },
+    )
     return copy(
         id = Uuid.random(),
-        units = units.map { unit -> unit.copy(id = Uuid.random(), topics = unit.topics.map { it.fresh() }) },
+        units = units.map { unit ->
+            unit.copy(id = newUnitIds.getValue(unit.id), theory = unit.theory?.mapLinks(relink), topics = unit.topics.map { it.fresh() })
+        },
         topics = topics.map { it.fresh() },
     )
 }
