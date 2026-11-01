@@ -75,8 +75,12 @@ fun AppHarness.menu(item: String, index: Int = 0) {
  * Saves the whole scene — dialogs and menus included — as a PNG under app/build/screenshots,
  * so a person (or Claude) can look at the layout.
  */
-fun AppHarness.screenshot(name: String) {
+fun AppHarness.screenshot(name: String) = test.screenshot(name)
+
+/** Same for any Compose UI test. */
+fun ComposeUiTest.screenshot(name: String) {
     val dir = System.getProperty("polylingy.screenshots") ?: return
+    val test = this
     test.waitForIdle()
     val roots = test.onAllNodes(isRoot()).fetchSemanticsNodes().indices.map { test.onAllNodes(isRoot())[it] }
     val images = roots.map { it.captureToImage().toAwtImage() }

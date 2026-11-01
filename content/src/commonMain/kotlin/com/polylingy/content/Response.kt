@@ -30,3 +30,24 @@ sealed interface Response {
 /** The result of checking one item. */
 @Serializable
 enum class ItemResult { CORRECT, TYPO, WRONG }
+
+/** The result of one item together with the right answer to show next to it (for a typo, the variant it was close to). */
+data class ItemCheck(val result: ItemResult, val rightAnswer: String)
+
+/** What the learner has entered before touching anything: empty blanks, nothing picked, matched or placed. */
+fun Exercise.emptyResponse(): Response = when (this) {
+    is Exercise.Gaps, is Exercise.Pictures, is Exercise.Table -> Response.Blanks(List(itemCount) { "" })
+    is Exercise.Choice -> Response.Choice(List(items.size) { null })
+    is Exercise.Match -> Response.Match(List(pairs.size) { null })
+    is Exercise.Order -> Response.Order(List(items.size) { emptyList() })
+    is Exercise.Unknown -> throw IllegalArgumentException("an exercise of unknown type \"$type\" can't be answered")
+}
+
+/** All blanks of a gaps, pictures or table exercise in reading order; the `values` of [Response.Blanks] follow it. */
+val Exercise.blanks: List<InlineNode.Blank>
+    get() = when (this) {
+        is Exercise.Gaps -> items.flatMap { it.text.blanks }
+        is Exercise.Pictures -> items.flatMap { it.text.blanks }
+        is Exercise.Table -> rows.flatten().flatMap { it.blanks }
+        is Exercise.Choice, is Exercise.Match, is Exercise.Order, is Exercise.Unknown -> emptyList()
+    }
