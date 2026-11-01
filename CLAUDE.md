@@ -96,5 +96,7 @@ Do not commit directly to `master`.
 | File | When to read |
 |------|-------------|
 | `docs/architecture.md` | Architecture: modules, documents vs journal, replay, behaviour decisions, known debts, sync concept, open questions |
+| `docs/learning-model.md` | Target learning model (draft): units, rounds, grades, course policies, checking and typos |
+| `docs/content-format.md` | Target course format (draft): theory blocks, exercise types, explanations, import, validation, `formatVersion` |
 | `docs/testing.md` | How changes are verified: test levels, UI tests, screenshots, manual checks |
 | `.claude/docs/architectural_patterns.md` | Code conventions: ports, DI, ViewModels, testing helpers |
