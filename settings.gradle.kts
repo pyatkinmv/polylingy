@@ -20,6 +20,7 @@ dependencyResolutionManagement {
 
 rootProject.name = "polylingy"
 
+include(":content")
 include(":core")
 include(":client")
 include(":app")
