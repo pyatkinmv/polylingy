@@ -52,8 +52,11 @@ import com.polylingy.core.study.TopicProgress
 import kotlinx.datetime.LocalDate
 import kotlin.uuid.Uuid
 
-/** The course's own colour, or the app's green. */
-fun Course.accent(): Color = ContentColors.forAccent(theme?.accent).accent
+/**
+ * The course's own colour (`theme.accent`), or the app's green. It marks the course — its initials on the course list —
+ * and nothing else: buttons, links and the theory stay in the app's green, so a red or brown course doesn't read as a warning.
+ */
+fun Course.markColour(): Color = ContentColors.forAccent(theme?.accent).accent
 
 /** Follows a [Start] from a course, unit or topic screen. */
 fun Navigator.follow(courseId: Uuid, start: Start) {
@@ -73,7 +76,7 @@ fun CourseScreen(viewModel: CourseViewModel, clock: Clock, go: Navigator) {
     val p = progress ?: return
     val course = p.course
     val today = clock.now().localDate
-    val accent = course.accent()
+    val accent = Look.Green
 
     Column(Modifier.fillMaxSize()) {
         TopBar(listOf("Courses" to go::courses, course.name to null)) {
@@ -121,7 +124,7 @@ fun UnitScreen(viewModel: CourseViewModel, unitId: Uuid, clock: Clock, go: Navig
 
     Column(Modifier.fillMaxSize()) {
         TopBar(listOf("Courses" to go::courses, course.name to { go.backToCourse(course.id) }, "Unit ${index + 1}" to null)) {
-            if (unit.unit.theory != null) TheoryButton(course.accent()) { go.theory(course.id, unitId) }
+            if (unit.unit.theory != null) TheoryButton(Look.Green) { go.theory(course.id, unitId) }
         }
         Page(Modifier.verticalScroll(rememberScrollState())) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -130,7 +133,7 @@ fun UnitScreen(viewModel: CourseViewModel, unitId: Uuid, clock: Clock, go: Navig
                 unit.unit.subtitle?.let { InlineText(it, style = MaterialTheme.typography.bodyLarge.copy(color = Look.Muted)) }
             }
             // The daily limit belongs to the course: the unit's new topics are offered only as far as it allows today.
-            TodayHero(ProgressCounts.of(unit.topics, p.newToday), next, today, course.accent(), course.settings.newPerDay) {
+            TodayHero(ProgressCounts.of(unit.topics, p.newToday), next, today, Look.Green, course.settings.newPerDay) {
                 go.follow(course.id, viewModel.continueStudy())
             }
             Text("Topics", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 6.dp))
@@ -158,7 +161,7 @@ fun TopicScreen(viewModel: CourseViewModel, topicId: Uuid, clock: Clock, go: Nav
             if (unit != null) add("Unit ${unitIndex + 1}" to { go.backToUnit(course.id, unit.id) })
             add(topic.topic.title to null)
         }
-        TopBar(crumbs) { if (unit?.theory != null) TheoryButton(course.accent()) { go.theory(course.id, unit.id) } }
+        TopBar(crumbs) { if (unit?.theory != null) TheoryButton(Look.Green) { go.theory(course.id, unit.id) } }
         Page {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Kicker("Topic")

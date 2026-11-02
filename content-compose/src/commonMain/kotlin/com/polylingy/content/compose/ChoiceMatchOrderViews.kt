@@ -3,6 +3,7 @@ package com.polylingy.content.compose
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,6 +25,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
@@ -89,24 +94,32 @@ internal fun ChoiceView(exercise: Exercise.Choice, response: Response.Choice, ch
     }
 }
 
-private fun letter(i: Int) = ('A' + i).toString()
+/** The colours of matched pairs: a pair shows the same number on the same colour on both sides. */
+private val PairColours = listOf(Color(0xFF1E5A7A), Color(0xFF2F7A4F), Color(0xFF9A4B12), Color(0xFF7A4E8C), Color(0xFF8C7210), Color(0xFF3F6F8F))
+
+/** A pair's mark: its left side's number, on that number's colour. */
+private data class PairMark(val number: Int) {
+    val label: String get() = "$number"
+    val colour: Color get() = PairColours[(number - 1) % PairColours.size]
+}
 
 @Composable
-private fun SideCard(side: Side, badge: String?, selected: Boolean, result: ItemResult?, enabled: Boolean, onClick: () -> Unit) {
+private fun SideCard(side: Side, badge: PairMark?, selected: Boolean, result: ItemResult?, enabled: Boolean, onClick: () -> Unit) {
     val (fg, bg) = resultColors(result, colors)
+    val shape = RoundedCornerShape(10.dp)
     Row(
         Modifier.fillMaxWidth().heightIn(min = 48.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .background(bg, RoundedCornerShape(8.dp))
-            .border(if (selected) 2.dp else 1.dp, if (selected) colors.accent else colors.line, RoundedCornerShape(8.dp))
+            .clip(shape)
+            .background(bg, shape)
+            .border(if (selected) 1.5.dp else 1.dp, if (selected) BlankFocus else colors.line, shape)
             .semantics { this.selected = selected }
-            .clickable(enabled = enabled, onClick = onClick)
+            .clickable(remember { MutableInteractionSource() }, indication = null, enabled = enabled, onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Box(Modifier.size(24.dp).background(if (badge != null) colors.accent else Color.Transparent, CircleShape), contentAlignment = Alignment.Center) {
-            if (badge != null) Text(badge, color = colors.onAccent, style = MaterialTheme.typography.labelMedium)
+        if (badge != null) Box(Modifier.size(24.dp).background(badge.colour, CircleShape), contentAlignment = Alignment.Center) {
+            Text(badge.label, color = Color.White, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
         }
         when (side) {
             is Side.Text -> InlineText(side.text, style = MaterialTheme.typography.bodyLarge.copy(color = fg))
@@ -116,8 +129,8 @@ private fun SideCard(side: Side, badge: String?, selected: Boolean, result: Item
 }
 
 /**
- * Left sides in order, right sides (with the extra ones) shuffled. Click a left side, then its ending;
- * clicking a matched left side again undoes the pair.
+ * Left sides in order, right sides (with the extra ones) shuffled. Click a left side, then its match on the right:
+ * the pair gets one number on one colour on both sides. Clicking either side of a pair undoes it.
  */
 @Composable
 internal fun MatchView(exercise: Exercise.Match, response: Response.Match, checks: List<ItemCheck>?, onChange: (Response) -> Unit, seed: Int) {
@@ -127,12 +140,12 @@ internal fun MatchView(exercise: Exercise.Match, response: Response.Match, check
     val leftOfRight = response.matched.withIndex().filter { it.value != null }.associate { it.value!! to it.index }
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        if (checks == null) Text("Pick one on the left, then its ending on the right.", color = colors.muted, style = MaterialTheme.typography.bodySmall)
+        if (checks == null) Text("Click an item on the left, then its match on the right. Click a pair to undo it.", color = colors.muted, style = MaterialTheme.typography.bodySmall)
         Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 exercise.pairs.forEachIndexed { i, pair ->
                     val matched = response.matched[i]
-                    SideCard(pair[0], if (matched != null) letter(i) else null, selected == i, checks?.get(i)?.result, enabled = checks == null) {
+                    SideCard(pair[0], if (matched != null) PairMark(i + 1) else null, selected == i, checks?.get(i)?.result, enabled = checks == null) {
                         if (matched != null) onChange(Response.Match(response.matched.toMutableList().also { it[i] = null }))
                         else selected = if (selected == i) null else i
                     }
@@ -143,8 +156,11 @@ internal fun MatchView(exercise: Exercise.Match, response: Response.Match, check
             Column(Modifier.weight(1.3f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 for (r in order) {
                     val left = leftOfRight[r]
-                    SideCard(rights[r], left?.let(::letter), false, null, enabled = checks == null && selected != null) {
-                        val l = selected ?: return@SideCard
+                    SideCard(rights[r], left?.let { PairMark(it + 1) }, false, null, enabled = checks == null && (selected != null || left != null)) {
+                        val l = selected ?: run {
+                            if (left != null) onChange(Response.Match(response.matched.toMutableList().also { it[left] = null }))
+                            return@SideCard
+                        }
                         val matched = response.matched.map { if (it == r) null else it }.toMutableList().also { it[l] = r }
                         onChange(Response.Match(matched))
                         selected = null
@@ -155,26 +171,66 @@ internal fun MatchView(exercise: Exercise.Match, response: Response.Match, check
     }
 }
 
+/**
+ * A word as a small card. [placed] — it stands in the sentence; [result] colours it once checked; a [faded] word is the
+ * place a used word leaves in the bank: it keeps the bank still and is neither clickable nor read out.
+ */
 @Composable
-private fun Tile(word: String, placed: Boolean, result: ItemResult?, enabled: Boolean, onClick: () -> Unit) {
+private fun Tile(word: String, result: ItemResult?, enabled: Boolean, faded: Boolean = false, onClick: () -> Unit) {
     val (fg, bg) = when {
         result != null -> resultColors(result, colors)
-        placed -> colors.onAccent to colors.accent
+        faded -> colors.line to colors.panel
         else -> colors.ink to colors.card
     }
+    val shape = RoundedCornerShape(10.dp)
     Text(
         word,
-        Modifier.clip(RoundedCornerShape(8.dp)).background(bg, RoundedCornerShape(8.dp)).border(1.5.dp, if (placed) bg else colors.line, RoundedCornerShape(8.dp))
-            .clickable(enabled = enabled, onClick = onClick).padding(horizontal = 12.dp, vertical = 6.dp),
+        Modifier
+            .then(if (faded) Modifier.clearAndSetSemantics {} else Modifier)
+            .clip(shape).background(bg, shape)
+            .then(if (faded) Modifier.dashedBorder(colors.line, 10.dp) else Modifier.border(1.dp, if (result != null) bg else WordEdge, shape))
+            .clickable(enabled = enabled && !faded, onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 6.dp),
         color = fg,
+        fontWeight = FontWeight.Medium,
     )
 }
 
-/** Each sentence: the words placed so far (click one to take it back), its fixed ending, and the words left (click to place). */
+/** An empty place for the next word: dashed; the one the next click fills is white with an ink edge, like a typing blank. */
+@Composable
+private fun Slot(next: Boolean) {
+    val shape = RoundedCornerShape(10.dp)
+    Box(
+        Modifier
+            .widthIn(min = 60.dp).height(36.dp)
+            .background(if (next) colors.card else colors.panel.copy(alpha = 0.5f), shape)
+            .then(if (next) Modifier.border(1.5.dp, BlankFocus, shape) else Modifier.dashedBorder(SlotEdge, 10.dp)),
+    )
+}
+
+private val WordEdge = Color(0xFFD6CCB8)
+private val SlotEdge = Color(0xFFC9BFAC)
+
+/** A dashed rounded edge, for places that wait for something. */
+private fun Modifier.dashedBorder(colour: Color, radius: androidx.compose.ui.unit.Dp) = drawBehind {
+    val stroke = 1.5.dp.toPx()
+    drawRoundRect(
+        colour,
+        topLeft = androidx.compose.ui.geometry.Offset(stroke / 2, stroke / 2),
+        size = androidx.compose.ui.geometry.Size(size.width - stroke, size.height - stroke),
+        cornerRadius = androidx.compose.ui.geometry.CornerRadius(radius.toPx()),
+        style = androidx.compose.ui.graphics.drawscope.Stroke(stroke, pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(6f, 5f))),
+    )
+}
+
+/**
+ * Each sentence: one place per word — the words placed so far (click one to take it back), then empty places with
+ * the next one marked — its fixed ending, and the bank. Used words leave a faded place in the bank, so nothing jumps.
+ */
 @Composable
 internal fun OrderView(exercise: Exercise.Order, response: Response.Order, checks: List<ItemCheck>?, onChange: (Response) -> Unit, seed: Int) {
     val shuffled = remember(exercise.id, seed) { exercise.items.mapIndexed { i, item -> item.words.shuffled(Random(seed + i)) } }
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
         exercise.items.forEachIndexed { i, item ->
             val placed = response.sentences[i]
             val check = checks?.get(i)
@@ -185,17 +241,31 @@ internal fun OrderView(exercise: Exercise.Order, response: Response.Order, check
                         Modifier.fillMaxWidth().heightIn(min = 40.dp).semantics { contentDescription = "Sentence ${i + 1}" },
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalArrangement = Arrangement.spacedBy(6.dp),
+                        itemVerticalAlignment = Alignment.CenterVertically,
                     ) {
                         placed.forEachIndexed { w, word ->
-                            Tile(word, placed = true, result = check?.result, enabled = checks == null) { update(placed.toMutableList().also { it.removeAt(w) }) }
+                            Tile(word, result = check?.result, enabled = checks == null) { update(placed.toMutableList().also { it.removeAt(w) }) }
                         }
-                        if (item.ending.isNotEmpty()) Text(item.ending, Modifier.align(Alignment.CenterVertically), color = colors.muted)
+                        if (checks == null) repeat(item.words.size - placed.size) { k -> Slot(next = k == 0) }
+                        if (item.ending.isNotEmpty()) Text(item.ending, fontWeight = FontWeight.SemiBold)
+                        if (checks == null && placed.isNotEmpty()) Text(
+                            "Clear",
+                            Modifier.padding(start = 10.dp).clip(RoundedCornerShape(4.dp)).clickable { update(emptyList()) }.padding(horizontal = 4.dp),
+                            color = colors.accent,
+                            fontWeight = FontWeight.SemiBold,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
                     }
                     if (checks == null) {
-                        val left = shuffled[i].toMutableList().also { bank -> placed.forEach { bank.remove(it) } }
-                        FlowRow(Modifier.semantics { contentDescription = "Words ${i + 1}" }, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            for (word in left) Tile(word, placed = false, result = null, enabled = true) { update(placed + word) }
+                        val left = placed.groupingBy { it }.eachCount().toMutableMap()
+                        FlowRow(Modifier.semantics { contentDescription = "Words ${i + 1}" }, horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            for (word in shuffled[i]) {
+                                val used = (left[word] ?: 0) > 0
+                                if (used) left[word] = left.getValue(word) - 1
+                                Tile(word, result = null, enabled = true, faded = used) { update(placed + word) }
+                            }
                         }
+                        if (placed.isEmpty()) Text("Click the words in order. Click a placed word to put it back.", color = colors.muted, style = MaterialTheme.typography.bodySmall)
                     } else if (check != null && check.result != ItemResult.CORRECT) {
                         Text("→ ${check.rightAnswer}", color = colors.correct, fontWeight = FontWeight.SemiBold)
                     }

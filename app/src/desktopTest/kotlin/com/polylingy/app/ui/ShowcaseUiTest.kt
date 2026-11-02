@@ -22,6 +22,7 @@ import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performKeyInput
@@ -47,6 +48,7 @@ import com.polylingy.core.rules.Checking
 import org.jetbrains.skia.Image
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import kotlin.time.Clock
 
 /**
@@ -213,6 +215,14 @@ class ShowcaseUiTest {
     }
 
     @Test fun picturesOnANarrowWindow() = showcase(exercise<Exercise.Pictures>(), width = 480) { screenshot("ex-pictures-narrow") }
+
+    /** A long answer under a picture shrinks its field and scrolls inside; the full stop after it stays a full stop. */
+    @Test fun aLongAnswerUnderAPictureKeepsTheLine() = showcase(exercise<Exercise.Pictures>()) {
+        type(1, "is riding a very long bicycle to work again")
+        val stops = onAllNodesWithText(".").fetchSemanticsNodes()
+        assertTrue(stops.all { it.boundsInRoot.height < 40f && it.boundsInRoot.width > 0f }, "no full stop squeezed into a column")
+        screenshot("ex-pictures-long")
+    }
 
     private fun theory(width: Int, name: String) = runDesktopComposeUiTest(width = width, height = 1500) {
         setContent {

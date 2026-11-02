@@ -20,7 +20,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.polylingy.app.Navigator
-import com.polylingy.app.course.accent
 import com.polylingy.app.ui.Kicker
 import com.polylingy.app.ui.Look
 import com.polylingy.app.ui.Page
@@ -51,7 +50,7 @@ fun TheoryScreen(
     val unit = course.units.getOrNull(index) ?: return
     val theory = unit.theory ?: return
     val links = remember(course) { CourseLinks(course) }
-    val accent = course.accent()
+    val accent = Look.Green
 
     Column(Modifier.fillMaxSize()) {
         TopBar(
@@ -72,7 +71,7 @@ fun TheoryScreen(
                 Text(unit.title, style = MaterialTheme.typography.headlineMedium)
                 unit.subtitle?.let { InlineText(it, style = MaterialTheme.typography.bodyLarge.copy(color = Look.Muted)) }
             }
-            ContentTheme(ContentColors.forAccent(course.theme?.accent), images, links.names) {
+            ContentTheme(ContentColors.forAccent(null), images, links.names) {
                 ContentView(
                     theory,
                     Modifier.padding(top = 8.dp),
