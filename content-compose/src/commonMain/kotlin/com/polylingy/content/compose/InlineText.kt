@@ -1,6 +1,7 @@
 package com.polylingy.content.compose
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -46,7 +47,8 @@ private fun style(bold: Boolean, italic: Boolean) = SpanStyle(
 
 /**
  * A text with blanks: words flow and wrap like text, and each blank is drawn by [blank] in its place.
- * A word and a blank written without a space between them (`{{is}}.`) stay together.
+ * A word and a blank written without a space between them (`{{is}}.`) stay together; there the blank gives way,
+ * so a long answer shrinks its field instead of pushing the word into a column of letters.
  */
 @Composable
 fun InlineFlow(inline: Inline, modifier: Modifier = Modifier, blank: @Composable (InlineNode.Blank) -> Unit) {
@@ -61,7 +63,7 @@ fun InlineFlow(inline: Inline, modifier: Modifier = Modifier, blank: @Composable
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         for (piece in chunk) when (piece) {
                             is Piece.Words -> Text(piece.text)
-                            is Piece.Gap -> blank(piece.blank)
+                            is Piece.Gap -> Box(Modifier.weight(1f, fill = false)) { blank(piece.blank) }
                         }
                     }
                 }

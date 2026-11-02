@@ -34,7 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.polylingy.app.APP_VERSION
 import com.polylingy.app.CourseFiles
-import com.polylingy.app.course.accent
+import com.polylingy.app.course.markColour
 import com.polylingy.app.ui.ConfirmDialog
 import com.polylingy.app.ui.CourseDetailsDialog
 import com.polylingy.app.ui.CourseMark
@@ -136,7 +136,7 @@ fun CourseListScreen(viewModel: CourseListViewModel, files: CourseFiles, today: 
 private fun CourseTile(row: CourseRow, today: LocalDate, onOpen: () -> Unit, onEdit: () -> Unit, onExport: () -> Unit, onRemove: () -> Unit) {
     val course = row.course
     Tile(onClick = onOpen) {
-        CourseMark(course.name, course.accent())
+        CourseMark(course.name, course.markColour())
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
             Text(course.name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             course.description?.let {

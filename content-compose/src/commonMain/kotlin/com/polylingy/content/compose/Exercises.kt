@@ -15,6 +15,14 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusDirection
@@ -111,25 +119,35 @@ internal fun WordBank(words: List<String>) {
 }
 
 /**
- * A blank to type into. Tab and Shift+Tab move between blanks; Enter submits. Its width follows what is typed,
- * so it doesn't give away the length of the answer, up to [MAX_BLANK_LENGTH] characters: then it takes no more
- * and its line becomes a frame, so the learner sees why.
+ * A blank to type into: a white box with a thin edge, so it reads as a field. [placeholder] (e.g. the verb to use)
+ * shows in grey while it is empty. Typing only darkens the edge to ink ("quiet ink"): green is kept for right answers.
+ * Tab and Shift+Tab move between blanks; Enter submits. Its width follows what is typed, so it doesn't give away the
+ * length of the answer; it never gets wider than its place (it scrolls inside) and takes at most [MAX_BLANK_LENGTH]
+ * characters, when its edge turns amber so the learner sees why.
  */
 @Composable
-internal fun BlankField(value: String, onValueChange: (String) -> Unit, label: String, onSubmit: () -> Unit) {
+internal fun BlankField(value: String, onValueChange: (String) -> Unit, label: String, onSubmit: () -> Unit, placeholder: String? = null) {
     val focus = LocalFocusManager.current
+    var focused by remember { mutableStateOf(false) }
     val full = value.length >= MAX_BLANK_LENGTH
-    val line = if (full) colors.typo else colors.ink
+    val shape = RoundedCornerShape(8.dp)
+    val edge = when {
+        full -> BlankFull
+        focused -> BlankFocus
+        else -> BlankEdge
+    }
+    val shown = maxOf(value.length, placeholder?.length ?: 0, 6)
     BasicTextField(
         value = value,
         onValueChange = { onValueChange(it.replace("\n", "").take(MAX_BLANK_LENGTH)) },
         singleLine = true,
         textStyle = LocalTextStyle.current.copy(color = colors.ink),
-        cursorBrush = SolidColor(colors.accent),
+        cursorBrush = SolidColor(colors.ink),
         keyboardOptions = KeyboardOptions.Default,
         modifier = Modifier
-            .width((maxOf(5, minOf(value.length, MAX_BLANK_LENGTH) + 1) * 10).dp)
+            .width(((minOf(shown, MAX_BLANK_LENGTH) + 2) * 9.5).dp)
             .semantics { contentDescription = label }
+            .onFocusChanged { focused = it.isFocused }
             .onPreviewKeyEvent {
                 if (it.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
                 when (it.key) {
@@ -137,14 +155,27 @@ internal fun BlankField(value: String, onValueChange: (String) -> Unit, label: S
                     Key.Enter, Key.NumPadEnter -> { onSubmit(); true }
                     else -> false
                 }
+            },
+        decorationBox = { inner ->
+            Box(
+                Modifier
+                    .background(colors.card, shape)
+                    .border(if (focused || full) 1.5.dp else 1.dp, edge, shape)
+                    .padding(horizontal = 10.dp, vertical = 3.dp),
+                contentAlignment = Alignment.CenterStart,
+            ) {
+                if (value.isEmpty() && placeholder != null) Text(placeholder, color = BlankPlaceholder, maxLines = 1)
+                inner()
             }
-            .drawBehind {
-                if (full) drawRect(line, style = Stroke(1.5.dp.toPx()))
-                else drawLine(line, Offset(0f, size.height), Offset(size.width, size.height), 2.dp.toPx())
-            }
-            .padding(horizontal = 4.dp, vertical = 2.dp),
+        },
     )
 }
+
+/** The edges of a blank: resting, typing (ink), full (dark amber); and its placeholder — quiet, but clearly a field. */
+internal val BlankEdge = androidx.compose.ui.graphics.Color(0xFFD6CCB8)
+internal val BlankFocus = androidx.compose.ui.graphics.Color(0xFF4A453D)
+private val BlankFull = androidx.compose.ui.graphics.Color(0xFFB07A10)
+private val BlankPlaceholder = androidx.compose.ui.graphics.Color(0xFFB5AC9A)
 
 /** What a checked blank shows: what was given, coloured by its result, and the right answer unless it was right. */
 @Composable

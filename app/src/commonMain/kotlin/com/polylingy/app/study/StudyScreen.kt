@@ -31,7 +31,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.polylingy.app.Navigator
 import com.polylingy.app.course.TheoryButton
-import com.polylingy.app.course.accent
 import com.polylingy.app.ui.Look
 import com.polylingy.app.ui.Page
 import com.polylingy.app.ui.StubButton
@@ -71,7 +70,7 @@ fun StudyScreen(viewModel: StudyViewModel, images: ImageLoader, today: LocalDate
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
             )
-            if (course != null && unit?.theory != null) TheoryButton(course.accent()) { go.theory(course.id, unit.id, back = true) }
+            if (course != null && unit?.theory != null) TheoryButton(Look.Green) { go.theory(course.id, unit.id, back = true) }
         }
         when (val s = state) {
             is StudyState.Exercise -> ExerciseBody(s, course!!, links!!, images, today, viewModel, go)
@@ -94,7 +93,7 @@ private fun ExerciseBody(
     viewModel: StudyViewModel,
     go: Navigator,
 ) {
-    val accent = course.accent()
+    val accent = Look.Green
     Page(Modifier.verticalScroll(rememberScrollState())) {
         state.outcome?.let { outcome ->
             val checks = outcome.checks
@@ -109,7 +108,7 @@ private fun ExerciseBody(
             }
         }
         val onLink: (Block.Link) -> Unit = { link -> links.target(link)?.let { go.theory(course.id, it.unitId, it.section, back = true) } }
-        ContentTheme(ContentColors.forAccent(course.theme?.accent), images, links.names) {
+        ContentTheme(ContentColors.forAccent(null), images, links.names) {
             ExerciseView(
                 exercise = state.next.exercise,
                 response = state.response,

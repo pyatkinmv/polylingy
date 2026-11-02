@@ -9,13 +9,16 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.polylingy.content.Exercise
@@ -28,7 +31,10 @@ import com.polylingy.content.Response
 /** Index of each item's first blank in [Response.Blanks.values]. */
 private fun offsets(texts: List<Inline>): List<Int> = texts.runningFold(0) { acc, text -> acc + text.blanks.size }
 
-/** [text] with its blanks — fields to type into, or the checked answers — numbered from [offset]. */
+/**
+ * [text] with its blanks — fields to type into, or the checked answers — numbered from [offset]. [hint] shows
+ * inside the last empty field of the text (the verb to use, say), where it doesn't push the sentence apart.
+ */
 @Composable
 private fun BlankText(
     text: Inline,
@@ -37,12 +43,14 @@ private fun BlankText(
     checks: List<ItemCheck>?,
     onChange: (Response) -> Unit,
     onSubmit: () -> Unit,
+    hint: String? = null,
 ) {
     InlineFlow(text) { blank: InlineNode.Blank ->
         val index = offset + blank.index
         val given = response.values[index]
         if (checks == null) {
-            BlankField(given, { onChange(Response.Blanks(response.values.toMutableList().also { list -> list[index] = it })) }, "Blank ${index + 1}", onSubmit)
+            val placeholder = hint.takeIf { blank.index == text.blanks.lastIndex }
+            BlankField(given, { onChange(Response.Blanks(response.values.toMutableList().also { list -> list[index] = it })) }, "Blank ${index + 1}", onSubmit, placeholder)
         } else {
             CheckedAnswer(given, checks[index])
         }
@@ -62,10 +70,8 @@ internal fun GapsView(exercise: Exercise.Gaps, response: Response.Blanks, checks
         WordBank(exercise.wordBank)
         exercise.items.forEachIndexed { i, item ->
             Item(i + 1, item.note, showNote = checks != null) {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), itemVerticalAlignment = Alignment.CenterVertically) {
-                    BlankText(item.text, offsets[i], response, checks, onChange, onSubmit)
-                    item.hint?.let { Text("($it)", color = colors.muted, style = MaterialTheme.typography.bodySmall) }
-                }
+                BlankText(item.text, offsets[i], response, checks, onChange, onSubmit, hint = item.hint)
+                if (checks != null) item.hint?.let { Text("($it)", color = colors.muted, style = MaterialTheme.typography.bodySmall) }
             }
         }
     }
@@ -99,19 +105,23 @@ internal fun TableView(exercise: Exercise.Table, response: Response.Blanks, chec
     val cells = exercise.rows.flatten()
     val offsets = offsets(cells)
     val width = exercise.rows.maxOf { it.size }
-    Column(Modifier.fillMaxWidth().background(colors.card, RoundedCornerShape(10.dp)).border(1.dp, colors.line, RoundedCornerShape(10.dp))) {
+    // A clean grid: a shaded header in small capitals, a line between rows, a first column without blanks set apart.
+    val shape = RoundedCornerShape(12.dp)
+    Column(Modifier.fillMaxWidth().clip(shape).background(colors.card, shape).border(1.dp, colors.line, shape)) {
         if (exercise.head.isNotEmpty()) {
-            Row(Modifier.fillMaxWidth().padding(horizontal = 6.dp)) {
-                for (cell in exercise.head) Box(Modifier.weight(1f).padding(8.dp)) {
-                    InlineText(cell, style = MaterialTheme.typography.labelLarge.copy(color = colors.muted))
+            Row(Modifier.fillMaxWidth().background(colors.panel).padding(horizontal = 6.dp)) {
+                for (cell in exercise.head) Box(Modifier.weight(1f).padding(horizontal = 8.dp, vertical = 10.dp)) {
+                    Text(cell.plainText().uppercase(), style = MaterialTheme.typography.labelSmall, color = colors.muted, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
         exercise.rows.forEachIndexed { r, row ->
-            Row(Modifier.fillMaxWidth().padding(horizontal = 6.dp)) {
+            if (r > 0 || exercise.head.isNotEmpty()) Box(Modifier.fillMaxWidth().height(1.dp).background(colors.line))
+            Row(Modifier.fillMaxWidth().padding(horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                 row.forEachIndexed { c, cell ->
-                    Box(Modifier.weight(1f).padding(8.dp)) {
-                        BlankText(cell, offsets[r * width + c], response, checks, onChange, onSubmit)
+                    Box(Modifier.weight(1f).padding(horizontal = 8.dp, vertical = 10.dp)) {
+                        if (c == 0 && cell.blanks.isEmpty()) InlineText(cell, style = LocalTextStyle.current.copy(color = colors.muted, fontWeight = FontWeight.SemiBold))
+                        else BlankText(cell, offsets[r * width + c], response, checks, onChange, onSubmit)
                     }
                 }
             }
