@@ -28,9 +28,9 @@ class CourseListUiTest {
     @Test fun firstLaunchShowsTheSampleCourse() = appTest(seed = { it.seedSample() }) {
         text("English Grammar Sampler").assertIsDisplayed()
         text("A short sample course: one unit with a page of theory and one exercise of every kind.").assertIsDisplayed()
-        text("6").assertIsDisplayed()
-        text("new").assertIsDisplayed()
-        text("0 / 6 studied").assertIsDisplayed()
+        text("6 new").assertIsDisplayed()
+        text("0 of 6 learned").assertIsDisplayed()
+        text("0%").assertIsDisplayed()
         screenshot("course-list")
     }
 
@@ -48,14 +48,25 @@ class CourseListUiTest {
         val older = text("Older").fetchSemanticsNode().boundsInRoot.top
         val newer = text("Newer").fetchSemanticsNode().boundsInRoot.top
         assertTrue(older < newer, "Older course should be above the newer one")
-        assertEquals(2, test.onAllNodesWithText("0 / 1 studied").fetchSemanticsNodes().size)
+        assertEquals(2, test.onAllNodesWithText("0 of 1 learned").fetchSemanticsNodes().size)
     }
 
-    @Test fun hoveringACourseShowsTheWholePicture() = appTest(seed = { it.seedSample() }) {
+    @Test fun hoveringACourseOpensNoPopup() = appTest(seed = { it.seedSample() }) {
         text("English Grammar Sampler").performMouseInput { moveTo(center) }
         test.waitForIdle()
-        text("New").assertIsDisplayed()
+        assertEquals(1, test.onAllNodes(androidx.compose.ui.test.isRoot()).fetchSemanticsNodes().size, "only the window, no popup")
         screenshot("course-list-hover")
+    }
+
+    @Test fun cardsShowWhatIsLeftForTodayUnderTheDailyLimit() = appTest(seed = {
+        it.seedCourse(flat("No limit"))
+        it.seedCourse("""{ "formatVersion": 1, "name": "German A1", "settings": { "newPerDay": 2 },
+            "topics": [ ${(1..5).joinToString(",") { n -> """{ "title": "T$n", "exercises": [ { "type": "gaps", "items": [ { "text": "{{a$n}}" } ] } ] }""" }} ] }""")
+    }) {
+        text("1 new").assertIsDisplayed()
+        text("2 new for today").assertIsDisplayed()
+        text("0 of 5 learned").assertIsDisplayed()
+        screenshot("course-list-limit")
     }
 
     @Test fun editNameAndDescription() = appTest(seed = { it.seedCourse(flat("Old name")) }) {
@@ -125,7 +136,7 @@ class CourseListUiTest {
         text("\"Future\" was made with a newer Polylingy").assertIsDisplayed()
         screenshot("import-newer-version")
         click("OK")
-        text("Newer version").assertIsDisplayed()
+        text("Made in a newer Polylingy · read-only").assertIsDisplayed()
 
         openMenu()
         text("Export").assertIsNotEnabled()

@@ -157,7 +157,7 @@ private fun DoneBody(state: StudyState.Done, inUnit: Boolean, today: LocalDate, 
                 textAlign = TextAlign.Center,
             )
             Text(
-                "${counts.studied} of ${counts.total} studied · ${counts.learnedForGood} learned for good",
+                "${counts.learned} of ${counts.total} learned · ${counts.learnedForGood} for good",
                 Modifier.background(Look.Card, RoundedCornerShape(10.dp)).border(1.dp, Look.Line, RoundedCornerShape(10.dp))
                     .padding(horizontal = 18.dp, vertical = 12.dp),
                 color = Look.Muted,

@@ -69,21 +69,88 @@ class StudyServiceTest {
         assertEquals("1.2", study.next(course.id)!!.topic.title)
     }
 
-    @Test fun countsSplitTopicsByStateAndKnowTheNextReview() {
+    /** A flat course of [n] one-blank topics; [extra] goes into the course object, e.g. settings. */
+    private fun flat(n: Int, extra: String = "") = CourseJson.read(
+        """{ "formatVersion": 1, "name": "Flat" $extra,
+            "topics": [ ${(1..n).joinToString(",") { """{ "title": "T$it", "exercises": [ ${gaps("a$it")} ] }""" }} ] }""",
+        clock.now().instant,
+    ).course
+
+    private fun StudyService.answerTopic(course: Course, topic: Int, right: Boolean) {
+        val t = course.topics[topic]
+        val exercise = t.exercises.single()
+        answer(course.id, t.id, exercise.id, Response.Blanks(listOf(if (right) blankOf(exercise) else "nope")))
+    }
+
+    @Test fun countsSplitTopicsIntoGroupsAndKnowTheNextReview() {
         val (study, course) = service(twoUnits())
-        assertEquals(ProgressCounts(0, 0, 0, 0, 3, 0, null), study.progress(course.id)!!.counts)
+        assertEquals(ProgressCounts(0, 0, 0, 0, 3, null, null), study.progress(course.id)!!.counts)
         repeat(3) { study.answerRight(course, study.next(course.id)!!) }
         study.answerWrong(course, study.next(course.id)!!)
         val progress = study.progress(course.id)!!
-        assertEquals(ProgressCounts(0, 1, 0, 1, 1, 1, LocalDate(2026, 11, 3)), progress.counts)
-        assertEquals(1, progress.counts.today)
+        assertEquals(ProgressCounts(0, 1, 0, 1, 1, null, LocalDate(2026, 11, 3)), progress.counts, "1.1 learned, 1.2 learning, 2.1 new")
+        assertEquals(1, progress.counts.learned)
         assertEquals(3, progress.counts.total)
-        assertEquals(ProgressCounts(0, 0, 0, 0, 1, 0, null), progress.units[1].counts)
+        assertEquals(1, progress.counts.newNow, "no limit: every new topic is on offer")
+        assertEquals(ProgressCounts(0, 0, 0, 0, 1, null, null), progress.units[1].counts)
 
         clock.now = at(LocalDate(2026, 11, 3))
         val tuesday = study.progress(course.id)!!
-        assertEquals(1, tuesday.counts.due, "passed yesterday, due today")
-        assertEquals(1, tuesday.counts.studied, "a due topic still counts as studied")
+        assertEquals(1, tuesday.counts.toReview, "passed yesterday, due today")
+        assertEquals(1, tuesday.counts.learned, "a topic to review still counts as learned")
+    }
+
+    @Test fun aMistakeInALearnedTopicKeepsItLearnedAndToReview() {
+        val (study, course) = service(flat(3))
+        for (topic in 0..2) repeat(3) { study.answerTopic(course, topic, right = true) }
+        assertEquals(ProgressCounts(0, 3, 0, 0, 0, null, LocalDate(2026, 11, 3)), study.progress(course.id)!!.counts, "Monday: all learned")
+
+        clock.now = at(LocalDate(2026, 11, 3))
+        assertEquals(3, study.progress(course.id)!!.counts.toReview, "Tuesday: all due")
+        for (topic in 0..2) study.answerTopic(course, topic, right = false)
+        val wrong = study.progress(course.id)!!
+        assertEquals(ProgressCounts(0, 0, 3, 0, 0, null, null), wrong.counts, "a review round under way is still to review")
+        assertEquals(listOf(TopicGroup.TO_REVIEW), wrong.topics.map { it.group }.distinct())
+        assertEquals(3, wrong.counts.learned, "a mistake doesn't unlearn")
+
+        for (topic in 0..2) study.answerTopic(course, topic, right = true)
+        assertEquals(ProgressCounts(0, 3, 0, 0, 0, null, LocalDate(2026, 11, 4)), study.progress(course.id)!!.counts, "rounds done; back tomorrow")
+    }
+
+    @Test fun learnedForGoodIsItsOwnGroup() {
+        val (study, course) = service(flat(2, """, "rules": { "preset": "quick" }"""))
+        study.answerTopic(course, 0, right = true)
+        val counts = study.progress(course.id)!!.counts
+        assertEquals(1 to 1, counts.learnedForGood to counts.new)
+        assertEquals(1, counts.learned)
+    }
+
+    @Test fun theDailyLimitCountsNewTopicsBegunToday() {
+        val (study, course) = service(flat(5, """, "settings": { "newPerDay": 2 }"""))
+        assertEquals(2, study.progress(course.id)!!.counts.newToday)
+        study.answerTopic(course, 0, right = true)
+        assertEquals(1, study.progress(course.id)!!.counts.newToday, "one begun, still learning")
+        study.answerTopic(course, 1, right = false)
+        val limitReached = study.progress(course.id)!!.counts
+        assertEquals(0, limitReached.newToday)
+        assertEquals(2, limitReached.learning)
+        assertFalse(limitReached.done, "two first rounds to finish")
+
+        val offered = (1..10).mapNotNull { study.next(course.id) }.map { it.topic.title }.toSet()
+        assertTrue(offered.all { it in setOf("T1", "T2") }, "only the topics begun today, no third new one: $offered")
+
+        clock.now = at(LocalDate(2026, 11, 3))
+        assertEquals(2, study.progress(course.id)!!.counts.newToday, "a new day, a new limit")
+    }
+
+    @Test fun withTheLimitTakenAndNothingToReviewTheDayIsDone() {
+        val (study, course) = service(flat(3, """, "settings": { "newPerDay": 1 }"""))
+        repeat(3) { study.answerTopic(course, 0, right = true) }
+        val counts = study.progress(course.id)!!.counts
+        assertEquals(2, counts.new)
+        assertEquals(0, counts.newToday)
+        assertTrue(counts.done)
+        assertNull(study.next(course.id), "new topics wait for tomorrow")
     }
 
     @Test fun outcomeTellsTheStatusBeforeAndAfter() {

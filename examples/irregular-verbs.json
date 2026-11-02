@@ -5,6 +5,9 @@
   "theme": {
     "accent": "#9A4B12"
   },
+  "settings": {
+    "newPerDay": 10
+  },
   "rules": {
     "picker": {
       "type": "random"

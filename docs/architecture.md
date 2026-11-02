@@ -199,8 +199,8 @@ flowchart LR
 - **Раунд** — путь топика от первого ответа до освоения. Повторение — новый раунд в фазе `REVIEW`.
 - **Статусы:** `New`, `InProgress` (раунд идёт), `Due` (пора повторить), `Passed(due)` (отдыхает до даты),
   `Learned` (выучен навсегда, сам не вернётся). На экране: New · Learning · To review today · Back on … · Learned for good.
-- **Счётчики** `ProgressCounts` для карточек: «на сегодня» = повторения + начатые раунды (новые не считаются),
-  «studied» = пройдено хотя бы раз.
+- **Группы для экранов** (`TopicGroup`): new, learning, to review, learned, learned for good — из памяти и раунда;
+  `ProgressCounts` считает их и новые, доступные сегодня по дневному лимиту курса (`settings.newPerDay`, нет поля — нет лимита).
 
 ```kotlin
 fun <M, G> replay(course: Course, events: List<EventEnvelope>, rules: CourseRules<M, G>): Map<Uuid, TopicState<M, G>>

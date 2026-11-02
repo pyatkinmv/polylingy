@@ -2,6 +2,7 @@ package com.polylingy.app.ui
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -39,16 +40,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Popup
 import com.polylingy.core.learning.TopicStatus
 import com.polylingy.core.study.ProgressCounts
+import com.polylingy.core.study.TopicGroup
+import com.polylingy.core.study.TopicProgress
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.Month
@@ -69,12 +72,18 @@ object Look {
     val Warn = Color(0xFF7A5200)
     val WarnBg = Color(0xFFF6E9C8)
 
-    /** Topic states: the same colours in every course, so green always means learned. */
-    val LearnedForGood = Color(0xFF1F5A39)
-    val Resting = Color(0xFF7DB592)
-    val Today = Color(0xFFD98A2B)
-    val Learning = Color(0xFFE9C46A)
-    val New = Color(0xFFC9BFAC)
+    /** Quiet lines and marks: separators, the card arrow, stub buttons. */
+    val Rule = Color(0xFFC9BFAC)
+
+    /**
+     * Topic groups, one palette from blue to green along a topic's path, the same in every course:
+     * new → learning → to review → learned → learned for good.
+     */
+    val New = Color(0xFFB9D5EC)
+    val Learning = Color(0xFF5B9BC8)
+    val ToReview = Color(0xFFC3D35A)
+    val Learned = Color(0xFF6DB383)
+    val LearnedForGood = Color(0xFF1F6B3F)
 }
 
 private val Scheme = lightColorScheme(
@@ -126,7 +135,7 @@ fun TopBar(crumbs: List<Pair<String, (() -> Unit)?>>, actions: @Composable RowSc
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             crumbs.forEachIndexed { i, (text, onClick) ->
-                if (i > 0) Text("/", color = Look.New)
+                if (i > 0) Text("/", color = Look.Rule)
                 val last = i == crumbs.lastIndex
                 Text(
                     text,
@@ -146,14 +155,14 @@ fun TopBar(crumbs: List<Pair<String, (() -> Unit)?>>, actions: @Composable RowSc
 
 /**
  * A card that answers the mouse: it lifts a little, gets a shadow and a darker edge; the arrow on the right moves.
- * [onClick] makes the whole card clickable; [hoverContent] shows a popup next to it while hovered.
+ * [onClick] makes the whole card clickable. The hover is caught by the card's place, which never moves — were it caught
+ * by the lifted card, a pointer at its edge would lose it, the card would drop, catch it again, and so on.
  */
 @Composable
 fun Tile(
     onClick: (() -> Unit)?,
     modifier: Modifier = Modifier,
     arrow: Boolean = onClick != null,
-    hoverContent: (@Composable () -> Unit)? = null,
     content: @Composable RowScope.() -> Unit,
 ) {
     val interaction = remember { MutableInteractionSource() }
@@ -162,7 +171,12 @@ fun Tile(
     val shadow by animateDpAsState(if (hovered && onClick != null) 8.dp else 0.dp)
     val edge by animateColorAsState(if (hovered && onClick != null) Look.LineHover else Look.Line)
     val shape = RoundedCornerShape(12.dp)
-    Box(modifier.fillMaxWidth()) {
+    Box(
+        modifier
+            .fillMaxWidth()
+            .hoverable(interaction)
+            .then(if (onClick != null) Modifier.clickable(interaction, indication = null, role = Role.Button, onClick = onClick) else Modifier),
+    ) {
         Row(
             Modifier
                 .fillMaxWidth()
@@ -171,8 +185,6 @@ fun Tile(
                 .background(Look.Card, shape)
                 .border(1.dp, edge, shape)
                 .clip(shape)
-                .hoverable(interaction)
-                .then(if (onClick != null) Modifier.clickable(interaction, indication = null, role = Role.Button, onClick = onClick) else Modifier)
                 .padding(horizontal = 18.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -180,11 +192,8 @@ fun Tile(
             content()
             if (arrow) {
                 val arrowShift by animateDpAsState(if (hovered) 3.dp else 0.dp)
-                Text("›", Modifier.offset(x = arrowShift), color = if (hovered) MaterialTheme.colorScheme.primary else Look.New, fontSize = 22.sp)
+                Text("›", Modifier.offset(x = arrowShift), color = if (hovered) MaterialTheme.colorScheme.primary else Look.Rule, fontSize = 22.sp)
             }
-        }
-        if (hovered && hoverContent != null) {
-            Popup(alignment = Alignment.TopEnd, offset = IntOffset(-40, 120)) { hoverContent() }
         }
     }
 }
@@ -219,7 +228,7 @@ fun StubButton(text: String) {
     OutlinedButton(
         onClick = {},
         shape = RoundedCornerShape(8.dp),
-        border = androidx.compose.foundation.BorderStroke(1.5.dp, Look.New),
+        border = androidx.compose.foundation.BorderStroke(1.5.dp, Look.Rule),
         colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(contentColor = Look.Faint),
     ) { Text(text) }
 }
@@ -227,73 +236,88 @@ fun StubButton(text: String) {
 @Composable
 fun Kicker(text: String) = Text(text.uppercase(), style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.8.sp), color = Look.Muted)
 
-/** Variant O1: on the right of a course or unit card, what waits today in big type and how far along in small. */
+/**
+ * What there is to do now, the first line of a course or unit card (variant U4): "● 3 to review · ● 2 learning ·
+ * ● 8 new for today" — "for today" only when the course has a daily limit — or "✓ Done for today".
+ */
 @Composable
-fun ProgressNumbers(counts: ProgressCounts, today: LocalDate) {
-    Column(Modifier.widthIn(min = 100.dp), horizontalAlignment = Alignment.End) {
-        when {
-            counts.today > 0 -> {
-                Text("${counts.today}", color = Look.Today, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
-                Text("to do today", color = Look.Faint, fontSize = 12.sp)
-            }
-            counts.new > 0 -> {
-                Text("${counts.new}", color = if (counts.studied == 0) Look.Faint else Look.Ink, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
-                Text(if (counts.studied == 0) "new" else "new to learn", color = Look.Faint, fontSize = 12.sp)
-            }
-            else -> {
-                Text("✓ Done for today", color = Look.Green, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                Text(
-                    counts.nextReview?.let { "next review ${shortDay(it, today)}" } ?: "learned for good",
-                    color = Look.Faint,
-                    fontSize = 12.sp,
-                )
-            }
-        }
-        Text("${counts.studied} / ${counts.total} studied", color = Look.Faint, fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp))
+fun WorkLine(counts: ProgressCounts, fontSize: androidx.compose.ui.unit.TextUnit = 14.sp) {
+    if (counts.done) {
+        val text = if (counts.total > 0 && counts.learnedForGood == counts.total) "✓ All learned for good" else "✓ Done for today"
+        Text(text, color = Look.LearnedForGood, fontWeight = FontWeight.SemiBold, fontSize = fontSize)
+        return
     }
-}
-
-/** The whole picture of a course or unit, shown while its card is hovered: a bar and the count of each state. */
-@Composable
-fun ProgressDetails(title: String, counts: ProgressCounts) {
-    val rows = listOf(
-        Triple(Look.LearnedForGood, counts.learnedForGood, "Learned for good"),
-        Triple(Look.Resting, counts.resting, "Passed, coming back later"),
-        Triple(Look.Today, counts.due, "To review today"),
-        Triple(Look.Learning, counts.learning, "Learning"),
-        Triple(Look.New, counts.new, "New"),
-    ).filter { it.second > 0 }
-    Column(
-        Modifier.width(270.dp).shadow(12.dp, RoundedCornerShape(10.dp)).background(Look.Card, RoundedCornerShape(10.dp))
-            .border(1.dp, Look.Line, RoundedCornerShape(10.dp)).padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Text(title, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Row(Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)).background(Color(0xFFEEE8DB))) {
-            for ((colour, n, _) in rows) if (colour != Look.New) Box(Modifier.weight(n.toFloat()).height(6.dp).background(colour))
-            if (counts.new > 0) Spacer(Modifier.weight(counts.new.toFloat()))
-        }
-        for ((colour, n, label) in rows) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Box(Modifier.size(9.dp).background(colour, RoundedCornerShape(2.dp)))
-            Text(label, Modifier.weight(1f), fontSize = 13.sp)
-            Text("$n", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+    val parts = listOf(
+        Triple(counts.toReview, "to review", Look.ToReview),
+        Triple(counts.learning, "learning", Look.Learning),
+        Triple(counts.newNow, if (counts.newToday != null) "new for today" else "new", Look.New),
+    ).filter { it.first > 0 }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        parts.forEachIndexed { i, (n, word, colour) ->
+            if (i > 0) Text(" · ", color = Look.Faint, fontSize = fontSize)
+            Box(Modifier.padding(end = 6.dp).offset(y = 1.dp).size(8.dp).background(colour, CircleShape))
+            Text("$n $word", fontSize = fontSize, maxLines = 1)
         }
     }
 }
 
-/** A topic's state on its card: a dot of the state's colour and a few words. */
+/** "56 of 400 learned": topics passed at least once, of all. */
+fun learnedLine(counts: ProgressCounts) = "${counts.learned} of ${counts.total} learned"
+
+/** The share learned as a ring, in the group colours, with the percentage inside. */
 @Composable
-fun TopicState(status: TopicStatus, today: LocalDate) {
-    val (colour, text) = when (status) {
-        TopicStatus.New -> Look.New to "New"
-        TopicStatus.InProgress -> Look.Learning to "Learning"
-        TopicStatus.Due -> Look.Today to "To review today"
-        is TopicStatus.Passed -> Look.Resting to "Back ${shortDay(status.due, today)}"
-        TopicStatus.Learned -> Look.LearnedForGood to "Learned for good"
+fun ProgressRing(counts: ProgressCounts, size: Dp = 54.dp) {
+    val total = counts.total.coerceAtLeast(1)
+    val parts = listOf(
+        counts.learnedForGood to Look.LearnedForGood,
+        counts.resting to Look.Learned,
+        counts.toReview to Look.ToReview,
+        counts.learning to Look.Learning,
+    )
+    Box(Modifier.size(size), contentAlignment = Alignment.Center) {
+        Canvas(Modifier.size(size)) {
+            val stroke = this.size.width * 0.11f
+            val inset = stroke / 2
+            val arc = androidx.compose.ui.geometry.Size(this.size.width - stroke, this.size.height - stroke)
+            val topLeft = androidx.compose.ui.geometry.Offset(inset, inset)
+            drawArc(Look.New, 0f, 360f, false, topLeft, arc, style = Stroke(stroke))
+            var start = -90f
+            for ((n, colour) in parts) {
+                if (n == 0) continue
+                val sweep = 360f * n / total
+                drawArc(colour, start, sweep, false, topLeft, arc, style = Stroke(stroke))
+                start += sweep
+            }
+        }
+        Text("${100 * counts.learned / total}%", color = Look.Muted, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+/** The right side of a course or unit card: what to do now, how much is learned, and the ring. */
+@Composable
+fun CardProgress(counts: ProgressCounts) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            WorkLine(counts)
+            Text(learnedLine(counts), color = Look.Faint, fontSize = 12.sp)
+        }
+        ProgressRing(counts)
+    }
+}
+
+/** A topic's group on its card: a dot of the group's colour and a few words. */
+@Composable
+fun TopicState(topic: TopicProgress, today: LocalDate) {
+    val status = topic.status
+    val (colour, text) = when (topic.group) {
+        TopicGroup.NEW -> Look.New to "New"
+        TopicGroup.LEARNING -> Look.Learning to "Learning"
+        TopicGroup.TO_REVIEW -> Look.ToReview to "To review"
+        TopicGroup.LEARNED -> Look.Learned to (if (status is TopicStatus.Passed) "Back ${shortDay(status.due, today)}" else "Learned")
+        TopicGroup.LEARNED_FOR_GOOD -> Look.LearnedForGood to "Learned for good"
     }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-        val dot = Modifier.size(9.dp)
-        Box(if (status == TopicStatus.New) dot.border(2.dp, colour, CircleShape) else dot.background(colour, CircleShape))
+        Box(Modifier.size(9.dp).background(colour, CircleShape))
         Text(text, color = Look.Muted, fontSize = 13.sp)
     }
 }

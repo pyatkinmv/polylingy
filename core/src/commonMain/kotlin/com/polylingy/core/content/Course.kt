@@ -71,4 +71,6 @@ data class Theme(val accent: String? = null)
 data class CourseSettings(
     /** Whether one typo per item still counts (docs/learning-model.md, section 3). */
     val allowTypos: Boolean = true,
+    /** How many new topics may be begun in a day; null — no limit (docs/learning-model.md, "daily limit"). */
+    val newPerDay: Int? = null,
 )

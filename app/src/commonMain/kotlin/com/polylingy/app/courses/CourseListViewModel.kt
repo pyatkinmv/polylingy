@@ -85,6 +85,6 @@ class CourseListViewModel(
     }
 
     private fun load() = repository.all().sortedBy { it.createdAt }.map { course ->
-        CourseRow(course, study.progress(course.id)?.counts ?: ProgressCounts(0, 0, 0, 0, 0, 0, null))
+        CourseRow(course, study.progress(course.id)?.counts ?: ProgressCounts(0, 0, 0, 0, 0, null, null))
     }
 }

@@ -32,13 +32,15 @@ import com.polylingy.app.ui.Hero
 import com.polylingy.app.ui.Kicker
 import com.polylingy.app.ui.Look
 import com.polylingy.app.ui.Page
-import com.polylingy.app.ui.ProgressDetails
-import com.polylingy.app.ui.ProgressNumbers
+import com.polylingy.app.ui.CardProgress
+import com.polylingy.app.ui.ProgressRing
 import com.polylingy.app.ui.StubButton
 import com.polylingy.app.ui.Tile
 import com.polylingy.app.ui.TopBar
 import com.polylingy.app.ui.TopicState
+import com.polylingy.app.ui.WorkLine
 import com.polylingy.app.ui.dayPhrase
+import com.polylingy.app.ui.learnedLine
 import com.polylingy.content.compose.ContentColors
 import com.polylingy.content.compose.InlineText
 import com.polylingy.core.content.Course
@@ -83,22 +85,18 @@ fun CourseScreen(viewModel: CourseViewModel, clock: Clock, go: Navigator) {
                 course.description?.let { InlineText(it, style = MaterialTheme.typography.bodyLarge.copy(color = Look.Muted)) }
             }
             if (course.studyOnly) NewerVersionNote()
-            TodayHero(p.counts, next, today, accent) { go.follow(course.id, viewModel.continueStudy()) }
+            TodayHero(p.counts, next, today, accent, course.settings.newPerDay) { go.follow(course.id, viewModel.continueStudy()) }
             if (course.units.isNotEmpty()) {
                 Text("Units", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 6.dp))
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     p.units.forEachIndexed { i, unit ->
-                        val counts = unit.counts
-                        Tile(
-                            onClick = { go.unit(course.id, unit.unit.id) },
-                            hoverContent = { ProgressDetails("Unit ${i + 1}", counts) },
-                        ) {
+                        Tile(onClick = { go.unit(course.id, unit.unit.id) }) {
                             Text("${i + 1}", Modifier.width(28.dp), color = Look.Faint, fontWeight = FontWeight.SemiBold, fontSize = 17.sp)
                             Column(Modifier.weight(1f)) {
                                 Text(unit.unit.title, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
                                 unit.unit.subtitle?.let { InlineText(it, style = MaterialTheme.typography.bodyMedium.copy(color = Look.Muted)) }
                             }
-                            ProgressNumbers(counts, today)
+                            CardProgress(unit.counts)
                         }
                     }
                 }
@@ -131,7 +129,10 @@ fun UnitScreen(viewModel: CourseViewModel, unitId: Uuid, clock: Clock, go: Navig
                 Text(unit.unit.title, style = MaterialTheme.typography.headlineMedium)
                 unit.unit.subtitle?.let { InlineText(it, style = MaterialTheme.typography.bodyLarge.copy(color = Look.Muted)) }
             }
-            TodayHero(unit.counts, next, today, course.accent()) { go.follow(course.id, viewModel.continueStudy()) }
+            // The daily limit belongs to the course: the unit's new topics are offered only as far as it allows today.
+            TodayHero(ProgressCounts.of(unit.topics, p.newToday), next, today, course.accent(), course.settings.newPerDay) {
+                go.follow(course.id, viewModel.continueStudy())
+            }
             Text("Topics", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 6.dp))
             TopicList(unit.topics, today) { go.follow(course.id, viewModel.open(it)) }
         }
@@ -190,31 +191,31 @@ fun TopicScreen(viewModel: CourseViewModel, topicId: Uuid, clock: Clock, go: Nav
     }
 }
 
-/** What waits today, what is next, and "Continue" — or when the next review is if nothing waits. */
+/**
+ * The block on top of a course or unit: what there is to do now, what comes next, how much is learned, the ring and
+ * "Continue" — or, when nothing is left, when the next review is.
+ */
 @Composable
-private fun TodayHero(counts: ProgressCounts, next: NextExercise?, today: LocalDate, accent: Color, onContinue: () -> Unit) {
+private fun TodayHero(counts: ProgressCounts, next: NextExercise?, today: LocalDate, accent: Color, newPerDay: Int?, onContinue: () -> Unit) {
     Hero(
         accent,
         content = {
-            when {
-                counts.today > 0 -> Row {
-                    Text("${counts.today}", color = Look.Today, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
-                    Text(" to do today", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
-                }
-                next != null -> Text("New topics to learn", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
-                else -> Text(
-                    counts.nextReview?.let { "Nothing due — next review ${dayPhrase(it, today)}" } ?: "Everything here is learned for good",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.SemiBold,
-                )
+            WorkLine(counts, fontSize = 16.sp)
+            val details = buildList {
+                next?.let { add("Next: ${it.topic.title}") }
+                if (next == null) counts.nextReview?.let { add("Next review ${dayPhrase(it, today)}") }
+                add(learnedLine(counts))
+                newPerDay?.let { add("$it new a day") }
             }
-            val nextLine = next?.let { "Next: ${it.topic.title} · " }.orEmpty()
-            Text("$nextLine${counts.studied} of ${counts.total} studied", color = Look.Muted, fontSize = 13.sp)
+            Text(details.joinToString(" · "), color = Look.Muted, fontSize = 13.sp)
         },
     ) {
-        if (next != null) Button(onClick = onContinue, colors = ButtonDefaults.buttonColors(containerColor = accent), shape = RoundedCornerShape(8.dp)) {
-            Text("Continue →")
-        } else StubButton("Extra practice")
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+            ProgressRing(counts, 58.dp)
+            if (next != null) Button(onClick = onContinue, colors = ButtonDefaults.buttonColors(containerColor = accent), shape = RoundedCornerShape(8.dp)) {
+                Text("Continue →")
+            } else StubButton("Extra practice")
+        }
     }
 }
 
@@ -223,7 +224,7 @@ private fun TopicList(topics: List<TopicProgress>, today: LocalDate, onOpen: (Uu
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         for (topic in topics) Tile(onClick = { onOpen(topic.topic.id) }) {
             Text(topic.topic.title, Modifier.weight(1f), fontSize = 16.sp)
-            TopicState(topic.status, today)
+            TopicState(topic, today)
         }
     }
 }

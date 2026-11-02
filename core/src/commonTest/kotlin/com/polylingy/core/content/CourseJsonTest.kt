@@ -169,6 +169,14 @@ class CourseJsonTest {
         assertTrue(problems(unknownPreset).single().startsWith("rules.preset: "), problems(unknownPreset).single())
     }
 
+    @Test fun aDailyLimitIsAtLeastOne() {
+        val course = flatWithExercise("""{ "type": "gaps", "items": [ { "text": "{{a}}" } ] }""")
+        assertEquals(10, read(course.replace("\"name\": \"X\"", "\"name\": \"X\", \"settings\": { \"newPerDay\": 10 }")).course.settings.newPerDay)
+        assertEquals(listOf("settings.newPerDay: must be at least 1, or left out for no limit"),
+            problems(course.replace("\"name\": \"X\"", "\"name\": \"X\", \"settings\": { \"newPerDay\": 0 }")))
+        assertNull(read(course).course.settings.newPerDay, "no field, no limit")
+    }
+
     @Test fun linksMustPointAtSomethingThatExists() {
         val text = CourseSamples.units
             .replace("{ \"section\": \"$SECTION_B\" }", "{ \"section\": \"$TOPIC_ID\" }")

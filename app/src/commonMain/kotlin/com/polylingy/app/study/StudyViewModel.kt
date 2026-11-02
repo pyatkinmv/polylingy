@@ -11,6 +11,7 @@ import com.polylingy.core.study.AnswerOutcome
 import com.polylingy.core.study.NextExercise
 import com.polylingy.core.study.ProgressCounts
 import com.polylingy.core.study.StudyService
+import com.polylingy.core.study.TopicGroup
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -87,7 +88,7 @@ class StudyViewModel(
             return StudyState.Done(counts)
         }
         val topic = progress.allTopics.first { it.topic.id == next.topic.id }
-        val review = topic.status == TopicStatus.Due || (topic.status == TopicStatus.InProgress && topic.studied)
+        val review = topic.group == TopicGroup.TO_REVIEW
         log.info { "Shows exercise ${next.exercise.id} of topic ${next.topic.id} \"${next.topic.title}\"${if (review) " (review)" else ""}" }
         return StudyState.Exercise(next, next.exercise.emptyResponse(), outcome = null, review = review, seed = shown++)
     }
