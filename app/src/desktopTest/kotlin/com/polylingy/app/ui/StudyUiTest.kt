@@ -44,7 +44,8 @@ class StudyUiTest {
 
     @Test fun aNewUnitStartsWithItsTheoryThenGoesThroughItsTopicsToDoneForToday() = appTest(seed, height = 900) {
         click("Grammar in Use")
-        text("New topics to learn").assertIsDisplayed()
+        text("3 new").assertIsDisplayed()
+        text("Next: Things happening now · 0 of 3 learned").assertIsDisplayed()
         screenshot("course")
 
         click("Present continuous")
@@ -109,13 +110,13 @@ class StudyUiTest {
 
         clock.now = LocalDateTime(2026, 1, 16, 9, 0)
         click("Courses")
-        text("1").assertIsDisplayed()
-        text("to do today").assertIsDisplayed()
+        text("1 to review").assertIsDisplayed()
+        text("1 of 3 learned").assertIsDisplayed()
         screenshot("course-list-due")
         click("Grammar in Use")
-        assertEquals(2, test.onAllNodesWithText("to do today", substring = true).fetchSemanticsNodes().size, "the course and its unit")
+        assertEquals(2, test.onAllNodesWithText("1 to review").fetchSemanticsNodes().size, "the course and its unit")
         click("Present simple")
-        text("To review today").assertIsDisplayed()
+        text("To review").assertIsDisplayed()
         click("Continue →")
         text("Review").assertIsDisplayed()
         screenshot("exercise-review")
@@ -138,6 +139,26 @@ class StudyUiTest {
         click("Courses")
         click("Irregular verbs")
         text("Learning").assertIsDisplayed()
+    }
+
+    @Test fun theDailyLimitEndsTheDayEvenWithNewTopicsLeft() = appTest(seed = {
+        it.seedCourse("""{ "formatVersion": 1, "name": "Colours", "settings": { "newPerDay": 1 },
+            "rules": { "mastery": { "type": "consecutive", "learning": 1, "review": 1 } },
+            "topics": [
+              { "title": "red", "exercises": [ { "type": "gaps", "items": [ { "text": "{{rojo}}" } ] } ] },
+              { "title": "green", "exercises": [ { "type": "gaps", "items": [ { "text": "{{verde}}" } ] } ] } ] }""")
+    }) {
+        text("1 new for today").assertIsDisplayed()
+        click("Colours")
+        click("Continue →")
+        fill(1, "rojo")
+        click("Check")
+        click("Next →")
+        text("That’s all for today").assertIsDisplayed()
+        click("Courses")
+        text("✓ Done for today").assertIsDisplayed()
+        text("1 of 2 learned").assertIsDisplayed()
+        screenshot("course-list-limit-done")
     }
 
     @Test fun aBlankTakesAtMostFortyCharacters() = appTest(seed) {

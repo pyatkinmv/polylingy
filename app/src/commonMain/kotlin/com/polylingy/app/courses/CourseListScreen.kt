@@ -41,8 +41,7 @@ import com.polylingy.app.ui.CourseMark
 import com.polylingy.app.ui.Look
 import com.polylingy.app.ui.MessageDialog
 import com.polylingy.app.ui.Page
-import com.polylingy.app.ui.ProgressDetails
-import com.polylingy.app.ui.ProgressNumbers
+import com.polylingy.app.ui.CardProgress
 import com.polylingy.app.ui.Tile
 import com.polylingy.client.BrokenCourse
 import com.polylingy.content.Problem
@@ -138,24 +137,16 @@ fun CourseListScreen(viewModel: CourseListViewModel, files: CourseFiles, today: 
 @Composable
 private fun CourseTile(row: CourseRow, today: LocalDate, onOpen: () -> Unit, onEdit: () -> Unit, onExport: () -> Unit, onRemove: () -> Unit) {
     val course = row.course
-    Tile(onClick = onOpen, hoverContent = { ProgressDetails(course.name, row.counts) }) {
+    Tile(onClick = onOpen) {
         CourseMark(course.name, course.accent())
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(course.name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                if (course.studyOnly) Text(
-                    "Newer version",
-                    Modifier.background(Look.WarnBg, RoundedCornerShape(50)).padding(horizontal = 9.dp, vertical = 1.dp),
-                    color = Look.Warn,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
+            Text(course.name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             course.description?.let {
                 Text(it.annotated(), style = MaterialTheme.typography.bodyMedium, color = Look.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
+            if (course.studyOnly) Text("Made in a newer Polylingy · read-only", color = Look.Faint, fontSize = 12.5.sp)
         }
-        ProgressNumbers(row.counts, today)
+        CardProgress(row.counts)
         CourseMenu(
             listOf(
                 MenuItem("Edit name and description…", enabled = !course.studyOnly, onEdit),

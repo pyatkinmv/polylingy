@@ -48,7 +48,7 @@ class CourseListViewModelTest {
     @Test fun eachCourseComesWithItsCounts() {
         vm.import(file("Spanish"))
         val counts = vm.courses.value.single().counts
-        assertEquals(1 to 0, counts.new to counts.studied)
+        assertEquals(1 to 0, counts.new to counts.learned)
     }
 
     @Test fun exportThenImportAddsACopy() {
