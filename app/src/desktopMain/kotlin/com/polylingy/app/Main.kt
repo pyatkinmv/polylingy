@@ -1,5 +1,6 @@
 package com.polylingy.app
 
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.toComposeImageBitmap
@@ -24,6 +25,10 @@ private val AppIcon = BitmapPainter(
 /** Decodes PNG, JPEG, GIF, WebP and the rest that Skia knows. */
 val SkiaImageDecoder = ImageDecoder { Image.makeFromEncoded(it).toComposeImageBitmap() }
 
+/** The smallest window, in the same units as dp at 100 % scale. */
+private const val MIN_WIDTH = 900
+private const val MIN_HEIGHT = 640
+
 fun main() {
     val dataDir = DesktopStorage.defaultDataDir()
     // Read by logback.xml; must be set before the first logger is created.
@@ -45,10 +50,15 @@ fun main() {
             },
             title = "Polylingy",
             icon = AppIcon,
-            state = rememberWindowState(width = 832.dp, height = 720.dp),
+            state = rememberWindowState(width = 1000.dp, height = 720.dp),
         ) {
-            // Below this the cards and their progress no longer fit side by side.
-            window.minimumSize = Dimension(800, 600)
+            // Below this the cards and their progress no longer fit side by side. AWT applies the minimum in physical
+            // pixels, ignoring the display scale (at 175 % a 900-wide minimum let the window shrink to 514), so scale it.
+            LaunchedEffect(Unit) {
+                val scale = window.graphicsConfiguration.defaultTransform.scaleX
+                window.minimumSize = Dimension((MIN_WIDTH * scale).toInt(), (MIN_HEIGHT * scale).toInt())
+                log.info { "Window minimum size $MIN_WIDTH×$MIN_HEIGHT at scale $scale" }
+            }
             val container = remember {
                 AppContainer(storage, DesktopCourseFiles(window), images, fetcher, CourseArchive, SkiaImageDecoder).also {
                     it.library.seedSample(sampleCourse())
