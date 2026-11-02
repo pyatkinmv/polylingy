@@ -41,6 +41,7 @@ import com.polylingy.app.ui.CourseMark
 import com.polylingy.app.ui.Look
 import com.polylingy.app.ui.MessageDialog
 import com.polylingy.app.ui.Page
+import com.polylingy.app.ui.QuietButton
 import com.polylingy.app.ui.CardProgress
 import com.polylingy.app.ui.Tile
 import com.polylingy.client.BrokenCourse
@@ -73,16 +74,13 @@ fun CourseListScreen(viewModel: CourseListViewModel, files: CourseFiles, today: 
             Row(Modifier.height(58.dp).padding(horizontal = 32.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("Polylingy", color = Look.Green, fontWeight = FontWeight.Bold, fontSize = 19.sp)
                 Box(Modifier.weight(1f))
-                OutlinedButton(
-                    onClick = {
-                        val file = files.open() ?: return@OutlinedButton
-                        dialog = when (val outcome = viewModel.import(file)) {
-                            is ImportOutcome.Failed -> CourseDialog.Message("Couldn't import ${outcome.fileName}", problemList(outcome.problems))
-                            is ImportOutcome.Imported -> importedMessage(outcome)
-                        }
-                    },
-                    shape = RoundedCornerShape(8.dp),
-                ) { Text("＋ Import", color = Look.Ink) }
+                QuietButton("＋ Import") {
+                    val file = files.open() ?: return@QuietButton
+                    dialog = when (val outcome = viewModel.import(file)) {
+                        is ImportOutcome.Failed -> CourseDialog.Message("Couldn't import ${outcome.fileName}", problemList(outcome.problems))
+                        is ImportOutcome.Imported -> importedMessage(outcome)
+                    }
+                }
             }
             HorizontalDivider(color = Look.Line)
             Page(Modifier.verticalScroll(rememberScrollState())) {
