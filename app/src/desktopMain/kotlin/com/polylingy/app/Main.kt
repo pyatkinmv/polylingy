@@ -47,13 +47,14 @@ fun main() {
             icon = AppIcon,
             state = rememberWindowState(width = 832.dp, height = 720.dp),
         ) {
-            window.minimumSize = Dimension(480, 400)
+            // Below this the cards and their progress no longer fit side by side.
+            window.minimumSize = Dimension(800, 600)
             val container = remember {
                 AppContainer(storage, DesktopCourseFiles(window), images, fetcher, CourseArchive, SkiaImageDecoder).also {
                     it.library.seedSample(sampleCourse())
                 }
             }
-            App(container)
+            App(container, DesktopText)
         }
     }
 }

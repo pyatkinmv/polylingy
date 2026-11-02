@@ -38,7 +38,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.shadow.Shadow
+import androidx.compose.ui.unit.DpOffset
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.Role
@@ -100,13 +104,27 @@ private val Scheme = lightColorScheme(
     error = Look.Wrong,
 )
 
+/**
+ * The app's theme. [text] is the platform's base text style — Inter with crisp rendering on desktop (`DesktopText`);
+ * sizes and weights follow the design canvas: body 15, headings 28 at weight 650.
+ */
 @Composable
-fun AppTheme(content: @Composable () -> Unit) {
+fun AppTheme(text: TextStyle = TextStyle.Default, content: @Composable () -> Unit) {
     val base = Typography()
-    val typography = base.copy(
-        headlineMedium = base.headlineMedium.copy(fontSize = 28.sp, fontWeight = FontWeight.SemiBold),
-        titleLarge = base.titleLarge.copy(fontSize = 19.sp, fontWeight = FontWeight.SemiBold),
-        titleMedium = base.titleMedium.copy(fontSize = 16.5.sp, fontWeight = FontWeight.SemiBold),
+    fun TextStyle.inter() = text.merge(this).copy(fontFamily = text.fontFamily ?: fontFamily)
+    val typography = Typography(
+        displayLarge = base.displayLarge.inter(), displayMedium = base.displayMedium.inter(), displaySmall = base.displaySmall.inter(),
+        headlineLarge = base.headlineLarge.inter(),
+        headlineMedium = base.headlineMedium.inter().copy(fontSize = 28.sp, lineHeight = 34.sp, fontWeight = FontWeight(650), letterSpacing = (-0.4).sp),
+        headlineSmall = base.headlineSmall.inter(),
+        titleLarge = base.titleLarge.inter().copy(fontSize = 19.sp, fontWeight = FontWeight.SemiBold),
+        titleMedium = base.titleMedium.inter().copy(fontSize = 16.5.sp, lineHeight = 22.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.sp),
+        titleSmall = base.titleSmall.inter(),
+        bodyLarge = base.bodyLarge.inter().copy(fontSize = 15.sp, lineHeight = 22.sp, letterSpacing = 0.sp),
+        bodyMedium = base.bodyMedium.inter().copy(fontSize = 14.sp, lineHeight = 20.sp, letterSpacing = 0.sp),
+        bodySmall = base.bodySmall.inter().copy(letterSpacing = 0.sp),
+        labelLarge = base.labelLarge.inter().copy(fontSize = 15.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.sp),
+        labelMedium = base.labelMedium.inter(), labelSmall = base.labelSmall.inter(),
     )
     MaterialTheme(colorScheme = Scheme, typography = typography) {
         Surface(color = Look.Paper, contentColor = Look.Ink, content = content)
@@ -168,7 +186,8 @@ fun Tile(
     val interaction = remember { MutableInteractionSource() }
     val hovered by interaction.collectIsHoveredAsState()
     val lift by animateDpAsState(if (hovered && onClick != null) (-2).dp else 0.dp)
-    val shadow by animateDpAsState(if (hovered && onClick != null) 8.dp else 0.dp)
+    // The design's box-shadow: 0 6px 18px rgba(60, 50, 30, 0.10), faded in on hover.
+    val shadow by animateFloatAsState(if (hovered && onClick != null) 1f else 0f)
     val edge by animateColorAsState(if (hovered && onClick != null) Look.LineHover else Look.Line)
     val shape = RoundedCornerShape(12.dp)
     Box(
@@ -181,7 +200,7 @@ fun Tile(
             Modifier
                 .fillMaxWidth()
                 .offset(y = lift)
-                .shadow(shadow, shape, ambientColor = Color(0x22000000), spotColor = Color(0x22000000))
+                .dropShadow(shape, Shadow(radius = 18.dp, color = Color(0xFF3C321E), offset = DpOffset(0.dp, 6.dp), alpha = 0.10f * shadow))
                 .background(Look.Card, shape)
                 .border(1.dp, edge, shape)
                 .clip(shape)
@@ -220,6 +239,27 @@ fun Hero(accent: Color, content: @Composable ColumnScope.() -> Unit, action: @Co
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp), content = content)
         action()
     }
+}
+
+/** The design's quiet button: white, a thin edge, ink text; the edge darkens on hover (e.g. "＋ Import"). */
+@Composable
+fun QuietButton(text: String, onClick: () -> Unit) {
+    val interaction = remember { MutableInteractionSource() }
+    val hovered by interaction.collectIsHoveredAsState()
+    val shape = RoundedCornerShape(8.dp)
+    Text(
+        text,
+        Modifier
+            .clip(shape)
+            .background(if (hovered) Color(0xFFFFFDF8) else Look.Card, shape)
+            .border(1.dp, if (hovered) Look.Rule else Look.Line, shape)
+            .hoverable(interaction)
+            .clickable(interaction, indication = null, role = Role.Button, onClick = onClick)
+            .padding(horizontal = 18.dp, vertical = 9.dp),
+        color = Look.Ink,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 15.sp,
+    )
 }
 
 /** A button that is drawn but does nothing yet: dashed, grey. Its behaviour is decided later. */

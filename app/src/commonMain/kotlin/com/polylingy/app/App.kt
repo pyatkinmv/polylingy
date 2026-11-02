@@ -2,6 +2,7 @@ package com.polylingy.app
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.text.TextStyle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -105,8 +106,8 @@ class Navigator internal constructor(private val nav: NavHostController) {
 }
 
 @Composable
-fun App(container: AppContainer) {
-    AppTheme {
+fun App(container: AppContainer, text: TextStyle = TextStyle.Default) {
+    AppTheme(text) {
         val nav = rememberNavController()
         val go = remember(nav) { Navigator(nav) }
         NavHost(nav, startDestination = CourseListRoute) {

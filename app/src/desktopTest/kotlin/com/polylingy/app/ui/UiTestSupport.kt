@@ -62,7 +62,7 @@ fun appTest(
         storage().use { storage ->
             val container = testContainer(clock, files, storage)
             seed(container)
-            setContent { App(container) }
+            setContent { App(container, com.polylingy.app.DesktopText) }
             AppHarness(this, container, clock, files).block()
         }
     }
