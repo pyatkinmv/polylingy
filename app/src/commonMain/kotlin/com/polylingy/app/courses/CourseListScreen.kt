@@ -39,6 +39,8 @@ import com.polylingy.app.ui.ConfirmDialog
 import com.polylingy.app.ui.CourseDetailsDialog
 import com.polylingy.app.ui.CourseMark
 import com.polylingy.app.ui.Look
+import com.polylingy.app.ui.MenuItem
+import com.polylingy.app.ui.MoreMenu
 import com.polylingy.app.ui.MessageDialog
 import com.polylingy.app.ui.Page
 import com.polylingy.app.ui.QuietButton
@@ -145,11 +147,11 @@ private fun CourseTile(row: CourseRow, today: LocalDate, onOpen: () -> Unit, onE
             if (course.studyOnly) Text("Made in a newer Polylingy · read-only", color = Look.Faint, fontSize = 12.5.sp)
         }
         CardProgress(row.counts)
-        CourseMenu(
+        MoreMenu(
             listOf(
-                MenuItem("Edit name and description…", enabled = !course.studyOnly, onEdit),
-                MenuItem("Export", enabled = !course.studyOnly, onExport),
-                MenuItem("Remove", enabled = true, onRemove),
+                MenuItem("Edit name and description…", enabled = !course.studyOnly, action = onEdit),
+                MenuItem("Export", enabled = !course.studyOnly, action = onExport),
+                MenuItem("Remove", danger = true, action = onRemove),
             ),
             note = if (course.studyOnly) "Update Polylingy to edit or export this course" else null,
         )
@@ -170,26 +172,7 @@ private fun BrokenTile(course: BrokenCourse, onShow: () -> Unit, onRemove: () ->
             Text("Can't open this course", color = Look.Wrong, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
             course.problems.firstOrNull()?.let { Text(it.toString(), color = Look.Muted, fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis) }
         }
-        CourseMenu(listOf(MenuItem("Show problems", enabled = true, onShow), MenuItem("Remove", enabled = true, onRemove)))
-    }
-}
-
-private class MenuItem(val label: String, val enabled: Boolean, val action: () -> Unit)
-
-/** A "⋯" button opening a menu of actions; [note] explains disabled ones. */
-@Composable
-private fun CourseMenu(items: List<MenuItem>, note: String? = null) {
-    var open by remember { mutableStateOf(false) }
-    Box {
-        IconButton(onClick = { open = true }) { Text("⋯", color = Look.Faint, fontSize = 22.sp) }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            for (item in items) DropdownMenuItem(
-                text = { Text(item.label, color = if (item.label == "Remove") Look.Wrong else androidx.compose.ui.graphics.Color.Unspecified) },
-                enabled = item.enabled,
-                onClick = { open = false; item.action() },
-            )
-            note?.let { Text(it, Modifier.padding(horizontal = 12.dp, vertical = 6.dp), color = Look.Faint, fontSize = 12.sp) }
-        }
+        MoreMenu(listOf(MenuItem("Show problems", action = onShow), MenuItem("Remove", danger = true, action = onRemove)))
     }
 }
 

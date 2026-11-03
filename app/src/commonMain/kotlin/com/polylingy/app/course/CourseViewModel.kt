@@ -1,6 +1,10 @@
 package com.polylingy.app.course
 
 import androidx.lifecycle.ViewModel
+import com.polylingy.core.content.CoursePart
+import com.polylingy.core.content.CourseService
+import com.polylingy.core.content.PartException
+import com.polylingy.core.content.PartProblem
 import com.polylingy.core.learning.TopicStatus
 import com.polylingy.core.study.CourseProgress
 import com.polylingy.core.study.NextExercise
@@ -32,7 +36,12 @@ sealed interface Start {
  * The state of a course for its screens: every topic's status and what comes next, in [scope] (one unit, or the
  * whole course when null). Read again on [refresh], e.g. when the screen shows after studying.
  */
-class CourseViewModel(private val study: StudyService, val courseId: Uuid, private val scope: Uuid? = null) : ViewModel() {
+class CourseViewModel(
+    private val study: StudyService,
+    private val courses: CourseService,
+    val courseId: Uuid,
+    private val scope: Uuid? = null,
+) : ViewModel() {
     private val _progress = MutableStateFlow(study.progress(courseId))
     val progress: StateFlow<CourseProgress?> = _progress.asStateFlow()
 
@@ -44,6 +53,16 @@ class CourseViewModel(private val study: StudyService, val courseId: Uuid, priva
     fun refresh() {
         _progress.value = study.progress(courseId)
         _next.value = study.next(courseId, scope)
+    }
+
+    /** Deletes a unit or topic; the problems if the course needs it (a unit's last topic, the course's last unit). */
+    fun delete(part: CoursePart): List<PartProblem> = try {
+        courses.deletePart(courseId, part)
+        refresh()
+        emptyList()
+    } catch (e: PartException) {
+        log.warn { "Deleting $part of course $courseId failed: ${e.problems}" }
+        e.problems
     }
 
     /** "Continue": the next exercise, with the theory first if its unit is new. */

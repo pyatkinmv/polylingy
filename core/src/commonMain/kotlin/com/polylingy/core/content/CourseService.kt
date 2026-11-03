@@ -48,6 +48,36 @@ class CourseService(private val courses: CourseRepository, private val clock: Cl
         log.info { "Deleted course $courseId" }
     }
 
+    /** The JSON of a unit or topic for the editor, or null when the course has no such part. */
+    fun partJson(courseId: Uuid, part: CoursePart): String? = CourseParts.json(course(courseId), part)
+
+    /** Checks an edited unit or topic without saving it: the course as it would be, or the problems. */
+    fun checkPart(courseId: Uuid, part: CoursePart, text: String): PartCheck {
+        val course = course(courseId)
+        if (course.studyOnly) return PartCheck(null, listOf(PartProblem(Path.ROOT, "this course was made with a newer version of Polylingy and can't be changed", null)))
+        return CourseParts.check(course, part, text, clock.now().instant)
+    }
+
+    /** Saves an edited or new unit or topic as a new revision; [PartException] with the problems if it isn't valid. */
+    fun savePart(courseId: Uuid, part: CoursePart, text: String): Course {
+        val check = checkPart(courseId, part, text)
+        val edited = check.course ?: throw PartException(check.problems)
+        val saved = save(edited)
+        log.info { "Saved $part in course $courseId (revision ${saved.revision})" }
+        return saved
+    }
+
+    /** Deletes a unit or topic; [PartException] if the rest of the course needs it, e.g. a unit's last topic. */
+    fun deletePart(courseId: Uuid, part: CoursePart): Course {
+        val course = course(courseId)
+        if (course.studyOnly) throw PartException(listOf(PartProblem(Path.ROOT, "this course was made with a newer version of Polylingy and can't be changed", null)))
+        val check = CourseParts.remove(course, part, clock.now().instant)
+        val edited = check.course ?: throw PartException(check.problems)
+        val saved = save(edited)
+        log.info { "Deleted $part from course $courseId (revision ${saved.revision})" }
+        return saved
+    }
+
     private fun course(id: Uuid) = requireNotNull(courses.get(id)) { "No course $id" }
 
     private fun save(course: Course): Course =
