@@ -1,16 +1,14 @@
 {
-  "formatVersion": 1,
+  "formatVersion": 2,
   "name": "Irregular verbs",
   "description": "Sixteen common verbs: past simple and past participle, in random order.",
   "theme": {
     "accent": "#9A4B12"
   },
-  "settings": {
-    "newPerDay": 10
-  },
   "rules": {
     "picker": {
-      "type": "random"
+      "type": "shuffle",
+      "newPerDay": 10
     }
   },
   "topics": [

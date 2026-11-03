@@ -15,8 +15,7 @@ import com.polylingy.core.content.PartException
 import com.polylingy.core.content.PartProblem
 import com.polylingy.core.content.Topic
 import com.polylingy.core.ports.CourseRepository
-import com.polylingy.core.rules.CheckSettings
-import com.polylingy.core.rules.Checking
+import com.polylingy.core.study.StudyService
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -47,6 +46,7 @@ sealed interface SaveOutcome {
  */
 class EditorViewModel(
     private val service: CourseService,
+    private val study: StudyService,
     courses: CourseRepository,
     val courseId: Uuid,
     val part: CoursePart,
@@ -121,14 +121,13 @@ class EditorViewModel(
         if (p.checks == null) _preview.value = p.copy(response = response)
     }
 
-    /** Checks the answer in the preview, by the course's rules; nothing is written to the journal. */
+    /** Checks the answer in the preview as the course's settings show it; nothing is written to the journal. */
     fun checkAnswer() {
         val p = _preview.value
         val exercise = p.shown ?: return
         val response = p.response ?: return
         if (p.checks != null) return
-        val settings = CheckSettings(before?.settings?.allowTypos ?: true)
-        _preview.value = p.copy(checks = Checking.check(exercise, response, settings))
+        _preview.value = p.copy(checks = study.preview(courseId, exercise, response))
     }
 
     fun tryAgain() {

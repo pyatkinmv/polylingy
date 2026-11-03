@@ -4,6 +4,7 @@ import com.polylingy.content.Block
 import com.polylingy.content.Content
 import com.polylingy.core.FixedClock
 import com.polylingy.core.InMemoryCourseRepository
+import com.polylingy.core.InMemoryCourseSettings
 import com.polylingy.core.at
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
@@ -17,7 +18,8 @@ import kotlin.uuid.Uuid
 class CourseServiceTest {
     private val clock = FixedClock(at(LocalDate(2026, 11, 1)))
     private val repository = InMemoryCourseRepository()
-    private val service = CourseService(repository, clock)
+    private val settings = InMemoryCourseSettings()
+    private val service = CourseService(repository, settings, clock)
 
     private fun file(name: String = "Spanish Basics", sample: String = CourseSamples.flat) =
         CourseJson.read(sample.replace("\"Spanish Basics\"", "\"$name\""), clock.now().instant).course
@@ -92,7 +94,7 @@ class CourseServiceTest {
     }
 
     @Test fun aCourseFromANewerFormatCantBeEdited() {
-        val newer = CourseJson.read(CourseSamples.flat.replace("\"formatVersion\": 1", "\"formatVersion\": 2"), clock.now().instant).course
+        val newer = CourseJson.read(CourseSamples.flat.replace("\"formatVersion\": 1", "\"formatVersion\": 3"), clock.now().instant).course
         val course = service.import(newer)
         assertFailsWith<IllegalArgumentException> { service.editDetails(course.id, "Other", "") }
     }

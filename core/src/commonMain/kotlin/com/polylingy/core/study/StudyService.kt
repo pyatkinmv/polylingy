@@ -8,7 +8,11 @@ import com.polylingy.core.content.CourseUnit
 import com.polylingy.core.content.Topic
 import com.polylingy.core.journal.AnswerSubmitted
 import com.polylingy.core.journal.EventEnvelope
+import com.polylingy.content.Path
+import com.polylingy.core.content.RulesSpec
+import com.polylingy.core.content.of
 import com.polylingy.core.learning.Candidate
+import com.polylingy.core.learning.Group
 import com.polylingy.core.learning.CourseRules
 import com.polylingy.core.learning.TopicStatus
 import com.polylingy.core.learning.replay
@@ -16,9 +20,10 @@ import com.polylingy.core.learning.status
 import com.polylingy.core.learning.toRules
 import com.polylingy.core.ports.Clock
 import com.polylingy.core.ports.CourseRepository
+import com.polylingy.core.ports.CourseSettingsRepository
 import com.polylingy.core.ports.EventLog
-import com.polylingy.core.rules.CheckSettings
 import com.polylingy.core.rules.Checking
+import com.polylingy.core.rules.forgiving
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.datetime.LocalDate
 import kotlin.random.Random
@@ -113,10 +118,16 @@ data class UnitProgress(val unit: CourseUnit, val topics: List<TopicProgress>) {
 }
 
 /**
- * Every topic's status today: by unit for a course with units, flat for one without. [newToday] — new topics that
- * may still be begun today under the course's daily limit; null when it has none.
+ * Every topic's status today: by unit for a course with units, flat for one without. [newPerDay] — the course's daily
+ * limit of new topics, [newToday] — how many may still be begun today; both null when it has none.
  */
-data class CourseProgress(val course: Course, val units: List<UnitProgress>, val topics: List<TopicProgress>, val newToday: Int? = null) {
+data class CourseProgress(
+    val course: Course,
+    val units: List<UnitProgress>,
+    val topics: List<TopicProgress>,
+    val newToday: Int? = null,
+    val newPerDay: Int? = null,
+) {
     val allTopics: List<TopicProgress> get() = units.flatMap { it.topics } + topics
     val counts: ProgressCounts get() = ProgressCounts.of(allTopics, newToday)
 }
@@ -130,6 +141,7 @@ data class AnswerOutcome(val checks: List<ItemCheck>, val before: TopicStatus, v
 /** Use cases of the study screens; the learning rules all live behind this class. */
 class StudyService(
     private val courses: CourseRepository,
+    private val settings: CourseSettingsRepository,
     private val journal: EventLog,
     private val clock: Clock,
     private val deviceId: Uuid,
@@ -137,14 +149,38 @@ class StudyService(
 ) {
     fun progress(courseId: Uuid): CourseProgress? {
         val course = courses.get(courseId) ?: return null
-        val progress = topicProgress(course)
+        return progressWith(course, settings.of(course))
+    }
+
+    /** The course's settings: its policies, every part written out. */
+    fun settings(courseId: Uuid): RulesSpec? = courses.get(courseId)?.let { settings.of(it) }
+
+    /** How the course would stand with [rules] instead of its settings — for the settings screen, before saving. */
+    fun progressWith(courseId: Uuid, rules: RulesSpec): CourseProgress? = courses.get(courseId)?.let { progressWith(it, rules.resolved()) }
+
+    /**
+     * Saves the course's settings; progress is then recounted from the whole journal by them. Problems in [rules] are an
+     * [IllegalArgumentException]. Not for a course from a newer format.
+     */
+    fun saveSettings(courseId: Uuid, rules: RulesSpec) {
+        val course = requireNotNull(courses.get(courseId)) { "No course $courseId" }
+        require(!course.studyOnly) { "\"${course.name}\" was made with a newer version of Polylingy and can't be changed" }
+        val resolved = rules.resolved()
+        resolved.validate(Path("rules")).firstOrNull()?.let { throw IllegalArgumentException("${it.path}: ${it.message}") }
+        settings.save(courseId, resolved, clock.now().instant)
+        log.info { "Saved settings of course $courseId: $resolved" }
+    }
+
+    private fun progressWith(course: Course, rules: RulesSpec): CourseProgress {
+        val progress = topicProgress(course, rules)
         fun of(topics: List<Topic>) = topics.map { progress.getValue(it.id) }
-        return CourseProgress(course, course.units.map { UnitProgress(it, of(it.topics)) }, of(course.topics), newToday(course))
+        val newPerDay = rules.resolved().picker?.newPerDay
+        return CourseProgress(course, course.units.map { UnitProgress(it, of(it.topics)) }, of(course.topics), newToday(course, newPerDay), newPerDay)
     }
 
     /** New topics that may still be begun today: the daily limit minus those begun today; null without a limit. */
-    private fun newToday(course: Course): Int? =
-        course.settings.newPerDay?.let { limit -> (limit - begunToday(course).size).coerceAtLeast(0) }
+    private fun newToday(course: Course, newPerDay: Int?): Int? =
+        newPerDay?.let { limit -> (limit - begunToday(course).size).coerceAtLeast(0) }
 
     /** Topics of the course whose very first answer was given today: these are the new topics begun today. */
     private fun begunToday(course: Course): Set<Uuid> {
@@ -166,37 +202,50 @@ class StudyService(
         return nextWith(course, course.rules(), unitId, current, lastExercise)
     }
 
+    /**
+     * Builds the candidates from replay() and asks the picker's three parts in turn: the queue (which topics and in what
+     * order), the focus (stay or move on), the exercise choice. Nothing is decided here.
+     */
     private fun <M, G> nextWith(course: Course, rules: CourseRules<M, G>, unitId: Uuid?, current: Uuid?, lastExercise: Uuid?): NextExercise? {
         val states = replay(course, journal.all(), rules)
         val today = clock.now().localDate
         val topics = (if (unitId != null) course.units.firstOrNull { it.id == unitId }?.topics.orEmpty() else course.allTopics)
             .filter { it.playable().isNotEmpty() }
-        // The daily limit: once today's new topics are begun, untouched ones wait for another day.
-        val noMoreNew = newToday(course) == 0
         val candidates = topics.mapNotNull { topic ->
             val state = states.getValue(topic.id)
-            val status = state.status(rules.scheduler, today)
-            Candidate(topic.id, state.phase, state.round.isNotEmpty()).takeIf { status.available && !(noMoreNew && status == TopicStatus.New) }
+            val due = state.memory?.let { rules.scheduler.dueDate(it) }
+            when (state.status(rules.scheduler, today)) {
+                TopicStatus.InProgress -> Candidate(topic.id, Group.STARTED, due)
+                TopicStatus.Due -> Candidate(topic.id, Group.DUE, due)
+                TopicStatus.New -> Candidate(topic.id, Group.NEW)
+                is TopicStatus.Passed, TopicStatus.Learned -> null
+            }
         }
-        val picked = rules.picker.pick(candidates, current) ?: return null.also { log.debug { "Nothing left today in course ${course.id}" } }
-        log.debug { "Picked topic $picked from ${candidates.size} candidates" }
-        return exerciseOf(course, topics.first { it.id == picked }, lastExercise)
+        val queue = rules.picker.queue.build(candidates, begunToday(course).size)
+        val picked = rules.picker.focus.pick(queue, current) ?: return null.also { log.debug { "Nothing left today in course ${course.id}" } }
+        log.debug { "Picked topic $picked from a queue of ${queue.size}" }
+        val topic = topics.first { it.id == picked }
+        return NextExercise(topic, unitOf(course, topic), rules.picker.exercise.choose(topic.playable(), lastAnswered(course, topic) ?: lastExercise))
     }
 
     /** An exercise of a topic the learner chose, whatever its status: practising early counts as a round. */
     fun practise(courseId: Uuid, topicId: Uuid, lastExercise: Uuid? = null): NextExercise? {
         val course = courses.get(courseId) ?: return null
-        val topic = course.allTopics.firstOrNull { it.id == topicId } ?: return null
-        return exerciseOf(course, topic, lastExercise)
+        val topic = course.allTopics.firstOrNull { it.id == topicId }?.takeIf { it.playable().isNotEmpty() } ?: return null
+        val exercise = course.rules().picker.exercise.choose(topic.playable(), lastExercise ?: lastAnswered(course, topic))
+        return NextExercise(topic, unitOf(course, topic), exercise)
     }
 
-    /** Checks an answer and writes it to the journal. */
+    /**
+     * Checks an answer and writes it to the journal. The journal gets the plain check, typos included; the returned
+     * checks are as the learner sees them — a typo the course doesn't forgive is shown as wrong.
+     */
     fun answer(courseId: Uuid, topicId: Uuid, exerciseId: Uuid, response: Response): AnswerOutcome {
         val course = requireNotNull(courses.get(courseId)) { "No course $courseId" }
         val topic = requireNotNull(course.allTopics.firstOrNull { it.id == topicId }) { "No topic $topicId in course $courseId" }
         val exercise = requireNotNull(topic.exercises.firstOrNull { it.id == exerciseId }) { "No exercise $exerciseId in topic $topicId" }
         val before = statuses(course).getValue(topicId)
-        val checks = Checking.check(exercise, response, CheckSettings(course.settings.allowTypos))
+        val checks = Checking.check(exercise, response)
         val now = clock.now()
         journal.append(
             EventEnvelope(
@@ -206,7 +255,13 @@ class StudyService(
         )
         val after = statuses(course).getValue(topicId)
         log.info { "Answer in course $courseId, topic $topicId \"${topic.title}\", exercise $exerciseId: ${checks.map { it.result }}; $before → $after" }
-        return AnswerOutcome(checks, before, after)
+        return AnswerOutcome(checks.forgiving(forgivesTypos(course)), before, after)
+    }
+
+    /** Checks an answer as [answer] would show it, without writing anything — for previews. */
+    fun preview(courseId: Uuid, exercise: Exercise, response: Response): List<ItemCheck> {
+        val typos = courses.get(courseId)?.let(::forgivesTypos) ?: true
+        return Checking.check(exercise, response).forgiving(typos)
     }
 
     /** Whether to open a unit with its theory: nothing in it has been answered yet. */
@@ -216,13 +271,15 @@ class StudyService(
         return unit.unit.theory != null && !unit.started
     }
 
-    private fun Course.rules(): CourseRules<*, *> = rules.toRules(random)
+    private fun Course.rules(): CourseRules<*, *> = settings.of(this).toRules(random)
 
-    private fun statuses(course: Course): Map<Uuid, TopicStatus> = topicProgress(course).mapValues { it.value.status }
+    private fun forgivesTypos(course: Course): Boolean = settings.of(course).resolved().grading?.typos ?: true
 
-    private fun topicProgress(course: Course): Map<Uuid, TopicProgress> = progressWith(course, course.rules())
+    private fun statuses(course: Course): Map<Uuid, TopicStatus> = topicProgress(course, settings.of(course)).mapValues { it.value.status }
 
-    private fun <M, G> progressWith(course: Course, rules: CourseRules<M, G>): Map<Uuid, TopicProgress> {
+    private fun topicProgress(course: Course, rules: RulesSpec): Map<Uuid, TopicProgress> = topicProgressWith(course, rules.toRules(random))
+
+    private fun <M, G> topicProgressWith(course: Course, rules: CourseRules<M, G>): Map<Uuid, TopicProgress> {
         val today = clock.now().localDate
         val states = replay(course, journal.all(), rules)
         return course.allTopics.associate { topic ->
@@ -231,12 +288,11 @@ class StudyService(
         }
     }
 
-    private fun exerciseOf(course: Course, topic: Topic, lastExercise: Uuid?): NextExercise? {
-        val playable = topic.playable()
-        if (playable.isEmpty()) return null
-        val exercise = (playable.filter { it.id != lastExercise }.ifEmpty { playable }).random(random)
-        return NextExercise(topic, course.units.firstOrNull { unit -> unit.topics.any { it.id == topic.id } }, exercise)
-    }
+    /** The exercise of [topic] answered last, from the journal. */
+    private fun lastAnswered(course: Course, topic: Topic): Uuid? =
+        journal.all().mapNotNull { it.event as? AnswerSubmitted }.lastOrNull { it.courseId == course.id && it.topicId == topic.id }?.exerciseId
+
+    private fun unitOf(course: Course, topic: Topic): CourseUnit? = course.units.firstOrNull { unit -> unit.topics.any { it.id == topic.id } }
 
     /** Exercises this version can show: not of a type from a newer format. */
     private fun Topic.playable() = exercises.filterNot { it is Exercise.Unknown }

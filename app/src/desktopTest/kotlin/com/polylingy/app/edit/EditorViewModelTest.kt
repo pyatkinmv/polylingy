@@ -30,7 +30,7 @@ class EditorViewModelTest {
     private val course = container.library.import(CourseSource("c.json", json)).course
     private val unit = course.units[0]
 
-    private fun editor(part: CoursePart) = EditorViewModel(container.courseService, container.storage.courses, course.id, part)
+    private fun editor(part: CoursePart) = EditorViewModel(container.courseService, container.study, container.storage.courses, course.id, part)
 
     @Test fun aNewTopicStartsEmptyWithItsTemplate() {
         val vm = editor(CoursePart.Topic(unit.id, null))

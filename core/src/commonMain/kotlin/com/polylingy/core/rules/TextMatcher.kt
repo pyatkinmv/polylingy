@@ -13,6 +13,7 @@ data class TextMatch(val result: ItemResult, val variant: String)
  *
  * A typo is one substituted letter or two swapped neighbouring letters, in a word of at least [MIN_TYPO_WORD] letters,
  * at most once per item. A missing or extra letter is not a typo: that's how mistakes in endings (-s, -ed, -ing) look.
+ * A typo is always reported; whether it counts as right is up to the course's grading.
  */
 object TextMatcher {
     const val MIN_TYPO_WORD = 4
@@ -20,11 +21,11 @@ object TextMatcher {
     private val apostrophes = Regex("[’‘ʼ`]")
     private val spaces = Regex("\\s+")
 
-    fun match(input: String, variants: List<String>, allowTypos: Boolean): TextMatch {
+    fun match(input: String, variants: List<String>): TextMatch {
         require(variants.isNotEmpty()) { "an item needs at least one right answer" }
         val given = normalize(input)
         variants.firstOrNull { normalize(it) == given }?.let { return TextMatch(ItemResult.CORRECT, it) }
-        if (allowTypos && given.isNotEmpty()) {
+        if (given.isNotEmpty()) {
             variants.firstOrNull { isTypo(given, normalize(it)) }?.let { return TextMatch(ItemResult.TYPO, it) }
         }
         return TextMatch(ItemResult.WRONG, variants.first())

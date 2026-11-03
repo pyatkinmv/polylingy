@@ -38,8 +38,8 @@ class CourseJsonTest {
         assertEquals("English Grammar in Use", course.name)
         assertEquals("Units on *present* tenses.", course.description?.text)
         assertEquals("#2F6B5E", course.theme?.accent)
-        assertFalse(course.settings.allowTypos)
-        assertEquals(RulesSpec(Preset.SM2, grading = GradingSpec.Threshold(0.75)), course.rules)
+        assertEquals(2, course.formatVersion, "a file of format 1 is brought up to 2")
+        assertEquals(RulesSpec(Preset.SM2, grading = GradingSpec.Threshold(0.75, typos = false)), course.rules, "settings.allowTypos became grading.typos")
         val unit = course.units.single()
         assertEquals(Uuid.parse(UNIT_ID), unit.id)
         assertEquals("I am doing", unit.subtitle?.text)
@@ -89,9 +89,9 @@ class CourseJsonTest {
     @Test fun notAnObject() = assertEquals(listOf("$: a course file must be a JSON object"), problems("[]"))
 
     @Test fun formatVersionIsRequiredAndWholeNumber() {
-        assertEquals(listOf("formatVersion: missing; this app writes 1"), problems("""{ "name": "X", "topics": [] }"""))
+        assertEquals(listOf("formatVersion: missing; this app writes 2"), problems("""{ "name": "X", "topics": [] }"""))
         for (bad in listOf("\"1\"", "1.5", "0", "null")) {
-            assertEquals(listOf("formatVersion: must be a whole number like 1"), problems("""{ "formatVersion": $bad, "name": "X" }"""), bad)
+            assertEquals(listOf("formatVersion: must be a whole number like 2"), problems("""{ "formatVersion": $bad, "name": "X" }"""), bad)
         }
     }
 
@@ -171,10 +171,42 @@ class CourseJsonTest {
 
     @Test fun aDailyLimitIsAtLeastOne() {
         val course = flatWithExercise("""{ "type": "gaps", "items": [ { "text": "{{a}}" } ] }""")
-        assertEquals(10, read(course.replace("\"name\": \"X\"", "\"name\": \"X\", \"settings\": { \"newPerDay\": 10 }")).course.settings.newPerDay)
-        assertEquals(listOf("settings.newPerDay: must be at least 1, or left out for no limit"),
-            problems(course.replace("\"name\": \"X\"", "\"name\": \"X\", \"settings\": { \"newPerDay\": 0 }")))
-        assertNull(read(course).course.settings.newPerDay, "no field, no limit")
+        fun with(field: String) = course.replace("\"name\": \"X\"", "\"name\": \"X\", $field")
+        assertEquals(PickerSpec.Conveyor(newPerDay = 10), read(with("\"rules\": { \"picker\": { \"type\": \"conveyor\", \"newPerDay\": 10 } }")).course.rules?.picker)
+        assertEquals(listOf("rules.picker.newPerDay: must be at least 1, or left out for no limit"),
+            problems(with("\"rules\": { \"picker\": { \"type\": \"alternate\", \"newPerDay\": 0 } }")))
+        assertNull(read(course).course.rules, "no rules, no limit")
+    }
+
+    // format 1 → 2
+
+    private fun v1(field: String) = flatWithExercise("""{ "type": "gaps", "items": [ { "text": "{{a}}" } ] }""")
+        .replace("\"formatVersion\": $FORMAT_VERSION", "\"formatVersion\": 1").replace("\"name\": \"X\"", "\"name\": \"X\", $field")
+
+    @Test fun formatOneSettingsMoveIntoTheRules() {
+        val both = read(v1("\"settings\": { \"allowTypos\": false, \"newPerDay\": 10 }")).course
+        assertEquals(FORMAT_VERSION, both.formatVersion)
+        assertEquals(RulesSpec(grading = GradingSpec.AllCorrect(typos = false), picker = PickerSpec.Conveyor(newPerDay = 10)), both.rules)
+        val kept = read(v1("\"settings\": { \"newPerDay\": 3 }, \"rules\": { \"preset\": \"quick\", \"grading\": { \"type\": \"threshold\", \"min\": 0.5 }, \"picker\": { \"type\": \"random\" } }")).course
+        assertEquals(RulesSpec(Preset.QUICK, grading = GradingSpec.Threshold(0.5), picker = PickerSpec.Shuffle(newPerDay = 3)), kept.rules)
+        assertEquals(PickerSpec.Conveyor(), read(v1("\"rules\": { \"picker\": { \"type\": \"reviews-first\" } }")).course.rules?.picker)
+        assertNull(read(v1("\"settings\": {}")).course.rules?.grading, "an empty settings object changes nothing")
+    }
+
+    @Test fun formatTwoHasNoSettingsAndNoOldPickerNames() {
+        val v2 = flatWithExercise("""{ "type": "gaps", "items": [ { "text": "{{a}}" } ] }""").replace("\"formatVersion\": 1", "\"formatVersion\": $FORMAT_VERSION")
+        assertTrue(problems(v2.replace("\"name\": \"X\"", "\"name\": \"X\", \"settings\": { \"allowTypos\": false }")).single().contains("settings"))
+        assertTrue(problems(v2.replace("\"name\": \"X\"", "\"name\": \"X\", \"rules\": { \"picker\": { \"type\": \"random\" } }")).single().startsWith("rules.picker"))
+    }
+
+    @Test fun aStoredCourseOfFormatOneIsUpgradedToo() {
+        val stored = CourseJson.write(read(flatWithExercise("""{ "type": "gaps", "items": [ { "text": "{{a}}" } ] }""")).course)
+            .replace("\"formatVersion\": $FORMAT_VERSION", "\"formatVersion\": 1")
+            .replace("\"name\": \"X\"", "\"name\": \"X\", \"settings\": { \"allowTypos\": false }")
+        val course = CourseJson.readStored(stored)
+        assertEquals(FORMAT_VERSION, course.formatVersion)
+        assertEquals(false, course.rules?.grading?.typos)
+        assertFalse(course.studyOnly)
     }
 
     @Test fun linksMustPointAtSomethingThatExists() {
@@ -212,14 +244,14 @@ class CourseJsonTest {
     // newer format
 
     private val newer = CourseSamples.units
-        .replace("\"formatVersion\": 1", "\"formatVersion\": 2, \"level\": \"B1\"")
+        .replace("\"formatVersion\": 1", "\"formatVersion\": 3, \"level\": \"B1\"")
         .replace("\"type\": \"order\"", "\"type\": \"dictation\"")
         .replace("{ \"type\": \"text\", \"text\": \"He**’s cycling**.\" }", "{ \"type\": \"video\", \"src\": \"v.mp4\" }")
 
     @Test fun aNewerFileIsReadLenientlyWithWarnings() {
         val (course, warnings) = read(newer)
         assertTrue(course.studyOnly)
-        assertEquals(2, course.formatVersion)
+        assertEquals(3, course.formatVersion)
         assertEquals(
             listOf(
                 "units[0].theory.blocks[0].blocks[0]: unknown block type \"video\"",
@@ -263,7 +295,7 @@ class CourseJsonTest {
 
     @Test fun writtenFilesStartWithTheFormatVersion() {
         val written = CourseJson.write(read(CourseSamples.flat).course)
-        assertTrue(written.lines()[1].trim() == "\"formatVersion\": 1,", written.lines()[1])
+        assertTrue(written.lines()[1].trim() == "\"formatVersion\": 2,", written.lines()[1])
     }
 
     @Test fun storedDocumentsAreReadWithoutChecks() {

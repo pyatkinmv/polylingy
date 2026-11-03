@@ -130,7 +130,7 @@ class CourseListUiTest {
     }
 
     @Test fun aCourseFromANewerVersionIsImportedWithANotice() = appTest {
-        files.open("future.json", """{ "formatVersion": 2, "name": "Future",
+        files.open("future.json", """{ "formatVersion": 3, "name": "Future",
             "topics": [ { "title": "T", "exercises": [ { "type": "dictation", "audio": "a.mp3" } ] } ] }""")
         click("＋ Import")
         text("\"Future\" was made with a newer Polylingy").assertIsDisplayed()

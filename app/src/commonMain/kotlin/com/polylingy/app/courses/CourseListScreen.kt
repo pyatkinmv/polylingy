@@ -63,7 +63,7 @@ private sealed interface CourseDialog {
 private const val SHOWN_PROBLEMS = 15
 
 @Composable
-fun CourseListScreen(viewModel: CourseListViewModel, files: CourseFiles, today: LocalDate, onOpen: (Uuid) -> Unit) {
+fun CourseListScreen(viewModel: CourseListViewModel, files: CourseFiles, today: LocalDate, onOpen: (Uuid) -> Unit, onSettings: (Uuid) -> Unit) {
     val courses by viewModel.courses.collectAsState()
     val broken by viewModel.broken.collectAsState()
     var dialog by remember { mutableStateOf<CourseDialog?>(null) }
@@ -93,6 +93,7 @@ fun CourseListScreen(viewModel: CourseListViewModel, files: CourseFiles, today: 
                         today,
                         onOpen = { onOpen(row.course.id) },
                         onEdit = { dialog = CourseDialog.Edit(row.course) },
+                        onSettings = { onSettings(row.course.id) },
                         onExport = {
                             viewModel.export(row.course.id)
                                 .onSuccess { files.save(it.fileName, it.bytes) }
@@ -135,7 +136,7 @@ fun CourseListScreen(viewModel: CourseListViewModel, files: CourseFiles, today: 
 }
 
 @Composable
-private fun CourseTile(row: CourseRow, today: LocalDate, onOpen: () -> Unit, onEdit: () -> Unit, onExport: () -> Unit, onRemove: () -> Unit) {
+private fun CourseTile(row: CourseRow, today: LocalDate, onOpen: () -> Unit, onEdit: () -> Unit, onSettings: () -> Unit, onExport: () -> Unit, onRemove: () -> Unit) {
     val course = row.course
     Tile(onClick = onOpen) {
         CourseMark(course.name, course.markColour())
@@ -150,6 +151,7 @@ private fun CourseTile(row: CourseRow, today: LocalDate, onOpen: () -> Unit, onE
         MoreMenu(
             listOf(
                 MenuItem("Edit name and description…", enabled = !course.studyOnly, action = onEdit),
+                MenuItem("Study settings…", enabled = !course.studyOnly, action = onSettings),
                 MenuItem("Export", enabled = !course.studyOnly, action = onExport),
                 MenuItem("Remove", danger = true, action = onRemove),
             ),

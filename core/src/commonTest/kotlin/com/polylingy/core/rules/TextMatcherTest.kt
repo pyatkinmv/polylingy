@@ -9,10 +9,10 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
 class TextMatcherTest {
-    private data class Case(val input: String, val variants: List<String>, val expected: ItemResult, val allowTypos: Boolean = true)
+    private data class Case(val input: String, val variants: List<String>, val expected: ItemResult)
 
-    private fun case(input: String, right: String, expected: ItemResult, allowTypos: Boolean = true) =
-        Case(input, right.split('|'), expected, allowTypos)
+    private fun case(input: String, right: String, expected: ItemResult) =
+        Case(input, right.split('|'), expected)
 
     private val cases = listOf(
         // exact and variants
@@ -57,23 +57,21 @@ class TextMatcherTest {
         case("is working now", "is working", WRONG),
         case("working", "is working", WRONG),
         // typos switched off
-        case("is wroking", "is working", WRONG, allowTypos = false),
-        case("is working", "is working", CORRECT, allowTypos = false),
         // nothing typed
         case("", "is working", WRONG),
         case("   ", "a", WRONG),
     )
 
     @Test fun table() {
-        for ((input, variants, expected, allowTypos) in cases) {
-            assertEquals(expected, TextMatcher.match(input, variants, allowTypos).result, "\"$input\" vs $variants, typos=$allowTypos")
+        for ((input, variants, expected) in cases) {
+            assertEquals(expected, TextMatcher.match(input, variants).result, "\"$input\" vs $variants")
         }
     }
 
     @Test fun reportsTheVariantItMatched() {
-        assertEquals(TextMatch(CORRECT, "’s working"), TextMatcher.match("'s working", listOf("is working", "’s working"), true))
-        assertEquals(TextMatch(TYPO, "is working"), TextMatcher.match("is wroking", listOf("’s working", "is working"), true))
-        assertEquals(TextMatch(WRONG, "’s working"), TextMatcher.match("was working", listOf("’s working", "is working"), true))
+        assertEquals(TextMatch(CORRECT, "’s working"), TextMatcher.match("'s working", listOf("is working", "’s working")))
+        assertEquals(TextMatch(TYPO, "is working"), TextMatcher.match("is wroking", listOf("’s working", "is working")))
+        assertEquals(TextMatch(WRONG, "’s working"), TextMatcher.match("was working", listOf("’s working", "is working")))
     }
 
     @Test fun normalization() {
@@ -82,6 +80,6 @@ class TextMatcherTest {
     }
 
     @Test fun anItemNeedsARightAnswer() {
-        assertFailsWith<IllegalArgumentException> { TextMatcher.match("x", emptyList(), true) }
+        assertFailsWith<IllegalArgumentException> { TextMatcher.match("x", emptyList()) }
     }
 }

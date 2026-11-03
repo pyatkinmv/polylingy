@@ -49,9 +49,9 @@ class AppContainer(
     /** Picks topics and exercises; fixed in tests for repeatable runs. */
     val random: Random = Random.Default,
 ) {
-    val courseService = CourseService(storage.courses, clock)
+    val courseService = CourseService(storage.courses, storage.courseSettings, clock)
     val library = CourseLibrary(storage.courses, courseService, images, fetcher, archives, clock)
-    val study = StudyService(storage.courses, storage.journal, clock, storage.deviceId, random)
+    val study = StudyService(storage.courses, storage.courseSettings, storage.journal, clock, storage.deviceId, random)
 
     private val decoded = mutableMapOf<Pair<Uuid, String>, ImageBitmap?>()
 

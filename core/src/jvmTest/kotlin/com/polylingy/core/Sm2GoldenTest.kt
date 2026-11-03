@@ -5,7 +5,9 @@ import com.polylingy.core.journal.ZonedInstant
 import com.polylingy.core.learning.AllCorrect
 import com.polylingy.core.learning.Consecutive
 import com.polylingy.core.learning.CourseRules
-import com.polylingy.core.learning.ReviewsFirst
+import com.polylingy.core.content.PickerSpec
+import com.polylingy.core.learning.toPicker
+import kotlin.random.Random
 import com.polylingy.core.learning.Sm2Scheduler
 import com.polylingy.core.learning.replay
 import kotlinx.datetime.LocalDate
@@ -41,7 +43,7 @@ class Sm2GoldenTest {
     )
 
     /** How 0.1 worked: 3 right in a row in learning and in review alike. */
-    private val rules = CourseRules(AllCorrect, Consecutive(learning = 3, review = 3), Sm2Scheduler, ReviewsFirst)
+    private val rules = CourseRules(AllCorrect(), Consecutive(learning = 3, review = 3), Sm2Scheduler, PickerSpec.Conveyor().toPicker(Random(0)))
 
     @Test fun replayMatchesTheGoldenScheduleAfterEveryGraduation() {
         var graduations = 0

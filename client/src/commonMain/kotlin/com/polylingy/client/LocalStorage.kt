@@ -2,28 +2,34 @@ package com.polylingy.client
 
 import app.cash.sqldelight.db.SqlDriver
 import com.polylingy.client.db.PolylingyDb
+import com.polylingy.content.ContentFormatException
+import com.polylingy.content.ContentJson
 import com.polylingy.content.Problem
 import com.polylingy.core.PolylingyJson
 import com.polylingy.core.content.Course
 import com.polylingy.core.content.CourseFormatException
 import com.polylingy.core.content.CourseJson
+import com.polylingy.core.content.RulesSpec
 import com.polylingy.core.journal.EventEnvelope
 import com.polylingy.core.ports.CourseRepository
+import com.polylingy.core.ports.CourseSettingsRepository
 import com.polylingy.core.ports.EventLog
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlin.time.Instant
 import kotlin.uuid.Uuid
 
 private val log = KotlinLogging.logger {}
 
-/** Everything a client keeps on disk: course documents, the journal and installation settings. */
+/** Everything a client keeps on disk: course documents, their settings, the journal and installation settings. */
 class LocalStorage(private val driver: SqlDriver) : AutoCloseable {
     private val db = PolylingyDb(driver)
 
     private val courseRepository = SqlCourseRepository(db)
     val courses: CourseRepository = courseRepository
+    val courseSettings: CourseSettingsRepository = SqlCourseSettings(db)
     val journal: EventLog = SqlEventLog(db)
 
     /** Stored courses this version can't read; [courses] leaves them out. Removing one goes through [courses] as usual. */
@@ -82,6 +88,27 @@ internal class SqlCourseRepository(private val db: PolylingyDb) : CourseReposito
     }
 
     private fun decode(body: String) = CourseJson.readStored(body)
+}
+
+internal class SqlCourseSettings(private val db: PolylingyDb) : CourseSettingsRepository {
+    /** The stored settings; ones this version can't read are logged and treated as none, so the course's rules apply. */
+    override fun get(courseId: Uuid): RulesSpec? {
+        val body = db.courseSettingsQueries.selectBody(courseId.toString()).executeAsOneOrNull() ?: return null
+        return try {
+            ContentJson.decode(RulesSpec.serializer(), body)
+        } catch (e: ContentFormatException) {
+            log.error { "Settings of course $courseId can't be read (${e.problem}); using the course's own rules" }
+            null
+        }
+    }
+
+    override fun save(courseId: Uuid, rules: RulesSpec, updatedAt: Instant) {
+        db.courseSettingsQueries.upsert(courseId.toString(), updatedAt.toString(), ContentJson.strict.encodeToString(RulesSpec.serializer(), rules))
+    }
+
+    override fun delete(courseId: Uuid) {
+        db.courseSettingsQueries.deleteById(courseId.toString())
+    }
 }
 
 internal class SqlEventLog(private val db: PolylingyDb) : EventLog {

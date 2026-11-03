@@ -92,14 +92,16 @@ fun CourseScreen(viewModel: CourseViewModel, clock: Clock, go: Navigator) {
     val editable = !course.studyOnly
 
     Column(Modifier.fillMaxSize()) {
-        TopBar(listOf("Courses" to go::courses, course.name to null))
+        TopBar(listOf("Courses" to go::courses, course.name to null)) {
+            if (editable) QuietButton("Study settings") { go.settings(course.id) }
+        }
         Page(Modifier.verticalScroll(rememberScrollState())) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(course.name, style = MaterialTheme.typography.headlineMedium)
                 course.description?.let { InlineText(it, style = MaterialTheme.typography.bodyLarge.copy(color = Look.Muted)) }
             }
             if (course.studyOnly) NewerVersionNote()
-            TodayHero(p.counts, next, today, accent, course.settings.newPerDay) { go.follow(course.id, viewModel.continueStudy()) }
+            TodayHero(p.counts, next, today, accent, p.newPerDay) { go.follow(course.id, viewModel.continueStudy()) }
             if (course.units.isNotEmpty()) {
                 ListTitle("Units", if (editable) "＋ Add unit" else null) { go.edit(course.id, CoursePart.Unit(null)) }
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -162,7 +164,7 @@ fun UnitScreen(viewModel: CourseViewModel, unitId: Uuid, clock: Clock, go: Navig
                 unit.unit.subtitle?.let { InlineText(it, style = MaterialTheme.typography.bodyLarge.copy(color = Look.Muted)) }
             }
             // The daily limit belongs to the course: the unit's new topics are offered only as far as it allows today.
-            TodayHero(ProgressCounts.of(unit.topics, p.newToday), next, today, Look.Green, course.settings.newPerDay) {
+            TodayHero(ProgressCounts.of(unit.topics, p.newToday), next, today, Look.Green, p.newPerDay) {
                 go.follow(course.id, viewModel.continueStudy())
             }
             ListTitle("Topics", if (editable) "＋ Add topic" else null) { go.edit(course.id, CoursePart.Topic(unitId, null)) }

@@ -143,6 +143,19 @@ class EditUiTest {
         assertEquals(listOf("Things happening now"), stored().units[0].topics.map { it.title })
     }
 
+    @Test fun thePreviewChecksTyposByTheCourseSettings() = appTest({
+        it.seedCourse(course.replace("\"name\": \"Grammar in Use\",", "\"name\": \"Grammar in Use\", \"rules\": { \"grading\": { \"type\": \"all-correct\", \"typos\": false } },"))
+    }, height = 1000) {
+        click("Grammar in Use")
+        click("Present continuous")
+        menu("Edit topic…", index = 0)
+        fill(1, "is sinigng")
+        click("Check")
+        text("1 mistake").assertIsDisplayed()
+        screenshot("edit-topic-preview-typo")
+        assertTrue(container.storage.journal.all().isEmpty())
+    }
+
     /** "Questions" was answered before it is deleted: the answer stays in the journal and no longer counts. */
     private val answered: (AppContainer) -> Unit = { container ->
         val course = container.seedCourse(course)
@@ -214,7 +227,7 @@ class EditUiTest {
         screenshot("edit-flat-course")
     }
 
-    @Test fun aCourseFromANewerVersionCantBeChanged() = appTest({ it.seedCourse(course.replace("\"formatVersion\": 1", "\"formatVersion\": 2")) }) {
+    @Test fun aCourseFromANewerVersionCantBeChanged() = appTest({ it.seedCourse(course.replace("\"formatVersion\": 1", "\"formatVersion\": 3")) }) {
         click("Grammar in Use")
         assertTrue(test.onAllNodesWithText("＋ Add unit").fetchSemanticsNodes().isEmpty())
         assertTrue(test.onAllNodesWithText("⋯").fetchSemanticsNodes().isEmpty())

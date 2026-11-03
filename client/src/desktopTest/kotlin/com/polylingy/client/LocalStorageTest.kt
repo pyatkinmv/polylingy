@@ -6,6 +6,9 @@ import com.polylingy.content.ItemResult
 import com.polylingy.content.Response
 import com.polylingy.core.content.Course
 import com.polylingy.core.content.CourseJson
+import com.polylingy.core.content.PickerSpec
+import com.polylingy.core.content.Preset
+import com.polylingy.core.content.RulesSpec
 import com.polylingy.core.content.Topic
 import com.polylingy.core.journal.AnswerSubmitted
 import com.polylingy.core.journal.EventEnvelope
@@ -72,7 +75,7 @@ class LocalStorageTest {
     }
 
     @Test fun aStudyOnlyCourseIsStoredAsItCame() {
-        val text = """{ "formatVersion": 2, "name": "Future", "level": "C1",
+        val text = """{ "formatVersion": 3, "name": "Future", "level": "C1",
             "topics": [ { "title": "T", "exercises": [ { "type": "dictation", "audio": "a.mp3" } ] } ] }"""
         val c = CourseJson.read(text, Instant.fromEpochSeconds(0)).course
         storage.courses.save(c)
@@ -83,6 +86,47 @@ class LocalStorageTest {
     }
 
     private fun Course.ids() = listOf(id) + topics.map { it.id } + topics.flatMap { t -> t.exercises.map { it.id } }
+
+    // course settings
+
+    @Test fun settingsAreStoredPerCourseAndDeleted() {
+        val id = Uuid.random()
+        assertNull(storage.courseSettings.get(id))
+        val rules = RulesSpec(Preset.SM2).resolved()
+        storage.courseSettings.save(id, rules, Instant.fromEpochSeconds(0))
+        assertEquals(rules, storage.courseSettings.get(id))
+        val changed = rules.copy(picker = PickerSpec.Shuffle(newPerDay = 3))
+        storage.courseSettings.save(id, changed, Instant.fromEpochSeconds(1))
+        assertEquals(changed, storage.courseSettings.get(id))
+        storage.courseSettings.delete(id)
+        assertNull(storage.courseSettings.get(id))
+    }
+
+    @Test fun settingsThatNoLongerReadCountAsNone() {
+        val id = Uuid.random()
+        DesktopStorage.open(tempDir).use { it.courseSettings.save(id, RulesSpec(), Instant.fromEpochSeconds(0)) }
+        java.sql.DriverManager.getConnection("jdbc:sqlite:${tempDir.resolve("polylingy.db")}").use { connection ->
+            connection.createStatement().use { it.executeUpdate("UPDATE course_settings SET body = '{ \"preset\": \"turbo\" }'") }
+        }
+        DesktopStorage.open(tempDir).use { assertNull(it.courseSettings.get(id), "the course's own rules apply") }
+    }
+
+    @Test fun aDatabaseFromBeforeSettingsGetsTheirTable() {
+        val c = course("Kept")
+        DesktopStorage.open(tempDir).use { it.courses.save(c) }
+        java.sql.DriverManager.getConnection("jdbc:sqlite:${tempDir.resolve("polylingy.db")}").use { connection ->
+            connection.createStatement().use {
+                it.executeUpdate("DROP TABLE course_settings")
+                it.executeUpdate("PRAGMA user_version = 1")
+            }
+        }
+        DesktopStorage.open(tempDir).use { reopened ->
+            assertEquals(listOf(c), reopened.courses.all())
+            assertNull(reopened.courseSettings.get(c.id))
+            reopened.courseSettings.save(c.id, RulesSpec(), Instant.fromEpochSeconds(0))
+            assertEquals(RulesSpec(), reopened.courseSettings.get(c.id))
+        }
+    }
 
     // journal
 

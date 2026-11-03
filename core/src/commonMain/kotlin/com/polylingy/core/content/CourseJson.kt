@@ -29,7 +29,7 @@ object CourseJson {
      * A file of this app's format version must be fully known; one of a newer version is read leniently.
      */
     fun read(text: String, now: Instant): ReadCourse {
-        val root = parse(text)
+        val root = upgrade(parse(text))
         val version = formatVersion(root)
         val lenient = version > FORMAT_VERSION
         val normalized = ContentJson.strict.encodeToString(JsonElement.serializer(), Filler(now).course(root))
@@ -49,10 +49,41 @@ object CourseJson {
 
     /** Reads a course this app saved; such a document is trusted and isn't checked again. */
     fun readStored(text: String): Course {
-        val root = parse(text)
+        val parsed = parse(text)
+        val root = upgrade(parsed)
         val lenient = formatVersion(root) > FORMAT_VERSION
-        val course = decode(text, lenient)
-        return if (lenient) course.copy(sourceJson = text) else course
+        val json = if (root === parsed) text else ContentJson.strict.encodeToString(JsonElement.serializer(), root)
+        val course = decode(json, lenient)
+        return if (lenient) course.copy(sourceJson = json) else course
+    }
+
+    /**
+     * Brings a document of an older format up to this one; a newer or current one is returned as it is.
+     * 1 → 2: `settings` moved into `rules` — `allowTypos` became `grading.typos`, `newPerDay` became `picker.newPerDay` —
+     * and the pickers were renamed: `reviews-first` → `conveyor`, `random` → `shuffle`.
+     */
+    internal fun upgrade(root: JsonObject): JsonObject {
+        val version = (root["formatVersion"] as? JsonPrimitive)?.takeUnless { it.isString }?.intOrNull ?: return root
+        if (version != 1) return root
+        val settings = root["settings"] as? JsonObject
+        var rules = root["rules"] as? JsonObject ?: if (settings != null) JsonObject(emptyMap()) else null
+        fun JsonObject.with(key: String, value: JsonElement) = JsonObject(this + (key to value))
+        rules?.let { r ->
+            var picker = r["picker"] as? JsonObject
+            picker?.get("type")?.let { type ->
+                val renamed = mapOf("reviews-first" to "conveyor", "random" to "shuffle")[(type as? JsonPrimitive)?.content]
+                if (renamed != null) picker = picker!!.with("type", JsonPrimitive(renamed))
+            }
+            var grading = r["grading"] as? JsonObject
+            settings?.get("allowTypos")?.let { grading = (grading ?: JsonObject(mapOf("type" to JsonPrimitive("all-correct")))).with("typos", it) }
+            settings?.get("newPerDay")?.let { picker = (picker ?: JsonObject(mapOf("type" to JsonPrimitive("conveyor")))).with("newPerDay", it) }
+            var upgraded = r
+            grading?.let { upgraded = upgraded.with("grading", it) }
+            picker?.let { upgraded = upgraded.with("picker", it) }
+            rules = upgraded
+        }
+        val rest = if (settings != null) root - "settings" else root
+        return JsonObject(rest + ("formatVersion" to JsonPrimitive(2)) + (rules?.let { mapOf("rules" to it) } ?: emptyMap()))
     }
 
     private fun parse(text: String): JsonObject {

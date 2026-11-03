@@ -43,7 +43,6 @@ import com.polylingy.content.compose.ExerciseView
 import com.polylingy.content.compose.ImageLoader
 import com.polylingy.content.emptyResponse
 import com.polylingy.core.content.CourseJson
-import com.polylingy.core.rules.CheckSettings
 import com.polylingy.core.rules.Checking
 import org.jetbrains.skia.Image
 import kotlin.test.Test
@@ -74,7 +73,7 @@ class ShowcaseUiTest {
         setContent {
             var response by remember { mutableStateOf(exercise.emptyResponse()) }
             var checks by remember { mutableStateOf<List<ItemCheck>?>(null) }
-            val check = { checks = Checking.check(exercise, response, CheckSettings()).also(checked) }
+            val check = { checks = Checking.check(exercise, response).also(checked) }
             MaterialTheme {
                 ContentTheme(ContentColors.forAccent(accent), images) {
                     Column(

@@ -10,9 +10,11 @@ Everything runs offline; data stays on your machine.
 
 - Theory pages built from blocks: sections, situations with pictures, tables, examples, word lists, tips, links
 - Six exercise types: gaps, choice, pictures with gaps, tables with gaps, matching, word order
-- Answers are checked item by item, with one forgiven typo per item if the course allows it
+- Answers are checked item by item; one typo per item is forgiven unless you turn that off
 - Explanations after every check: per exercise, per topic, and short notes per item, with links into the theory
-- Course policies: a preset (`quick`, `ladder` by default, `sm2`) with optional overrides — grading, mastery, schedule, order
+- Study settings per course, as four questions: when an answer counts, when a topic is done, when it comes back,
+  what comes next (conveyor, shuffle or alternate, with a daily limit of new topics); ready sets fill in the first three
+- Units and topics can be added, edited (as JSON, with a live preview) and deleted
 - Courses imported from and exported to `course.json` or a zip with pictures
 - Every answer is kept in a journal; progress is computed from it
 
@@ -35,7 +37,7 @@ it isn't checked for now.
 
 ```json
 {
-  "formatVersion": 1,
+  "formatVersion": 2,
   "name": "English Grammar",
   "units": [
     {
