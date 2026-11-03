@@ -1,0 +1,17 @@
+-- Each course's settings: its policies as the learner set them, every part written out (RulesSpec as JSON, the
+-- same shape as "rules" in a course file). Kept apart from course_document (docs/architecture.md, section 5);
+-- updated_at is for sync, the later one wins.
+CREATE TABLE course_settings (
+    course_id TEXT NOT NULL PRIMARY KEY,
+    updated_at TEXT NOT NULL,
+    body TEXT NOT NULL
+);
+
+selectBody:
+SELECT body FROM course_settings WHERE course_id = ?;
+
+upsert:
+INSERT OR REPLACE INTO course_settings(course_id, updated_at, body) VALUES (?, ?, ?);
+
+deleteById:
+DELETE FROM course_settings WHERE course_id = ?;

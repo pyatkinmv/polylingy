@@ -6,10 +6,11 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * A course's policies as written in its file: a [preset], and any of the four parts to replace that part of it.
+ * A course's policies as written in its file and in its settings: a [preset], and any of the four parts to replace
+ * that part of it. Settings are always stored [resolved], with every part written out.
  *
  * ```json
- * "rules": { "preset": "ladder", "grading": { "type": "threshold", "min": 0.75 } }
+ * "rules": { "preset": "ladder", "grading": { "type": "threshold", "min": 0.75 }, "picker": { "type": "conveyor", "newPerDay": 10 } }
  * ```
  */
 @Serializable
@@ -20,10 +21,29 @@ data class RulesSpec(
     val scheduler: SchedulerSpec? = null,
     val picker: PickerSpec? = null,
 ) {
+    /** Every part written out: the ones given, the rest from the [preset]. */
+    fun resolved(): RulesSpec {
+        val base = preset.spec
+        return copy(
+            grading = grading ?: base.grading,
+            mastery = mastery ?: base.mastery,
+            scheduler = scheduler ?: base.scheduler,
+            picker = picker ?: base.picker,
+        )
+    }
+
+    /** The preset whose grading, mastery and scheduler these are, if any; the picker isn't part of the comparison. */
+    fun matchingPreset(): Preset? {
+        val own = resolved()
+        return Preset.entries.firstOrNull { preset ->
+            val base = preset.spec
+            own.grading == base.grading && own.mastery == base.mastery && own.scheduler == base.scheduler
+        }
+    }
+
     fun validate(at: Path): List<Problem> = buildList {
-        when (grading) {
-            is GradingSpec.Threshold -> if (grading.min <= 0 || grading.min > 1) add(Problem(at / "grading" / "min", "must be more than 0 and at most 1, like 0.75"))
-            GradingSpec.AllCorrect, null -> {}
+        if (grading is GradingSpec.Threshold && (grading.min <= 0 || grading.min > 1)) {
+            add(Problem(at / "grading" / "min", "must be more than 0 and at most 1, like 0.75"))
         }
         if (mastery is MasterySpec.Consecutive) {
             if (mastery.learning < 1) add(Problem(at / "mastery" / "learning", "must be at least 1"))
@@ -33,10 +53,11 @@ data class RulesSpec(
             if (scheduler.days.isEmpty()) add(Problem(at / "scheduler" / "days", "needs at least one interval"))
             scheduler.days.forEachIndexed { i, d -> if (d < 1) add(Problem((at / "scheduler" / "days")[i], "must be at least 1 day")) }
         }
+        picker?.newPerDay?.let { if (it < 1) add(Problem(at / "picker" / "newPerDay", "must be at least 1, or left out for no limit")) }
     }
 }
 
-/** The ready sets of docs/migration-plan.md, stage 4. */
+/** Ready sets of grading, mastery and scheduler (docs/learning-model.md, section 4); each comes with the conveyor picker. */
 @Serializable
 enum class Preset {
     /** All correct, 1 in a row, learned after one round. */
@@ -47,13 +68,25 @@ enum class Preset {
 
     /** All correct, 3 in a row while learning and 1 while reviewing, SM-2. */
     @SerialName("sm2") SM2,
+    ;
+
+    /** This preset with every part written out. */
+    val spec: RulesSpec
+        get() = when (this) {
+            QUICK -> RulesSpec(this, GradingSpec.AllCorrect(), MasterySpec.Consecutive(1, 1), SchedulerSpec.Once, PickerSpec.Conveyor())
+            LADDER -> RulesSpec(this, GradingSpec.AllCorrect(), MasterySpec.Consecutive(3, 1), SchedulerSpec.Ladder(), PickerSpec.Conveyor())
+            SM2 -> RulesSpec(this, GradingSpec.AllCorrect(), MasterySpec.Consecutive(3, 1), SchedulerSpec.Sm2, PickerSpec.Conveyor())
+        }
 }
 
+/** When an answer counts. [typos] — whether an item with a typo counts as right; checking always reports it as a typo. */
 @Serializable
 sealed interface GradingSpec {
-    @Serializable @SerialName("all-correct") data object AllCorrect : GradingSpec
+    val typos: Boolean
 
-    @Serializable @SerialName("threshold") data class Threshold(val min: Double) : GradingSpec
+    @Serializable @SerialName("all-correct") data class AllCorrect(override val typos: Boolean = true) : GradingSpec
+
+    @Serializable @SerialName("threshold") data class Threshold(val min: Double, override val typos: Boolean = true) : GradingSpec
 }
 
 @Serializable
@@ -65,15 +98,23 @@ sealed interface MasterySpec {
 sealed interface SchedulerSpec {
     @Serializable @SerialName("once") data object Once : SchedulerSpec
 
+    /** [retire] off: after the last step every gap is twice the one before. */
     @Serializable @SerialName("ladder") data class Ladder(val days: List<Int> = listOf(1, 3, 7, 14, 30), val retire: Boolean = true) : SchedulerSpec
 
     @Serializable @SerialName("sm2") data object Sm2 : SchedulerSpec
 }
 
+/** What comes next in a session (docs/learning-model.md, section 7, «Пикер»). [newPerDay] — new topics a day; null — no limit. */
 @Serializable
 sealed interface PickerSpec {
-    @Serializable @SerialName("reviews-first") data object ReviewsFirst : PickerSpec
+    val newPerDay: Int?
 
-    /** Reviews first, then new topics in random order. */
-    @Serializable @SerialName("random") data object Random : PickerSpec
+    /** Started → due → new, in course order; stays on a topic until its round is over. */
+    @Serializable @SerialName("conveyor") data class Conveyor(override val newPerDay: Int? = null) : PickerSpec
+
+    /** Started → due → new, each group in random order; stays on a topic until its round is over. */
+    @Serializable @SerialName("shuffle") data class Shuffle(override val newPerDay: Int? = null) : PickerSpec
+
+    /** Started → due → new, in course order; another topic after every answer. */
+    @Serializable @SerialName("alternate") data class Alternate(override val newPerDay: Int? = null) : PickerSpec
 }

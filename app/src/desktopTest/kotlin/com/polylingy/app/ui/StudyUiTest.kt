@@ -161,6 +161,72 @@ class StudyUiTest {
         screenshot("course-list-limit-done")
     }
 
+    /** Two topics that need two right answers each; [rules] decide the picker and the typos. */
+    private fun colours(rules: String): (AppContainer) -> Unit = {
+        it.seedCourse("""{ "formatVersion": 2, "name": "Colours",
+            "rules": { "mastery": { "type": "consecutive", "learning": 2, "review": 1 }, $rules },
+            "topics": [
+              { "title": "red", "exercises": [ { "type": "gaps", "items": [ { "text": "{{rojo}}" } ] } ] },
+              { "title": "green", "exercises": [ { "type": "gaps", "items": [ { "text": "{{verde}}" } ] } ] } ] }""")
+    }
+
+    /** The topic on screen: the last crumb of the bar on top. */
+    private fun AppHarness.onTopic(title: String) = test.onNode(hasText(title)).assertIsDisplayed()
+
+    private fun AppHarness.answer(text: String) {
+        fill(1, text)
+        click("Check")
+        click("Next →")
+    }
+
+    @Test fun alternatingShowsAnotherTopicAfterEveryAnswer() = appTest(colours(""""picker": { "type": "alternate" }""")) {
+        click("Colours")
+        click("Continue →")
+        onTopic("red")
+        screenshot("study-alternate")
+        answer("rojo")
+        onTopic("green")
+        answer("verde")
+        onTopic("red")
+        answer("nope")
+        onTopic("green")
+        answer("verde")
+        onTopic("red")
+        answer("rojo")
+        onTopic("red")
+        answer("rojo")
+        text("That’s all for today").assertIsDisplayed()
+    }
+
+    @Test fun theConveyorStaysOnATopicUntilItIsDone() = appTest(colours(""""picker": { "type": "conveyor" }""")) {
+        click("Colours")
+        click("Continue →")
+        onTopic("red")
+        answer("rojo")
+        onTopic("red")
+        answer("rojo")
+        onTopic("green")
+    }
+
+    @Test fun aTypoTheCourseDoesntForgiveIsAMistakeOnScreen() = appTest(colours(""""grading": { "type": "all-correct", "typos": false }""")) {
+        click("Colours")
+        click("Continue →")
+        fill(1, "rjoo")
+        click("Check")
+        text("1 mistake").assertIsDisplayed()
+        screenshot("exercise-typo-not-forgiven")
+        val stored = container.storage.journal.all().single().event as com.polylingy.core.journal.AnswerSubmitted
+        assertEquals(listOf(com.polylingy.content.ItemResult.TYPO), stored.results, "the journal keeps the typo")
+    }
+
+    @Test fun aForgivenTypoCountsAndSaysSo() = appTest(colours(""""grading": { "type": "all-correct", "typos": true }""")) {
+        click("Colours")
+        click("Continue →")
+        fill(1, "rjoo")
+        click("Check")
+        text("1 typo").assertIsDisplayed()
+    }
+
     @Test fun aBlankTakesAtMostFortyCharacters() = appTest(seed) {
         click("Grammar in Use")
         click("Present simple")

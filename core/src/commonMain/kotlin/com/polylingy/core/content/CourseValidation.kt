@@ -28,7 +28,6 @@ fun Course.validate(): List<Problem> = buildList {
     description?.let { addAll(it.validate(root / "description")) }
     theme?.accent?.let { if (!Accent.matches(it)) error(root / "theme" / "accent", "must be a colour like #2F6B5E") }
     rules?.let { addAll(it.validate(root / "rules")) }
-    settings.newPerDay?.let { if (it < 1) error(root / "settings" / "newPerDay", "must be at least 1, or left out for no limit") }
     when {
         units.isNotEmpty() && topics.isNotEmpty() -> error(root, "has both units and topics; a course has one or the other")
         units.isEmpty() && topics.isEmpty() -> error(root, "needs units or topics")

@@ -100,7 +100,7 @@ class CourseLibrary(
     fun export(courseId: Uuid): CourseExport {
         val course = requireNotNull(courses.get(courseId)) { "No course $courseId" }
         require(!course.studyOnly) { "This course was made with a newer version of Polylingy; update the app to export it" }
-        val json = CourseJson.write(course)
+        val json = CourseJson.write(service.forExport(course))
         val own = course.images().map { it.second }.filterNot { it.isUrl }.map { it.src }.distinct()
         val export = if (own.isEmpty()) {
             CourseExport("${slug(course.name)}.json", json.toByteArray())

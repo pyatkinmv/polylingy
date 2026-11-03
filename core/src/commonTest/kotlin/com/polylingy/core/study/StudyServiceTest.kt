@@ -5,6 +5,7 @@ import com.polylingy.content.ItemResult
 import com.polylingy.content.Response
 import com.polylingy.core.FixedClock
 import com.polylingy.core.InMemoryCourseRepository
+import com.polylingy.core.InMemoryCourseSettings
 import com.polylingy.core.InMemoryEventLog
 import com.polylingy.core.at
 import com.polylingy.core.content.Course
@@ -27,6 +28,7 @@ class StudyServiceTest {
     private val monday = LocalDate(2026, 11, 2)
     private val clock = FixedClock(at(monday))
     private val journal = InMemoryEventLog()
+    private val settings = InMemoryCourseSettings()
 
     private fun gaps(answer: String) = """{ "type": "gaps", "items": [ { "text": "{{$answer}}" } ] }"""
 
@@ -37,12 +39,12 @@ class StudyServiceTest {
               { "title": "U1", "theory": { "format": "blocks", "blocks": [ { "type": "text", "text": "Theory" } ] },
                 "topics": [ { "title": "1.1", "exercises": [ ${gaps("a")} ] },
                             { "title": "1.2", "exercises": [ ${gaps("b")}, ${gaps("c")}, { "type": "dictation" } ] } ] },
-              { "title": "U2", "topics": [ { "title": "2.1", "exercises": [ ${gaps("d")} ] } ] } ] }""".replace("formatVersion\": 1", "formatVersion\": 2"),
+              { "title": "U2", "topics": [ { "title": "2.1", "exercises": [ ${gaps("d")} ] } ] } ] }""".replace("formatVersion\": 1", "formatVersion\": 3"),
         clock.now().instant,
     ).course
 
     private fun service(course: Course, random: Random = Random(1)) =
-        StudyService(InMemoryCourseRepository(course), journal, clock, Uuid.NIL, random) to course
+        StudyService(InMemoryCourseRepository(course), settings, journal, clock, Uuid.NIL, random) to course
 
     private fun StudyService.answerRight(course: Course, next: NextExercise) = answer(course.id, next.topic.id, next.exercise.id, Response.Blanks(listOf(blankOf(next.exercise))))
     private fun StudyService.answerWrong(course: Course, next: NextExercise) = answer(course.id, next.topic.id, next.exercise.id, Response.Blanks(listOf("nope")))
@@ -262,7 +264,7 @@ class StudyServiceTest {
                             { "title": "C", "exercises": [ ${gaps("c")} ] } ] }""",
             clock.now().instant,
         ).course
-        val picks = (1..30).map { StudyService(InMemoryCourseRepository(course), InMemoryEventLog(), clock, Uuid.NIL, Random(it)).next(course.id)!!.topic.title }.toSet()
+        val picks = (1..30).map { StudyService(InMemoryCourseRepository(course), InMemoryCourseSettings(), InMemoryEventLog(), clock, Uuid.NIL, Random(it)).next(course.id)!!.topic.title }.toSet()
         assertEquals(setOf("A", "B", "C"), picks)
         val (study, _) = service(course)
         assertNotEquals(null, study.progress(course.id)!!.topics.firstOrNull())

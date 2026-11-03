@@ -16,7 +16,7 @@ so a mismatched set doesn't compile:
 - `GradingRule<G>` → `AllCorrect`, `Threshold` — an answer's item results to a grade
 - `MasteryPolicy<G>` → `Consecutive` — is the round mastered
 - `Scheduler<M, G>` → `Once`, `Ladder`, `Sm2Scheduler` — memory between rounds and the next review date (null = learned for good)
-- `TopicPicker` → `ReviewsFirst`, `RandomOrder` — what to show next
+- `Picker` = `Queue` (`StartedFirst`, `Shuffled`) + `Focus` (`Stay`, `MoveOn`) + `ExerciseChoice` (`RandomNotLast`) — what to show next; each part answers only its own questions (docs/learning-model.md, section 7)
 
 A course names a preset (`quick`, `ladder`, `sm2`) and may replace parts (`RulesSpec`, `Presets.kt`). Checking answers is
 separate: `ExerciseChecker` per exercise type and `TextMatcher` (`core/.../rules/`). Rules are pure; state is always derived

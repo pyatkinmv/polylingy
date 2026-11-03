@@ -32,7 +32,7 @@ Version 0.2 is the rewrite to the current model (courses with units and theory, 
 Key files:
 - `app/src/desktopMain/kotlin/com/polylingy/app/Main.kt` — entry point: opens storage, seeds the sample course, opens the window
 - `app/src/commonMain/kotlin/com/polylingy/app/AppContainer.kt` — builds every long-lived object (clock, random, services)
-- `app/src/commonMain/kotlin/com/polylingy/app/App.kt` — routes and `Navigator`; screens in `courses/`, `course/`, `study/`, `edit/` (JSON editor of units and topics), look in `ui/Look.kt`
+- `app/src/commonMain/kotlin/com/polylingy/app/App.kt` — routes and `Navigator`; screens in `courses/`, `course/`, `study/`, `edit/` (JSON editor of units and topics), `settings/` (study settings of a course), look in `ui/Look.kt`
 - `content/src/commonMain/kotlin/com/polylingy/content/` — `Inline`, `Block`, `Exercise`, `ContentJson`
 - `core/src/commonMain/kotlin/com/polylingy/core/content/CourseJson.kt` — reading and writing course files, all checks
 - `client/src/commonMain/kotlin/com/polylingy/client/CourseLibrary.kt` — import/export with pictures
@@ -47,6 +47,7 @@ Key files:
 - **Journal events are immutable** and only appended. Evolve the format with `schemaVersion`; older versions must stay readable.
 - **Progress is never stored** — always `replay()`ed from the journal with the current rules (TODO(perf) noted in `Replay.kt`).
 - **Courses are whole documents** with `revision`/`updatedAt`; every edit goes through `CourseService`, which bumps the revision.
+- **Course settings** (the policies) live apart from the document, in `course_settings`: the file's `rules` only seed them on import, export writes the current ones; changing them never bumps the revision.
 - All ids are UUIDs. Topic ids are stable; deleting a topic never affects others.
 - Dates for scheduling are `LocalDate` from `ZonedInstant` (instant + zone), never raw `Instant` math.
 
@@ -54,7 +55,7 @@ Key files:
 
 ```
 <Documents>/polylingy/
-  polylingy.db       # course_document, journal_event, setting
+  polylingy.db       # course_document, course_settings, journal_event, setting
   images/<courseId>/ # pictures of each course: images/… from its archive, remote/<hash> downloaded by URL
   logs/              # polylingy.log, one file per day, kept 14 days
 ```

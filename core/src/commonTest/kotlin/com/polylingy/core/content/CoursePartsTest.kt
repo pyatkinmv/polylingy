@@ -4,6 +4,7 @@ import com.polylingy.content.ContentJson
 import com.polylingy.content.Exercise
 import com.polylingy.core.FixedClock
 import com.polylingy.core.InMemoryCourseRepository
+import com.polylingy.core.InMemoryCourseSettings
 import com.polylingy.core.at
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.json.JsonArray
@@ -24,7 +25,7 @@ import kotlin.uuid.Uuid
 class CoursePartsTest {
     private val clock = FixedClock(at(LocalDate(2026, 11, 3)))
     private val repository = InMemoryCourseRepository()
-    private val service = CourseService(repository, clock)
+    private val service = CourseService(repository, InMemoryCourseSettings(), clock)
     private val course = service.import(CourseJson.read(CourseSamples.units, clock.now().instant).course)
     private val unit = course.units.single()
     private val topic = unit.topics[0]
@@ -115,7 +116,7 @@ class CoursePartsTest {
     @Test fun aGoneOrStudyOnlyCourseCantBeChanged() {
         assertNull(service.partJson(course.id, topicPart(Uuid.random())))
         assertFalse(service.checkPart(course.id, topicPart(Uuid.random()), "{}").ok)
-        val newer = service.import(CourseJson.read(CourseSamples.flat.replace("\"formatVersion\": 1", "\"formatVersion\": 2"), clock.now().instant).course)
+        val newer = service.import(CourseJson.read(CourseSamples.flat.replace("\"formatVersion\": 1", "\"formatVersion\": 3"), clock.now().instant).course)
         assertFalse(service.checkPart(newer.id, CoursePart.Topic(null, null), CourseParts.TOPIC_TEMPLATE).ok)
         assertFailsWith<PartException> { service.deletePart(newer.id, CoursePart.Topic(null, newer.topics[0].id)) }
     }

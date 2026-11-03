@@ -33,10 +33,12 @@ class PoliciesTest {
 
     // grading
 
-    @Test fun allCorrectCountsTyposAsRight() {
-        assertEquals(PASS, AllCorrect.grade(answer(CORRECT, CORRECT)))
-        assertEquals(PASS, AllCorrect.grade(answer(CORRECT, TYPO)))
-        assertEquals(FAIL, AllCorrect.grade(answer(CORRECT, WRONG)))
+    @Test fun allCorrectCountsTyposAsRightWhenForgiven() {
+        assertEquals(PASS, AllCorrect().grade(answer(CORRECT, CORRECT)))
+        assertEquals(PASS, AllCorrect().grade(answer(CORRECT, TYPO)))
+        assertEquals(FAIL, AllCorrect().grade(answer(CORRECT, WRONG)))
+        assertEquals(FAIL, AllCorrect(typos = false).grade(answer(CORRECT, TYPO)), "a typo not forgiven is wrong")
+        assertEquals(PASS, AllCorrect(typos = false).grade(answer(CORRECT, CORRECT)))
     }
 
     @Test fun thresholdComparesTheShareOfRightItems() {
@@ -46,6 +48,7 @@ class PoliciesTest {
         assertEquals(PASS, threshold.grade(answer(CORRECT)))
         assertEquals(FAIL, threshold.grade(answer(WRONG)))
         assertEquals(PASS, Threshold(2.0 / 3).grade(answer(CORRECT, CORRECT, WRONG)))
+        assertEquals(FAIL, Threshold(0.75, typos = false).grade(answer(CORRECT, CORRECT, TYPO, WRONG)))
         assertFailsWith<IllegalArgumentException> { Threshold(0.0) }
         assertFailsWith<IllegalArgumentException> { Threshold(1.5) }
     }
@@ -75,24 +78,28 @@ class PoliciesTest {
     @Test fun ladderClimbsOnCleanRoundsAndFallsBackOnFails() {
         val ladder = Ladder()
         var memory = ladder.schedule(null, round(FAIL, PASS, PASS, PASS), today)
-        assertEquals(Ladder.Memory(0, LocalDate(2026, 11, 3)), memory)
+        assertEquals(Ladder.Memory(0, LocalDate(2026, 11, 3), 1), memory)
         memory = ladder.schedule(memory, round(PASS), today)
-        assertEquals(Ladder.Memory(1, LocalDate(2026, 11, 5)), memory)
+        assertEquals(Ladder.Memory(1, LocalDate(2026, 11, 5), 3), memory)
         memory = ladder.schedule(memory, round(FAIL, PASS), today)
-        assertEquals(Ladder.Memory(0, LocalDate(2026, 11, 3)), memory)
+        assertEquals(Ladder.Memory(0, LocalDate(2026, 11, 3), 1), memory)
         repeat(4) { memory = ladder.schedule(memory, round(PASS), today) }
-        assertEquals(Ladder.Memory(4, LocalDate(2026, 12, 2)), memory)
+        assertEquals(Ladder.Memory(4, LocalDate(2026, 12, 2), 30), memory)
         memory = ladder.schedule(memory, round(PASS), today)
-        assertEquals(Ladder.Memory(4, null), memory)
+        assertEquals(Ladder.Memory(4, null, 30), memory)
         assertNull(ladder.dueDate(memory))
         assertSame(memory, ladder.schedule(memory, round(PASS), today), "a learned topic practised cleanly stays learned")
-        assertEquals(Ladder.Memory(0, LocalDate(2026, 11, 3)), ladder.schedule(memory, round(FAIL, PASS), today), "a mistake brings it back")
+        assertEquals(Ladder.Memory(0, LocalDate(2026, 11, 3), 1), ladder.schedule(memory, round(FAIL, PASS), today), "a mistake brings it back")
     }
 
-    @Test fun ladderWithoutRetiringStaysOnTheLastStep() {
+    @Test fun ladderWithoutRetiringDoublesTheGapAfterTheLastStep() {
         val ladder = Ladder(listOf(2, 5), retire = false)
         val top = ladder.schedule(ladder.schedule(null, round(PASS), today), round(PASS), today)
-        assertEquals(Ladder.Memory(1, LocalDate(2026, 11, 7)), ladder.schedule(top, round(PASS), today))
+        assertEquals(Ladder.Memory(1, LocalDate(2026, 11, 7), 5), top)
+        val doubled = ladder.schedule(top, round(PASS), today)
+        assertEquals(Ladder.Memory(1, LocalDate(2026, 11, 12), 10), doubled)
+        assertEquals(20, ladder.schedule(doubled, round(PASS), today).gap)
+        assertEquals(Ladder.Memory(0, LocalDate(2026, 11, 4), 2), ladder.schedule(doubled, round(FAIL, PASS), today), "a mistake goes back to the first step")
         assertFailsWith<IllegalArgumentException> { Ladder(emptyList()) }
         assertFailsWith<IllegalArgumentException> { Ladder(listOf(0)) }
     }
@@ -107,42 +114,72 @@ class PoliciesTest {
         assertEquals(bad.due, Sm2Scheduler.dueDate(bad))
     }
 
-    // order
+    // picker: queue, focus, exercise
 
     private val a = Uuid.random()
     private val b = Uuid.random()
     private val c = Uuid.random()
-    private fun new(id: Uuid) = Candidate(id, Phase.LEARNING, started = false)
-    private fun due(id: Uuid) = Candidate(id, Phase.REVIEW, started = false)
-    private fun started(id: Uuid, phase: Phase = Phase.LEARNING) = Candidate(id, phase, started = true)
+    private val d = Uuid.random()
+    private fun new(id: Uuid) = Candidate(id, Group.NEW)
+    private fun due(id: Uuid, on: LocalDate = today) = Candidate(id, Group.DUE, on)
+    private fun started(id: Uuid) = Candidate(id, Group.STARTED)
+    private fun ids(queue: List<Candidate>) = queue.map { it.topicId }
 
-    @Test fun reviewsFirstFinishesRoundsThenReviewsThenNewInCourseOrder() {
-        assertEquals(a, ReviewsFirst.pick(listOf(new(a), new(c)), null))
-        assertEquals(b, ReviewsFirst.pick(listOf(new(a), due(b), due(c)), null))
-        assertEquals(c, ReviewsFirst.pick(listOf(new(a), due(b), started(c)), null))
-        assertEquals(c, ReviewsFirst.pick(listOf(started(a), started(c)), current = c))
-        assertEquals(a, ReviewsFirst.pick(listOf(started(a), started(c)), current = b))
-        assertNull(ReviewsFirst.pick(emptyList(), null))
+    @Test fun startedFirstPutsRoundsThenReviewsThenNewInCourseOrder() {
+        val queue = StartedFirst(newPerDay = null).build(listOf(new(a), due(b), started(c), new(d)), newBegunToday = 0)
+        assertEquals(listOf(c, b, a, d), ids(queue))
     }
 
-    @Test fun randomOrderStillPutsRoundsAndReviewsFirst() {
-        val random = RandomOrder(Random(1))
-        assertEquals(c, random.pick(listOf(new(a), due(b), started(c)), null))
-        assertEquals(b, random.pick(listOf(new(a), due(b), new(c)), null))
-        val picks = (1..40).mapNotNull { RandomOrder(Random(it)).pick(listOf(new(a), new(b), new(c)), null) }.toSet()
-        assertEquals(setOf(a, b, c), picks)
-        assertNull(random.pick(emptyList(), null))
+    @Test fun theDailyLimitCutsOnlyNewTopics() {
+        val candidates = listOf(new(a), due(b), started(c), new(d))
+        assertEquals(listOf(c, b, a), ids(StartedFirst(newPerDay = 2).build(candidates, newBegunToday = 1)))
+        assertEquals(listOf(c, b), ids(StartedFirst(newPerDay = 2).build(candidates, newBegunToday = 2)), "the round begun today goes on")
+        assertEquals(listOf(c, b), ids(StartedFirst(newPerDay = 2).build(candidates, newBegunToday = 5)))
+        assertEquals(setOf(c, b), ids(Shuffled(newPerDay = 1, Random(3)).build(candidates, newBegunToday = 1)).toSet())
+    }
+
+    @Test fun shuffledKeepsTheGroupsButMixesEach() {
+        val candidates = listOf(new(a), new(b), new(c), started(d))
+        val firsts = (1..40).map { ids(Shuffled(null, Random(it)).build(candidates, 0)) }
+        firsts.forEach { assertEquals(d, it.first(), "started first") }
+        assertEquals(setOf(a, b, c), firsts.map { it[1] }.toSet())
+    }
+
+    @Test fun stayKeepsTheCurrentTopicWhileItIsQueued() {
+        val queue = listOf(started(a), started(b), new(c))
+        assertEquals(b, Stay.pick(queue, current = b))
+        assertEquals(a, Stay.pick(queue, current = c.takeIf { false }))
+        assertEquals(a, Stay.pick(queue, current = d), "a topic whose round is over isn't queued")
+        assertNull(Stay.pick(emptyList(), current = a))
+    }
+
+    @Test fun moveOnTakesAnotherTopicUnlessNoneIsLeft() {
+        val queue = listOf(started(a), started(b), new(c))
+        assertEquals(b, MoveOn.pick(queue, current = a))
+        assertEquals(a, MoveOn.pick(queue, current = b))
+        assertEquals(a, MoveOn.pick(queue, current = null))
+        assertEquals(a, MoveOn.pick(listOf(started(a)), current = a), "the only one left")
+        assertNull(MoveOn.pick(emptyList(), current = a))
+    }
+
+    @Test fun randomNotLastNeverRepeatsAnExerciseUnlessItIsTheOnlyOne() {
+        val one = com.polylingy.core.exercise("one {{a}}")
+        val two = com.polylingy.core.exercise("two {{b}}")
+        repeat(20) { assertSame(two, RandomNotLast(Random(it)).choose(listOf(one, two), last = one.id)) }
+        assertSame(one, RandomNotLast(Random(0)).choose(listOf(one), last = one.id))
+        assertEquals(setOf(one, two), (1..30).map { RandomNotLast(Random(it)).choose(listOf(one, two), null) }.toSet())
     }
 
     // presets
 
     @Test fun noRulesMeansTheLadder() {
         val rules = null.toRules(Random(0))
-        assertSame(AllCorrect, rules.grading)
+        assertEquals(true, assertIs<AllCorrect>(rules.grading).typos)
         val mastery = assertIs<Consecutive>(rules.mastery)
         assertEquals(3 to 1, mastery.learning to mastery.review)
         assertEquals(Ladder.DEFAULT_DAYS, assertIs<Ladder>(rules.scheduler).days)
-        assertSame(ReviewsFirst, rules.picker)
+        assertIs<StartedFirst>(rules.picker.queue)
+        assertSame(Stay, rules.picker.focus)
     }
 
     @Test fun presets() {
@@ -158,14 +195,35 @@ class PoliciesTest {
             grading = GradingSpec.Threshold(0.8),
             mastery = MasterySpec.Consecutive(2, 2),
             scheduler = SchedulerSpec.Ladder(listOf(2, 4), retire = false),
-            picker = PickerSpec.Random,
+            picker = PickerSpec.Shuffle(newPerDay = 5),
         ).toRules(Random(0))
         assertEquals(0.8, assertIs<Threshold>(rules.grading).min)
         assertEquals(2, (rules.mastery as Consecutive).review)
         assertEquals(listOf(2, 4), (rules.scheduler as Ladder).days)
-        assertIs<RandomOrder>(rules.picker)
+        assertEquals(5, assertIs<Shuffled>(rules.picker.queue).newPerDay)
         assertSame(Once, RulesSpec(Preset.LADDER, scheduler = SchedulerSpec.Once).toRules(Random(0)).scheduler)
-        assertSame(Sm2Scheduler, RulesSpec(scheduler = SchedulerSpec.Sm2, picker = PickerSpec.ReviewsFirst).toRules(Random(0)).scheduler)
-        assertSame(AllCorrect, RulesSpec(grading = GradingSpec.AllCorrect).toRules(Random(0)).grading)
+        assertSame(Sm2Scheduler, RulesSpec(scheduler = SchedulerSpec.Sm2, picker = PickerSpec.Conveyor()).toRules(Random(0)).scheduler)
+        assertEquals(false, assertIs<AllCorrect>(RulesSpec(grading = GradingSpec.AllCorrect(typos = false)).toRules(Random(0)).grading).typos)
+    }
+
+    @Test fun theThreePickers() {
+        val alternate = PickerSpec.Alternate(newPerDay = 3).toPicker(Random(0))
+        assertEquals(3, assertIs<StartedFirst>(alternate.queue).newPerDay)
+        assertSame(MoveOn, alternate.focus)
+        assertSame(Stay, PickerSpec.Conveyor().toPicker(Random(0)).focus)
+        assertSame(Stay, PickerSpec.Shuffle().toPicker(Random(0)).focus)
+        assertIs<RandomNotLast>(PickerSpec.Conveyor().toPicker(Random(0)).exercise)
+    }
+
+    @Test fun resolvedWritesEveryPartOutAndMatchesItsPreset() {
+        val resolved = RulesSpec(Preset.QUICK, mastery = MasterySpec.Consecutive(2, 1)).resolved()
+        assertEquals(GradingSpec.AllCorrect(), resolved.grading)
+        assertEquals(MasterySpec.Consecutive(2, 1), resolved.mastery)
+        assertEquals(SchedulerSpec.Once, resolved.scheduler)
+        assertEquals(PickerSpec.Conveyor(), resolved.picker)
+        assertNull(resolved.matchingPreset(), "two in a row is no preset")
+        assertEquals(Preset.SM2, RulesSpec(Preset.SM2).resolved().matchingPreset())
+        assertEquals(Preset.LADDER, RulesSpec(Preset.QUICK, mastery = MasterySpec.Consecutive(3, 1), scheduler = SchedulerSpec.Ladder()).matchingPreset())
+        assertEquals(Preset.LADDER, RulesSpec(picker = PickerSpec.Alternate(10)).matchingPreset(), "the picker isn't part of a preset")
     }
 }

@@ -1,6 +1,6 @@
 # Формат содержимого курса
 
-> Статус: **принято, версия 0.2.0** (`formatVersion` 1). Формат курса: теория, упражнения, объяснения, импорт.
+> Статус: **принято, версия 0.2.0; сейчас `formatVersion` 2** (настройки ушли в `rules`). Формат курса: теория, упражнения, объяснения, импорт.
 > Старый формат (`generalExplanation`, `task` с `{0}`) не поддерживается: новая версия пишется с нуля.
 > Как ответы превращаются в прогресс — в `learning-model.md`.
 
@@ -19,13 +19,12 @@
 
 ```json
 {
-  "formatVersion": 1,
+  "formatVersion": 2,
   "id": "…",
   "name": "English Grammar in Use",
   "description": "Units on present and past tenses.",
   "theme": { "accent": "#2F6B5E" },
-  "settings": { "allowTypos": true },
-  "rules": { "preset": "ladder" },
+  "rules": { "preset": "ladder", "picker": { "type": "conveyor", "newPerDay": 10 } },
   "units": [
     { "id": "…", "title": "Present continuous", "subtitle": "I am doing",
       "theory": { "format": "blocks", "blocks": [ … ] },
@@ -40,12 +39,13 @@
 - Курс содержит **либо** `units`, **либо** `topics` (плоский курс), не оба; хотя бы что-то одно.
 - `name` — до 50 символов. `description` — необязательный `Inline` (без пропусков), строка под названием курса.
 - `theme` необязателен; без него — цвет приложения по умолчанию. `accent` — цвет вида `#2F6B5E`: кнопки, отметки, буквы разделов.
-- `settings.allowTypos` — прощать ли одну опечатку на пункт; по умолчанию `true`.
-- `settings.newPerDay` — сколько новых топиков можно начать за день (целое ≥ 1); нет поля — нет лимита. Подробно — `learning-model.md`, «Дневной лимит новых топиков».
 - `rules` — политики курса: набор (`quick`, `ladder`, `sm2`) и замены отдельных частей, формат в `learning-model.md`,
-  раздел 5. Без `rules` — набор `ladder`.
-- `settings` и `rules` — часть курса, ими управляет автор. Возможно, позже переедут в отдельную таблицу или станут
-  выбором ученика — `migration-plan.md`, раздел 9.
+  раздел 5. Без `rules` — набор `ladder`. В нём же:
+  - `grading.typos` — прощать ли одну опечатку на пункт; по умолчанию `true`;
+  - `picker.newPerDay` — сколько новых топиков можно начать за день (целое ≥ 1); нет поля — нет лимита.
+    Подробно — `learning-model.md`, «Дневной лимит новых топиков».
+- `rules` файла — только **начальные** настройки: при импорте они копируются в настройки курса, дальше их меняет
+  пользователь на экране «Study settings». Экспорт пишет в `rules` текущие настройки (`architecture.md`, раздел 5).
 - `id` — UUID. Экспорт пишет их всегда. При импорте отсутствующие, неверные и повторяющиеся id заменяются новыми.
   Если хоть один id курса уже есть в приложении, импорт создаёт **копию** со всеми новыми id.
 - Название, уже занятое другим курсом (без учёта регистра), получает номер: «English Grammar in Use (2)».
@@ -237,7 +237,7 @@ data class Match(override val id: Uuid, …, val pairs: List<List<Side>>, val ex
 
 // core: только проверка; как это выглядит, не знает
 fun interface ExerciseChecker<E : Exercise, R : Response> {
-    fun check(exercise: E, response: R, settings: CheckSettings): List<ItemCheck>
+    fun check(exercise: E, response: R): List<ItemCheck>   // опечатка — всегда TYPO; засчитывать ли её — grading.typos
 }
 
 /** Результат пункта и правильный ответ для показа: при опечатке — тот вариант, к которому ответ был близок. */
@@ -300,11 +300,13 @@ data class ItemCheck(val result: ItemResult, val rightAnswer: String)
 2. Поля не переименовываем и не удаляем; новое имя — синоним (`@JsonNames`), старое продолжаем принимать.
 3. Смысл поля не меняем: другое поведение — новое поле или новый тип.
 
-Миграции (функции «JSON версии n → JSON версии n+1») пишем, только когда понадобится первое ломающее изменение.
+Миграции (функции «JSON версии n → JSON версии n+1») пишем, только когда понадобится ломающее изменение.
+Первая — 1 → 2 (`CourseJson.upgrade`). `examples/english-grammar.zip` нарочно остаётся в версии 1.
 
 | Версия | Что добавлено |
 |---|---|
 | 1 | первый формат: блоки раздела 4, типы раздела 5 |
+| 2 | `settings` убран: `allowTypos` → `rules.grading.typos`, `newPerDay` → `rules.picker.newPerDay`; пикеры `conveyor`, `shuffle`, `alternate` (были `reviews-first`, `random`). Файл версии 1 читается: `CourseJson.upgrade` переводит его в 2 (и при импорте, и из базы) |
 
 ## 10. Тесты
 

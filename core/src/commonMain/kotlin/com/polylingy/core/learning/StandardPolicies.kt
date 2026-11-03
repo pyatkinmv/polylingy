@@ -1,5 +1,6 @@
 package com.polylingy.core.learning
 
+import com.polylingy.content.Exercise
 import com.polylingy.content.ItemResult
 import com.polylingy.core.journal.AnswerSubmitted
 import kotlinx.datetime.DateTimeUnit
@@ -11,21 +12,22 @@ import kotlin.uuid.Uuid
 
 // Grading
 
-private fun ItemResult.counts() = this == ItemResult.CORRECT || this == ItemResult.TYPO
+/** Whether an item counts as right: a typo counts only when [typos] are forgiven. */
+private fun ItemResult.counts(typos: Boolean) = this == ItemResult.CORRECT || (typos && this == ItemResult.TYPO)
 
-/** Passes when every item is right. A typo only appears when the course forgives typos, so it counts as right. */
-object AllCorrect : GradingRule<PassFail> {
-    override fun grade(answer: AnswerSubmitted) = if (answer.results.all { it.counts() }) PassFail.PASS else PassFail.FAIL
+/** Passes when every item is right; [typos] — an item with a typo counts as right. */
+class AllCorrect(val typos: Boolean = true) : GradingRule<PassFail> {
+    override fun grade(answer: AnswerSubmitted) = if (answer.results.all { it.counts(typos) }) PassFail.PASS else PassFail.FAIL
 }
 
 /** Passes when at least [min] of the items (0…1) are right: with 0.75, 3 of 4 pass and 1 of 2 doesn't. */
-class Threshold(val min: Double) : GradingRule<PassFail> {
+class Threshold(val min: Double, val typos: Boolean = true) : GradingRule<PassFail> {
     init {
         require(min > 0 && min <= 1) { "min must be in (0, 1], got $min" }
     }
 
     override fun grade(answer: AnswerSubmitted): PassFail {
-        val right = answer.results.count { it.counts() }
+        val right = answer.results.count { it.counts(typos) }
         return if (right >= min * answer.results.size - 1e-9) PassFail.PASS else PassFail.FAIL
     }
 }
@@ -56,11 +58,12 @@ object Once : Scheduler<Once.Learned, PassFail> {
 
 /**
  * A ladder of intervals in days. A round without a fail climbs one step, a round with one goes back to the first step.
- * After a clean round on the last step the topic is learned for good when [retire] is on, otherwise it stays there.
+ * After a clean round on the last step the topic is learned for good when [retire] is on; otherwise every next gap
+ * is twice the one before (30, 60, 120… days).
  */
 class Ladder(val days: List<Int> = DEFAULT_DAYS, val retire: Boolean = true) : Scheduler<Ladder.Memory, PassFail> {
-    /** [step] indexes [days]; [due] is null once the topic is learned. */
-    data class Memory(val step: Int, val due: LocalDate?)
+    /** [step] indexes [days]; [gap] — the days until [due]; [due] is null once the topic is learned. */
+    data class Memory(val step: Int, val due: LocalDate?, val gap: Int)
 
     init {
         require(days.isNotEmpty() && days.all { it >= 1 }) { "days must be at least 1" }
@@ -68,14 +71,14 @@ class Ladder(val days: List<Int> = DEFAULT_DAYS, val retire: Boolean = true) : S
 
     override fun schedule(memory: Memory?, round: Round<PassFail>, today: LocalDate): Memory {
         val clean = round.none { it.grade == PassFail.FAIL }
-        val step = when {
-            memory == null || !clean -> 0
+        val (step, gap) = when {
+            memory == null || !clean -> 0 to days[0]
             memory.due == null -> return memory
-            memory.step + 1 < days.size -> memory.step + 1
-            retire -> return Memory(days.lastIndex, null)
-            else -> days.lastIndex
+            memory.step + 1 < days.size -> (memory.step + 1).let { it to days[it] }
+            retire -> return Memory(days.lastIndex, null, memory.gap)
+            else -> days.lastIndex to memory.gap * 2
         }
-        return Memory(step, today.plus(days[step], DateTimeUnit.DAY))
+        return Memory(step, today.plus(gap, DateTimeUnit.DAY), gap)
     }
 
     override fun dueDate(memory: Memory) = memory.due
@@ -107,24 +110,48 @@ object Sm2Scheduler : Scheduler<Sm2Scheduler.Memory, PassFail> {
     override fun dueDate(memory: Memory) = memory.due
 }
 
-// Order
+// Picker: queues
 
-/** A round under way is finished first (the current topic, else the first started one); then reviews, then new topics. */
-private fun startedFirst(candidates: List<Candidate>, current: Uuid?): Uuid? =
-    candidates.firstOrNull { it.topicId == current && it.started }?.topicId ?: candidates.firstOrNull { it.started }?.topicId
+/** How many new topics may still be begun today; without a limit, any number. */
+private fun newAllowed(newPerDay: Int?, begunToday: Int) =
+    if (newPerDay == null) Int.MAX_VALUE else (newPerDay - begunToday).coerceAtLeast(0)
 
-/** Reviews first, then new topics, both in course order: a conveyor through the units. */
-object ReviewsFirst : TopicPicker {
-    override fun pick(candidates: List<Candidate>, current: Uuid?): Uuid? =
-        startedFirst(candidates, current)
-            ?: candidates.firstOrNull { it.phase == Phase.REVIEW }?.topicId
-            ?: candidates.firstOrNull()?.topicId
+/** Started → due → new; within each group, course order. [newPerDay] limits the new ones; null — no limit. */
+class StartedFirst(val newPerDay: Int?) : Queue {
+    override fun build(candidates: List<Candidate>, newBegunToday: Int): List<Candidate> =
+        candidates.filter { it.group == Group.STARTED } +
+            candidates.filter { it.group == Group.DUE } +
+            candidates.filter { it.group == Group.NEW }.take(newAllowed(newPerDay, newBegunToday))
 }
 
-/** Reviews first, then new topics, each in random order — for flat courses where order doesn't matter. */
-class RandomOrder(private val random: Random) : TopicPicker {
-    override fun pick(candidates: List<Candidate>, current: Uuid?): Uuid? =
-        startedFirst(candidates, current)
-            ?: candidates.filter { it.phase == Phase.REVIEW }.randomOrNull(random)?.topicId
-            ?: candidates.randomOrNull(random)?.topicId
+/** Started → due → new; within each group, random order. [newPerDay] limits the new ones; null — no limit. */
+class Shuffled(val newPerDay: Int?, private val random: Random) : Queue {
+    override fun build(candidates: List<Candidate>, newBegunToday: Int): List<Candidate> =
+        candidates.filter { it.group == Group.STARTED }.shuffled(random) +
+            candidates.filter { it.group == Group.DUE }.shuffled(random) +
+            candidates.filter { it.group == Group.NEW }.shuffled(random).take(newAllowed(newPerDay, newBegunToday))
+}
+
+// Picker: focus
+
+/** Stay: the current topic while it is in the queue (its round isn't over); otherwise the first in the queue. */
+object Stay : Focus {
+    override fun pick(queue: List<Candidate>, current: Uuid?): Uuid? =
+        queue.firstOrNull { it.topicId == current }?.topicId ?: queue.firstOrNull()?.topicId
+}
+
+/** Move on: the first in the queue other than the current topic; the current one only when nothing else is left. */
+object MoveOn : Focus {
+    override fun pick(queue: List<Candidate>, current: Uuid?): Uuid? =
+        (queue.firstOrNull { it.topicId != current } ?: queue.firstOrNull())?.topicId
+}
+
+// Picker: exercise
+
+/** A random exercise other than the last one, unless it is the only one. */
+class RandomNotLast(private val random: Random) : ExerciseChoice {
+    override fun choose(exercises: List<Exercise>, last: Uuid?): Exercise {
+        require(exercises.isNotEmpty()) { "a topic needs an exercise to show" }
+        return exercises.filter { it.id != last }.ifEmpty { exercises }.random(random)
+    }
 }

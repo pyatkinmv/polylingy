@@ -1,5 +1,6 @@
 package com.polylingy.core.learning
 
+import com.polylingy.content.Exercise
 import com.polylingy.content.ItemResult
 import com.polylingy.core.journal.AnswerSubmitted
 import com.polylingy.core.journal.ZonedInstant
@@ -39,18 +40,61 @@ interface Scheduler<M, G> {
     fun dueDate(memory: M): LocalDate?
 }
 
-/** A topic that may be shown now, in course order. [started] — a round is under way. */
-data class Candidate(val topicId: Uuid, val phase: Phase, val started: Boolean)
+/** Where a topic needed today stands, as the picker sees it. */
+enum class Group {
+    /** A round is under way: begun today or earlier and not over. */
+    STARTED,
 
-/** Which topic to show next; [current] is the one just shown, if any. Null when there is nothing to pick. */
-fun interface TopicPicker {
-    fun pick(candidates: List<Candidate>, current: Uuid?): Uuid?
+    /** Its review date has come. */
+    DUE,
+
+    /** Never answered. */
+    NEW,
 }
+
+/**
+ * A topic needed today. Topics resting until a later date and topics learned for good are not candidates —
+ * the scheduler decided that. [due] — the review date, for orders that look at how overdue a topic is.
+ */
+data class Candidate(val topicId: Uuid, val group: Group, val due: LocalDate? = null)
+
+/**
+ * The queue answers two questions, and only these (docs/learning-model.md, section 7, «Пикер»):
+ *  1. which candidates may be shown now (e.g. no more than N new topics a day);
+ *  2. in what order — the first in the list is the one to show first.
+ * It doesn't decide whether to stay on the current topic ([Focus]) or which exercise to show ([ExerciseChoice]).
+ */
+fun interface Queue {
+    /** [candidates] come in course order; [newBegunToday] — how many new topics of the course were begun today. */
+    fun build(candidates: List<Candidate>, newBegunToday: Int): List<Candidate>
+}
+
+/**
+ * The focus answers one question, and only this:
+ *  3. after an answer, stay on the same topic or move to another.
+ * It picks from the queue as it is: it neither reorders nor drops anyone. An empty queue — null: nothing left today.
+ */
+fun interface Focus {
+    /** [current] — the topic just answered; null when the session has just begun. */
+    fun pick(queue: List<Candidate>, current: Uuid?): Uuid?
+}
+
+/**
+ * Answers one question, and only this:
+ *  4. which exercise of the chosen topic to show.
+ * [last] — the exercise of this topic answered last, if any.
+ */
+fun interface ExerciseChoice {
+    fun choose(exercises: List<Exercise>, last: Uuid?): Exercise
+}
+
+/** What comes next in a session: the three parts, each answering its own questions. */
+class Picker(val queue: Queue, val focus: Focus, val exercise: ExerciseChoice)
 
 /** A course's policies. The grade type [G] ties them together, so a mismatched set doesn't compile. */
 class CourseRules<M, G>(
     val grading: GradingRule<G>,
     val mastery: MasteryPolicy<G>,
     val scheduler: Scheduler<M, G>,
-    val picker: TopicPicker,
+    val picker: Picker,
 )

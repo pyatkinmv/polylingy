@@ -8,13 +8,17 @@ import com.polylingy.content.validate
 import com.polylingy.content.withId
 import com.polylingy.core.ports.Clock
 import com.polylingy.core.ports.CourseRepository
+import com.polylingy.core.ports.CourseSettingsRepository
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlin.uuid.Uuid
 
 private val log = KotlinLogging.logger {}
 
-/** Changes course documents. Every change is saved as a new [Course.revision]. */
-class CourseService(private val courses: CourseRepository, private val clock: Clock) {
+/**
+ * Changes course documents; every change is saved as a new [Course.revision]. A course's settings live apart from its
+ * document: import starts them from the file's rules, deleting the course deletes them.
+ */
+class CourseService(private val courses: CourseRepository, private val settings: CourseSettingsRepository, private val clock: Clock) {
     /**
      * Adds an imported course under a name no other course has ("Name (2)"). If any of its ids is already used
      * by a stored course, the import becomes a copy with fresh ids, so a topic never belongs to two courses.
@@ -24,6 +28,7 @@ class CourseService(private val courses: CourseRepository, private val clock: Cl
         val copy = course.ids().any { it in used }
         val incoming = if (copy) course.withFreshIds() else course
         val saved = save(incoming.copy(name = uniqueName(incoming.name, except = null), revision = 0))
+        settings.save(saved.id, (saved.rules ?: RulesSpec()).resolved(), saved.updatedAt)
         log.info { "Imported course ${saved.id} \"${saved.name}\"${if (copy) " as a copy with fresh ids" else ""}" }
         return saved
     }
@@ -45,8 +50,12 @@ class CourseService(private val courses: CourseRepository, private val clock: Cl
 
     fun delete(courseId: Uuid) {
         courses.delete(courseId)
+        settings.delete(courseId)
         log.info { "Deleted course $courseId" }
     }
+
+    /** The course as it goes into a file: its current settings as the file's rules. */
+    fun forExport(course: Course): Course = course.copy(rules = settings.of(course))
 
     /** The JSON of a unit or topic for the editor, or null when the course has no such part. */
     fun partJson(courseId: Uuid, part: CoursePart): String? = CourseParts.json(course(courseId), part)

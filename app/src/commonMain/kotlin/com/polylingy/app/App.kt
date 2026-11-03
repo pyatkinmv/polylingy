@@ -9,6 +9,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import com.polylingy.app.settings.SettingsScreen
+import com.polylingy.app.settings.SettingsViewModel
 import com.polylingy.app.course.CourseScreen
 import com.polylingy.app.course.CourseViewModel
 import com.polylingy.app.course.TopicScreen
@@ -68,6 +70,10 @@ internal data class StudyRoute(val courseId: String, val unitId: String? = null,
 @Serializable
 internal data class EditorRoute(val courseId: String, val unit: Boolean, val unitId: String? = null, val topicId: String? = null)
 
+/** The study settings of a course. */
+@Serializable
+internal data class SettingsRoute(val courseId: String)
+
 /** Where a screen may go; screens never see the nav controller itself. */
 class Navigator internal constructor(private val nav: NavHostController) {
     fun courses() {
@@ -113,6 +119,8 @@ class Navigator internal constructor(private val nav: NavHostController) {
         },
     )
 
+    fun settings(courseId: Uuid) = go(SettingsRoute(courseId.toString()))
+
     fun back() {
         nav.popBackStack()
     }
@@ -137,6 +145,7 @@ fun App(container: AppContainer, text: TextStyle = TextStyle.Default) {
                     files = container.files,
                     today = container.clock.now().localDate,
                     onOpen = go::course,
+                    onSettings = go::settings,
                 )
             }
             composable<CourseRoute> { entry ->
@@ -174,10 +183,14 @@ fun App(container: AppContainer, text: TextStyle = TextStyle.Default) {
                 val unitId = route.unitId?.let(Uuid::parse)
                 val part = if (route.unit) CoursePart.Unit(unitId) else CoursePart.Topic(unitId, route.topicId?.let(Uuid::parse))
                 EditorScreen(
-                    viewModel = viewModel { EditorViewModel(container.courseService, container.storage.courses, courseId, part) },
+                    viewModel = viewModel { EditorViewModel(container.courseService, container.study, container.storage.courses, courseId, part) },
                     images = container.images(courseId),
                     go = go,
                 )
+            }
+            composable<SettingsRoute> { entry ->
+                val courseId = Uuid.parse(entry.toRoute<SettingsRoute>().courseId)
+                SettingsScreen(viewModel { SettingsViewModel(container.study, container.clock, courseId) }, container.clock.now().localDate, go)
             }
             composable<StudyRoute> { entry ->
                 val route = entry.toRoute<StudyRoute>()

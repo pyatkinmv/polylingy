@@ -3,6 +3,8 @@ package com.polylingy.client
 import com.polylingy.content.Exercise
 import com.polylingy.core.content.CourseFormatException
 import com.polylingy.core.content.CourseService
+import com.polylingy.core.content.GradingSpec
+import com.polylingy.core.content.PickerSpec
 import com.polylingy.core.content.images
 import com.polylingy.core.journal.ZonedInstant
 import com.polylingy.core.ports.Clock
@@ -27,7 +29,7 @@ class CourseLibraryTest {
     private val downloads = mutableMapOf<String, ByteArray>()
     private val library = CourseLibrary(
         storage.courses,
-        CourseService(storage.courses, clock),
+        CourseService(storage.courses, storage.courseSettings, clock),
         FileImageStore(imageDir),
         { url -> downloads[url] ?: error("404") },
         CourseArchive,
@@ -110,7 +112,7 @@ class CourseLibraryTest {
     }
 
     @Test fun formatErrorsAreReportedAndNothingIsSaved() {
-        assertEquals(listOf("formatVersion: missing; this app writes 1"), problems(CourseSource("x.json", """{ "name": "X" }""")))
+        assertEquals(listOf("formatVersion: missing; this app writes 2"), problems(CourseSource("x.json", """{ "name": "X" }""")))
         assertEquals(emptyList(), storage.courses.all())
     }
 
@@ -124,6 +126,26 @@ class CourseLibraryTest {
         assertEquals(course.allTopics.map { it.title }, again.allTopics.map { it.title })
     }
 
+    @Test fun settingsStartFromTheFileGoOutWithTheExportAndLeaveWithTheCourse() {
+        val text = """{ "formatVersion": 1, "name": "Old", "settings": { "allowTypos": false, "newPerDay": 5 },
+            "topics": [ { "title": "T", "exercises": [ { "type": "gaps", "items": [ { "text": "{{a}}" } ] } ] } ] }"""
+        val course = library.import(CourseSource("old.json", text)).course
+        val settings = storage.courseSettings.get(course.id)!!
+        assertEquals(GradingSpec.AllCorrect(typos = false), settings.grading)
+        assertEquals(PickerSpec.Conveyor(newPerDay = 5), settings.picker)
+
+        storage.courseSettings.save(course.id, settings.copy(picker = PickerSpec.Alternate(newPerDay = 7)), Instant.parse("2026-11-02T10:00:00Z"))
+        val exported = library.export(course.id).bytes.decodeToString()
+        assertTrue("\"formatVersion\": 2" in exported, exported)
+        assertTrue("\"alternate\"" in exported && "\"newPerDay\": 7" in exported, "the file carries the current settings")
+        assertTrue("\"settings\"" !in exported)
+        val again = library.import("old.json", exported.encodeToByteArray()).course
+        assertEquals(PickerSpec.Alternate(newPerDay = 7), storage.courseSettings.get(again.id)!!.picker)
+
+        library.delete(course.id)
+        assertNull(storage.courseSettings.get(course.id))
+    }
+
     @Test fun aCourseWithOwnPicturesIsExportedAsAZipThatImportsAgain() {
         val course = library.import("cat.zip", CourseArchive.zip(course("images/cat.png"), mapOf("images/cat.png" to png))).course
         val export = library.export(course.id)
@@ -134,7 +156,7 @@ class CourseLibraryTest {
     }
 
     @Test fun aStudyOnlyCourseCantBeExported() {
-        val newer = """{ "formatVersion": 2, "name": "Future", "topics": [ { "title": "T", "exercises": [ { "type": "dictation" } ] } ] }"""
+        val newer = """{ "formatVersion": 3, "name": "Future", "topics": [ { "title": "T", "exercises": [ { "type": "dictation" } ] } ] }"""
         val (course, warnings) = library.import(CourseSource("future.json", newer))
         assertEquals(listOf("topics[0].exercises[0]: unknown exercise type \"dictation\""), warnings.map { it.toString() })
         assertFailsWith<IllegalArgumentException> { library.export(course.id) }
@@ -160,7 +182,7 @@ class CourseLibraryTest {
 
     @Test fun aFailureWhileStoringPicturesUndoesTheImport() {
         Files.writeString(imageDir.resolve("blocker"), "")
-        val blocked = CourseLibrary(storage.courses, CourseService(storage.courses, clock), FileImageStore(imageDir.resolve("blocker")), { png }, CourseArchive, clock)
+        val blocked = CourseLibrary(storage.courses, CourseService(storage.courses, storage.courseSettings, clock), FileImageStore(imageDir.resolve("blocker")), { png }, CourseArchive, clock)
         val zip = CourseArchive.zip(course("images/cat.png"), mapOf("images/cat.png" to png))
         assertFailsWith<Exception> { blocked.import("cat.zip", zip) }
         assertEquals(emptyList(), storage.courses.all())

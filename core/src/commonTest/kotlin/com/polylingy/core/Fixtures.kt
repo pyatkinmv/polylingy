@@ -10,7 +10,9 @@ import com.polylingy.core.journal.AnswerSubmitted
 import com.polylingy.core.journal.EventEnvelope
 import com.polylingy.core.journal.ZonedInstant
 import com.polylingy.core.ports.Clock
+import com.polylingy.core.content.RulesSpec
 import com.polylingy.core.ports.CourseRepository
+import com.polylingy.core.ports.CourseSettingsRepository
 import com.polylingy.core.ports.EventLog
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
@@ -58,6 +60,13 @@ class InMemoryCourseRepository(vararg courses: Course) : CourseRepository {
     override fun get(id: Uuid) = byId[id]
     override fun save(course: Course) { byId[course.id] = course }
     override fun delete(id: Uuid) { byId.remove(id) }
+}
+
+class InMemoryCourseSettings : CourseSettingsRepository {
+    private val byId = mutableMapOf<Uuid, RulesSpec>()
+    override fun get(courseId: Uuid) = byId[courseId]
+    override fun save(courseId: Uuid, rules: RulesSpec, updatedAt: Instant) { byId[courseId] = rules }
+    override fun delete(courseId: Uuid) { byId.remove(courseId) }
 }
 
 class InMemoryEventLog : EventLog {

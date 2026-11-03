@@ -10,7 +10,7 @@ import kotlin.time.Instant
 import kotlin.uuid.Uuid
 
 /** The course file format this app reads and writes; see docs/content-format.md, section 9. */
-const val FORMAT_VERSION = 1
+const val FORMAT_VERSION = 2
 
 /**
  * A course is a versioned document: it is always saved and synced as a whole, in the same JSON as the course file.
@@ -26,8 +26,10 @@ data class Course(
     val revision: Int = 0,
     val updatedAt: Instant,
     val theme: Theme? = null,
-    val settings: CourseSettings = CourseSettings(),
-    /** Course policies; without them, the ladder preset. */
+    /**
+     * Course policies as the file gives them; without them, the ladder preset. They are copied into the course's settings
+     * on import and not used after that: the settings are what counts (docs/architecture.md, section 5).
+     */
     val rules: RulesSpec? = null,
     val units: List<CourseUnit> = emptyList(),
     val topics: List<Topic> = emptyList(),
@@ -66,11 +68,3 @@ data class Topic(
 /** [accent] is a colour like `#2F6B5E`; without it the app's own colour is used. */
 @Serializable
 data class Theme(val accent: String? = null)
-
-@Serializable
-data class CourseSettings(
-    /** Whether one typo per item still counts (docs/learning-model.md, section 3). */
-    val allowTypos: Boolean = true,
-    /** How many new topics may be begun in a day; null — no limit (docs/learning-model.md, "daily limit"). */
-    val newPerDay: Int? = null,
-)
