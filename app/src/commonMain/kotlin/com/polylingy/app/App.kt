@@ -15,10 +15,13 @@ import com.polylingy.app.course.TopicScreen
 import com.polylingy.app.course.UnitScreen
 import com.polylingy.app.courses.CourseListScreen
 import com.polylingy.app.courses.CourseListViewModel
+import com.polylingy.app.edit.EditorScreen
+import com.polylingy.app.edit.EditorViewModel
 import com.polylingy.app.study.StudyScreen
 import com.polylingy.app.study.StudyViewModel
 import com.polylingy.app.study.TheoryScreen
 import com.polylingy.app.ui.AppTheme
+import com.polylingy.core.content.CoursePart
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.serialization.Serializable
 import kotlin.uuid.Uuid
@@ -58,6 +61,13 @@ internal data class TheoryRoute(
 @Serializable
 internal data class StudyRoute(val courseId: String, val unitId: String? = null, val topicId: String? = null)
 
+/**
+ * The editor of a unit ([unit] true) or a topic. [unitId] — the unit edited, or the unit of the topic (null — a new
+ * unit, or a topic of a flat course); [topicId] null — a new topic.
+ */
+@Serializable
+internal data class EditorRoute(val courseId: String, val unit: Boolean, val unitId: String? = null, val topicId: String? = null)
+
 /** Where a screen may go; screens never see the nav controller itself. */
 class Navigator internal constructor(private val nav: NavHostController) {
     fun courses() {
@@ -95,6 +105,14 @@ class Navigator internal constructor(private val nav: NavHostController) {
         study(courseId, unitId, topicId)
     }
 
+    /** The editor of a unit or topic; a null id there is a new one. */
+    fun edit(courseId: Uuid, part: CoursePart) = go(
+        when (part) {
+            is CoursePart.Unit -> EditorRoute(courseId.toString(), unit = true, unitId = part.unitId?.toString())
+            is CoursePart.Topic -> EditorRoute(courseId.toString(), unit = false, unitId = part.unitId?.toString(), topicId = part.topicId?.toString())
+        },
+    )
+
     fun back() {
         nav.popBackStack()
     }
@@ -124,18 +142,18 @@ fun App(container: AppContainer, text: TextStyle = TextStyle.Default) {
             composable<CourseRoute> { entry ->
                 val route = entry.toRoute<CourseRoute>()
                 val id = Uuid.parse(route.courseId)
-                CourseScreen(viewModel { CourseViewModel(container.study, id) }, container.clock, go)
+                CourseScreen(viewModel { CourseViewModel(container.study, container.courseService, id) }, container.clock, go)
             }
             composable<UnitRoute> { entry ->
                 val route = entry.toRoute<UnitRoute>()
                 val id = Uuid.parse(route.courseId)
                 val unitId = Uuid.parse(route.unitId)
-                UnitScreen(viewModel { CourseViewModel(container.study, id, scope = unitId) }, unitId, container.clock, go)
+                UnitScreen(viewModel { CourseViewModel(container.study, container.courseService, id, scope = unitId) }, unitId, container.clock, go)
             }
             composable<TopicRoute> { entry ->
                 val route = entry.toRoute<TopicRoute>()
                 val id = Uuid.parse(route.courseId)
-                TopicScreen(viewModel { CourseViewModel(container.study, id) }, Uuid.parse(route.topicId), container.clock, go)
+                TopicScreen(viewModel { CourseViewModel(container.study, container.courseService, id) }, Uuid.parse(route.topicId), container.clock, go)
             }
             composable<TheoryRoute> { entry ->
                 val route = entry.toRoute<TheoryRoute>()
@@ -147,6 +165,17 @@ fun App(container: AppContainer, text: TextStyle = TextStyle.Default) {
                     images = container.images(course.id),
                     onStart = if (route.study) ({ go.studyInsteadOfTheory(course.id, route.studyUnit?.let(Uuid::parse), route.topicId?.let(Uuid::parse)) }) else null,
                     onBack = if (route.back) go::back else null,
+                    go = go,
+                )
+            }
+            composable<EditorRoute> { entry ->
+                val route = entry.toRoute<EditorRoute>()
+                val courseId = Uuid.parse(route.courseId)
+                val unitId = route.unitId?.let(Uuid::parse)
+                val part = if (route.unit) CoursePart.Unit(unitId) else CoursePart.Topic(unitId, route.topicId?.let(Uuid::parse))
+                EditorScreen(
+                    viewModel = viewModel { EditorViewModel(container.courseService, container.storage.courses, courseId, part) },
+                    images = container.images(courseId),
                     go = go,
                 )
             }

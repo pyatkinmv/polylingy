@@ -32,7 +32,7 @@ Version 0.2 is the rewrite to the current model (courses with units and theory, 
 Key files:
 - `app/src/desktopMain/kotlin/com/polylingy/app/Main.kt` — entry point: opens storage, seeds the sample course, opens the window
 - `app/src/commonMain/kotlin/com/polylingy/app/AppContainer.kt` — builds every long-lived object (clock, random, services)
-- `app/src/commonMain/kotlin/com/polylingy/app/App.kt` — routes and `Navigator`; screens in `courses/`, `course/`, `study/`, look in `ui/Look.kt`
+- `app/src/commonMain/kotlin/com/polylingy/app/App.kt` — routes and `Navigator`; screens in `courses/`, `course/`, `study/`, `edit/` (JSON editor of units and topics), look in `ui/Look.kt`
 - `content/src/commonMain/kotlin/com/polylingy/content/` — `Inline`, `Block`, `Exercise`, `ContentJson`
 - `core/src/commonMain/kotlin/com/polylingy/core/content/CourseJson.kt` — reading and writing course files, all checks
 - `client/src/commonMain/kotlin/com/polylingy/client/CourseLibrary.kt` — import/export with pictures

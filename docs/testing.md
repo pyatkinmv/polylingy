@@ -12,7 +12,7 @@
 | Хранилище | `client/src/desktopTest` | SQLite, нечитаемые курсы, импорт/экспорт JSON и zip, картинки, пример курса и курсы из `examples/` |
 | ViewModel | `app/src/desktopTest/.../courses` | логика списка курсов без UI |
 | Витрина | `app/src/desktopTest/.../ui/ShowcaseUiTest.kt` | каждый тип упражнения и страница теории из примера курса: ввод, проверка, узкое окно; скриншоты `ex-*.png`, `theory*.png` |
-| **UI** | `app/src/desktopTest/.../ui/*UiTest.kt` | настоящие экраны: список курсов (`CourseListUiTest`), путь от курса через теорию и упражнения до «на сегодня всё» и повторения на следующий день (`StudyUiTest`) |
+| **UI** | `app/src/desktopTest/.../ui/*UiTest.kt` | настоящие экраны: список курсов (`CourseListUiTest`), путь от курса через теорию и упражнения до «на сегодня всё» и повторения на следующий день (`StudyUiTest`), добавление, правка и удаление юнитов и топиков с превью (`EditUiTest`) |
 | **Скриншоты** | те же UI-тесты, вызов `screenshot("имя")` | PNG в `app/build/screenshots/` для просмотра глазами |
 
 ## UI-тесты
