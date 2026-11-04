@@ -54,7 +54,7 @@ class CourseLibraryTest {
     /** The example courses in `examples/` are what a person tries first: they must always import cleanly. */
     @Test fun theExampleCoursesImportWithoutWarnings() {
         val examples = java.io.File("../examples")
-        for (file in listOf("english-grammar.zip", "irregular-verbs.json")) {
+        for (file in listOf("english-grammar.zip", "irregular-verbs.json", "advanced-grammar.json")) {
             val (course, warnings) = library.import(file, examples.resolve(file).readBytes())
             assertEquals(emptyList(), warnings, file)
             assertTrue(course.allTopics.size >= 8, "$file has a real number of topics")
