@@ -1,0 +1,364 @@
+{
+  "formatVersion": 2,
+  "name": "Advanced Grammar: Units 1–3",
+  "description": "Present and past at C1 level, unit by unit after *Advanced Grammar in Use* (4th ed.): own explanations and exercises.",
+  "theme": { "accent": "#1F6B45" },
+  "rules": { "preset": "ladder", "picker": { "type": "conveyor", "newPerDay": 4 } },
+  "units": [
+    {
+      "title": "State verbs and performatives",
+      "subtitle": "Present continuous or present simple?",
+      "theory": { "format": "blocks", "blocks": [
+        { "type": "section", "id": "ad000001-0000-4000-8000-00000000000a", "label": "A", "title": "State verbs", "blocks": [
+          { "type": "text", "text": "State verbs usually take the present simple. A few of them (**attract**, **like**, **look**, **love**, **sound**) can take the present continuous when we want to stress that a situation is **temporary** or limited to the time around now." },
+          { "type": "examples", "items": [
+            { "text": "I **love** living by the sea. *(always true for me)*" },
+            { "text": "I**’m loving** the quiet now that the tourists have gone. *(for the moment)*" } ] },
+          { "type": "text", "text": "Some state verbs are hardly ever used in the continuous:" },
+          { "type": "words", "words": ["believe", "consist of", "doubt", "own"] } ] },
+        { "type": "section", "id": "ad000001-0000-4000-8000-00000000000b", "label": "B", "title": "Two meanings: a state or an action", "blocks": [
+          { "type": "text", "text": "Some verbs describe a **state** with one meaning and an **action** with another. With the state meaning they take the present simple; with the action meaning they can take either form, depending on the context." },
+          { "type": "examples", "items": [
+            { "text": "This parcel **weighs** three kilos. *(state: its weight)*" },
+            { "text": "The nurse **is weighing** the baby. *(action: putting it on the scales)*" },
+            { "text": "She **has** two older brothers. *(state: possession)*" },
+            { "text": "She**’s having** a shower — can she call you back? *(action)*" } ] },
+          { "type": "tip", "blocks": [
+            { "type": "text", "text": "Also: **appear**, **expect**, **feel**, **fit**, **have**, **imagine**, **look**, **measure**, **see**, **taste**, **think**, **weigh**." } ] } ] },
+        { "type": "section", "id": "ad000001-0000-4000-8000-00000000000c", "label": "C", "title": "Mental state verbs", "blocks": [
+          { "type": "text", "text": "With some verbs of thinking (**find**, **realise**, **regret**, **think**, **understand**) the present continuous shows that the thought has only just begun, or that we are not yet sure about it." },
+          { "type": "examples", "items": [
+            { "text": "I **regret** agreeing to it. *(my view is settled)*" },
+            { "text": "I**’m** already **regretting** agreeing to it. *(the feeling is growing)*" } ] },
+          { "type": "text", "text": "**Consider** meaning ‘think carefully about’ is usually continuous. **Agree**, **believe**, **conclude**, **know** and **prefer** are rarely continuous." },
+          { "type": "examples", "items": [
+            { "text": "We**’re considering** a move to Lisbon.", "not": "We consider a move …" },
+            { "text": "I **know** what you mean.", "not": "I’m knowing …" } ] } ] },
+        { "type": "section", "id": "ad000001-0000-4000-8000-00000000000d", "label": "D", "title": "Performatives", "blocks": [
+          { "type": "text", "text": "Some verbs **do** the action they name: saying ‘I promise’ is the promise. These performatives usually take the present simple." },
+          { "type": "examples", "items": [
+            { "text": "I **promise** I’ll be back by ten." },
+            { "text": "We **advise** all passengers to keep their bags with them." } ] },
+          { "type": "words", "words": ["acknowledge", "admit", "advise", "apologise", "beg", "confess", "congratulate", "declare", "deny", "forbid", "guarantee", "name", "order", "predict", "promise", "refuse", "remind", "request", "suggest", "thank", "warn"] },
+          { "type": "text", "text": "In negative sentences some of them (**apologise**, **deny**, **guarantee**, **promise**, **suggest**) mean much the same in either form, and a modal makes a performative more polite or tentative:" },
+          { "type": "examples", "items": [
+            { "text": "I **don’t deny** / I**’m not denying** that it was my idea." },
+            { "text": "I **would suggest** leaving a little earlier." } ] } ] }
+      ] },
+      "topics": [
+        {
+          "title": "A state or an action?",
+          "explanation": { "format": "blocks", "blocks": [
+            { "type": "text", "text": "Ask whether the verb describes a **state** (how things are) or an **action** (something someone is doing). States take the present simple; a few, like **love** or **look**, can be continuous for a temporary situation." },
+            { "type": "seeAlso", "links": [ { "section": "ad000001-0000-4000-8000-00000000000a" }, { "section": "ad000001-0000-4000-8000-00000000000b" } ] } ] },
+          "exercises": [
+            { "type": "gaps", "instruction": "Use the present continuous if you can; otherwise the present simple.",
+              "items": [
+                { "text": "These boots {{don’t fit|do not fit}} me any more — my feet must have grown.", "hint": "not / fit" },
+                { "text": "Why {{are you measuring}} the window? Are you buying new curtains?", "hint": "you / measure" },
+                { "text": "The living room {{measures}} about five metres by four.", "hint": "measure" },
+                { "text": "I {{’m having|am having}} lunch with a client, so I can’t talk now.", "hint": "have", "note": "**have** = eat: an action, so it can be continuous." },
+                { "text": "Your idea {{sounds}} great to me.", "hint": "sound" },
+                { "text": "The panel {{consists of}} three judges and a chairman.", "hint": "consist of", "note": "**consist of** is almost never continuous." } ] },
+            { "type": "choice", "instruction": "Choose the better form.",
+              "items": [
+                { "text": "Quiet, please — I {{’m thinking}} about what to say.", "options": ["think", "’m thinking"] },
+                { "text": "I {{think}} you’re right about the hotel.", "options": ["think", "’m thinking"] },
+                { "text": "Her family {{owns}} a small vineyard in Portugal.", "options": ["owns", "is owning"] },
+                { "text": "The doctor {{is seeing}} a patient at the moment.", "options": ["sees", "is seeing"] },
+                { "text": "I {{see}} what you mean now.", "options": ["see", "’m seeing"] } ] },
+            { "type": "gaps", "instruction": "Each pair uses the same verb. Present continuous or present simple?",
+              "items": [
+                { "text": "The assistant {{is weighing|’s weighing}} the cheese for me.", "hint": "weigh" },
+                { "text": "This suitcase {{weighs}} over twenty kilos!", "hint": "weigh" },
+                { "text": "We {{’re expecting|are expecting}} a delivery this morning.", "hint": "expect", "note": "**expect** = wait for: an action." },
+                { "text": "I {{expect}} you’re tired after the flight.", "hint": "expect", "note": "**expect** = suppose: a state." },
+                { "text": "How {{are you feeling|do you feel}} today?", "hint": "you / feel" },
+                { "text": "I {{feel}} that we should wait a little longer.", "hint": "feel", "note": "**feel** = believe: a state." } ] }
+          ]
+        },
+        {
+          "title": "Thinking and performing",
+          "explanation": { "format": "blocks", "blocks": [
+            { "type": "text", "text": "Thoughts that are just starting can be continuous (**I’m beginning to regret**…, **we’re considering**…). Verbs that perform an action — **promise**, **apologise**, **advise** — take the present simple." },
+            { "type": "seeAlso", "links": [ { "section": "ad000001-0000-4000-8000-00000000000c" }, { "section": "ad000001-0000-4000-8000-00000000000d" } ] } ] },
+          "exercises": [
+            { "type": "choice", "instruction": "Choose the more likely form.",
+              "items": [
+                { "text": "I {{promise}} I won’t tell anyone.", "options": ["promise", "’m promising"] },
+                { "text": "We {{’re considering}} selling the car.", "options": ["consider", "’re considering"] },
+                { "text": "I {{know}} the answer to that one.", "options": ["know", "’m knowing"] },
+                { "text": "We {{advise}} customers to keep their receipts.", "options": ["advise", "are advising"] },
+                { "text": "I {{believe}} you.", "options": ["believe", "’m believing"] },
+                { "text": "I {{apologise}} for the delay.", "options": ["apologise", "’m apologising"] } ] },
+            { "type": "gaps", "instruction": "Complete with the verbs in brackets.",
+              "items": [
+                { "text": "I {{suggest}} we leave before the traffic gets bad.", "hint": "suggest" },
+                { "text": "He {{’s considering|is considering}} a complete change of career.", "hint": "consider" },
+                { "text": "I {{prefer}} trains to planes.", "hint": "prefer" },
+                { "text": "We {{would advise}} you to book early.", "hint": "would / advise", "note": "A modal makes the advice more polite." },
+                { "text": "I {{don’t deny|’m not denying|do not deny|am not denying}} that I made a mistake.", "hint": "not / deny" } ] },
+            { "type": "match", "instruction": "What does each speaker do by saying it?",
+              "pairs": [
+                [ "I apologise for being late.", "says sorry" ],
+                [ "I promise to call you tonight.", "gives their word" ],
+                [ "I warn you, the dog bites.", "gives a warning" ],
+                [ "I congratulate you both.", "praises a success" ],
+                [ "I name this ship Aurora.", "gives a name" ] ] }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Using present continuous and present simple",
+      "subtitle": "Stories, news, headlines and habits",
+      "theory": { "format": "blocks", "blocks": [
+        { "type": "section", "id": "ad000002-0000-4000-8000-00000000000a", "label": "A", "title": "Stories and jokes", "blocks": [
+          { "type": "text", "text": "In informal stories and jokes we often use present tenses to make events feel as if they are happening now. The **main events** follow each other in the present simple; **longer background** actions are in the present continuous." },
+          { "type": "examples", "items": [
+            { "text": "So I**’m sitting** on the train, minding my own business, and this woman **gets** on and **sits** right on my newspaper …" },
+            { "text": "A penguin **walks** into a café. The waiter**’s cleaning** a glass and **doesn’t** even **look** up …" } ] },
+          { "type": "text", "text": "The present simple can also highlight a sudden event after past tenses, often with **suddenly** or **all of a sudden**:" },
+          { "type": "examples", "items": [
+            { "text": "I was cycling home when **all of a sudden** a fox **runs** out in front of me." } ] } ] },
+        { "type": "section", "id": "ad000002-0000-4000-8000-00000000000b", "label": "B", "title": "Live commentaries", "blocks": [
+          { "type": "text", "text": "Sports and other live commentaries describe actions as they happen: quick actions in the present simple, longer ones in the present continuous." },
+          { "type": "examples", "items": [
+            { "text": "Okafor **takes** it down the left, **beats** one defender … and the crowd**’s going** wild!" } ] } ] },
+        { "type": "section", "id": "ad000002-0000-4000-8000-00000000000c", "label": "C", "title": "Passing on news", "blocks": [
+          { "type": "text", "text": "To introduce news we have heard or read, we use the present simple in phrases such as **I hear**, **I gather**, **I see**, **I understand**, **they say**, **it says (here)**, **(someone) tells me**, **(someone) says**. Past tenses are possible too (**Kim said**, **I heard**)." },
+          { "type": "examples", "items": [
+            { "text": "**I gather** you’ve found a new flat." },
+            { "text": "Lena **tells me** you’re learning Japanese." },
+            { "text": "**It says here** that the bridge will be closed all summer." } ] } ] },
+        { "type": "section", "id": "ad000002-0000-4000-8000-00000000000d", "label": "D", "title": "Headlines and summaries", "blocks": [
+          { "type": "text", "text": "News headlines use the present simple for events that have just happened, and so do summaries of books, films and plays." },
+          { "type": "examples", "items": [
+            { "text": "STORM **CLOSES** CITY AIRPORT" },
+            { "text": "In the second chapter, the detective **finds** a letter hidden in a piano." },
+            { "text": "In the film, Ruiz **plays** a retired pilot who **returns** for one last job." } ] } ] },
+        { "type": "section", "id": "ad000002-0000-4000-8000-00000000000e", "label": "E", "title": "Always, constantly, forever", "blocks": [
+          { "type": "text", "text": "With **always**, **constantly**, **continually** and **forever**, the present continuous shows that something happens so often that it is typical of someone — often with irritation. The past continuous works the same way." },
+          { "type": "examples", "items": [
+            { "text": "You**’re always leaving** the lights on!" },
+            { "text": "Grandad **was forever telling** the same three jokes." } ] },
+          { "type": "text", "text": "The present continuous also describes what we are regularly doing at a certain time:" },
+          { "type": "examples", "items": [
+            { "text": "Don’t call at seven — we**’re** usually **eating** then." } ] } ] }
+      ] },
+      "topics": [
+        {
+          "title": "Stories and commentaries",
+          "explanation": { "format": "blocks", "blocks": [
+            { "type": "text", "text": "Main events in order: **present simple**. The background that is going on around them: **present continuous**." },
+            { "type": "seeAlso", "links": [ { "section": "ad000002-0000-4000-8000-00000000000a" }, { "section": "ad000002-0000-4000-8000-00000000000b" } ] } ] },
+          "exercises": [
+            { "type": "gaps", "instruction": "Present simple or present continuous? Use the verbs in brackets.",
+              "items": [
+                { "text": "So I’m standing at the bus stop when this man {{walks}} up to me and {{asks}} for my umbrella.", "hint": "walk / ask" },
+                { "text": "It {{’s pouring|is pouring}} with rain, and everyone {{’s hurrying|is hurrying}} home.", "hint": "pour / hurry" },
+                { "text": "Okafor {{takes}} the ball down the left and {{crosses}} it into the box.", "hint": "take / cross" },
+                { "text": "The fans {{’re singing|are singing}} — they {{’re enjoying|are enjoying}} every minute of this.", "hint": "sing / enjoy" },
+                { "text": "I was walking home last night when all of a sudden a fox {{runs}} across the road.", "hint": "run" } ] },
+            { "type": "choice", "instruction": "Choose the form a storyteller or commentator would use.",
+              "items": [
+                { "text": "A man {{walks}} into a library and asks for a book about paranoia.", "options": ["walks", "is walking"] },
+                { "text": "The librarian {{’s reading}} a magazine and doesn’t look up.", "options": ["reads", "’s reading"] },
+                { "text": "Then she {{whispers}}: ‘It’s right behind you.’", "options": ["whispers", "’s whispering"] },
+                { "text": "And Mendes {{scores}}! What a goal!", "options": ["scores", "is scoring"] },
+                { "text": "Both teams {{are playing}} with real energy this afternoon.", "options": ["play", "are playing"] } ] },
+            { "type": "order", "instruction": "Put the words in order.",
+              "items": [
+                { "answer": "So this man walks into a shop." },
+                { "answer": "She’s wearing an enormous hat." },
+                { "answer": "Suddenly the lights go out." } ] }
+          ]
+        },
+        {
+          "title": "Passing on news",
+          "explanation": { "format": "blocks", "blocks": [
+            { "type": "text", "text": "**I hear**, **I gather**, **I see**, **I understand**, **they say**, **it says**, **(someone) tells me** — present simple, even though the news reached us earlier." },
+            { "type": "seeAlso", "links": [ { "section": "ad000002-0000-4000-8000-00000000000c" } ] } ] },
+          "exercises": [
+            { "type": "gaps", "instruction": "Complete each sentence with a phrase for passing on news.",
+              "items": [
+                { "text": "{{I hear|I gather|I understand}} you’re moving to Canada.", "hint": "I + hear / gather / understand" },
+                { "text": "Marco {{tells me}} the meeting has been cancelled.", "hint": "tell + me" },
+                { "text": "{{It says here|It says}} that the museum is free on Sundays.", "hint": "it / say / here" },
+                { "text": "{{They say}} it’s going to be a cold winter.", "hint": "they / say" },
+                { "text": "{{I see}} the price of petrol has gone up again.", "hint": "I / see", "note": "**I see** = I’ve read or noticed." } ] },
+            { "type": "choice", "instruction": "Choose the natural phrase.",
+              "items": [
+                { "text": "{{I gather}} you two have met before.", "options": ["I gather", "I’m gathering"] },
+                { "text": "Lena {{tells me}} you speak Japanese.", "options": ["tells me", "is telling me"] },
+                { "text": "{{I hear}} the new café on the corner is excellent.", "options": ["I hear", "I’m hearing"] },
+                { "text": "{{It says}} in the guide that the castle closes at five.", "options": ["It says", "It’s saying"] } ] }
+          ]
+        },
+        {
+          "title": "Always doing it",
+          "explanation": { "format": "blocks", "blocks": [
+            { "type": "text", "text": "**always / constantly / continually / forever** + present continuous: something typical of a person, often annoying. The past continuous works the same way for the past." },
+            { "type": "seeAlso", "links": [ { "section": "ad000002-0000-4000-8000-00000000000e" } ] } ] },
+          "exercises": [
+            { "type": "gaps", "instruction": "Use the words in brackets and the present or past continuous.",
+              "items": [
+                { "text": "You {{’re always losing|are always losing}} your keys!", "hint": "always / lose" },
+                { "text": "My neighbour {{’s constantly complaining|is constantly complaining}} about the noise.", "hint": "constantly / complain" },
+                { "text": "They {{’re forever arguing|are forever arguing}} about money.", "hint": "forever / argue" },
+                { "text": "Jo {{’s always helping|is always helping}} other people — she’s so kind.", "hint": "always / help" },
+                { "text": "When we shared a flat, he {{was always borrowing}} my bike.", "hint": "always / borrow" } ] },
+            { "type": "order", "instruction": "Make a complaint or a comment.",
+              "items": [
+                { "answer": "You’re always changing your mind." },
+                { "answer": "She’s constantly checking her phone." },
+                { "answer": "They were forever asking for money." } ] }
+          ]
+        },
+        {
+          "title": "Headlines, plots and routines",
+          "explanation": { "format": "blocks", "blocks": [
+            { "type": "text", "text": "Headlines and plot summaries: **present simple**. What we are usually doing at a certain time: **present continuous** (**At eight I’m usually driving to work**)." },
+            { "type": "seeAlso", "links": [ { "section": "ad000002-0000-4000-8000-00000000000d" }, { "section": "ad000002-0000-4000-8000-00000000000e" } ] } ] },
+          "exercises": [
+            { "type": "gaps", "instruction": "Present simple or present continuous?",
+              "items": [
+                { "text": "Mayor {{resigns}} after funding scandal", "hint": "resign" },
+                { "text": "In chapter one, the detective {{finds}} a letter hidden in a piano.", "hint": "find" },
+                { "text": "In the film, Ruiz {{plays}} a retired pilot.", "hint": "play" },
+                { "text": "Don’t ring at eight — we {{’re usually eating|are usually eating}} then.", "hint": "usually / eat" },
+                { "text": "At half past eight I {{’m normally taking|am normally taking}} the kids to school.", "hint": "normally / take" } ] },
+            { "type": "choice", "instruction": "Choose the better form.",
+              "items": [
+                { "text": "Earthquake {{hits}} northern Chile", "options": ["hits", "is hitting"] },
+                { "text": "In the novel, the hero {{loses}} everything in the first chapter.", "options": ["loses", "is losing"] },
+                { "text": "Call me later — at six I’m usually {{cooking}}.", "options": ["cooking", "cook"] },
+                { "text": "Our team {{beats}} the champions in the last minute", "options": ["beats", "is beating"] } ] }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Past simple and present perfect",
+      "subtitle": "Finished time, since, time clauses and news",
+      "theory": { "format": "blocks", "blocks": [
+        { "type": "section", "id": "ad000003-0000-4000-8000-00000000000a", "label": "A", "title": "This morning, this week, today", "blocks": [
+          { "type": "text", "text": "With **this morning / week / month** and **today** we use the past simple if we see the period as **finished**, and the present perfect if it **includes now**." },
+          { "type": "examples", "items": [
+            { "text": "I **didn’t check** my email this morning. *(said in the evening: the morning is over)*" },
+            { "text": "I **haven’t checked** my email this morning. *(said at eleven: there’s still time)*" } ] } ] },
+        { "type": "section", "id": "ad000003-0000-4000-8000-00000000000b", "label": "B", "title": "Since", "blocks": [
+          { "type": "text", "text": "In a sentence with **since**, the since-clause usually has the past simple (a point in the past) and the main clause the present perfect." },
+          { "type": "examples", "items": [
+            { "text": "Prices **have risen** sharply *since* the new tax **came** in.", "not": "since … has come in" },
+            { "text": "She **hasn’t driven** *since* she **had** the accident." } ] },
+          { "type": "text", "text": "If both situations go on until now, both clauses take the present perfect:" },
+          { "type": "examples", "items": [
+            { "text": "**Have** you **made** any friends *since* you**’ve lived** here?", "not": "since you lived here" } ] } ] },
+        { "type": "section", "id": "ad000003-0000-4000-8000-00000000000c", "label": "C", "title": "Time clauses: past or future", "blocks": [
+          { "type": "text", "text": "After **after**, **when**, **until**, **as soon as**, **once**, **by the time** and **the minute / second / moment**, the past simple refers to finished past events, and the present perfect to events in the **future**." },
+          { "type": "examples", "items": [
+            { "text": "*Once* she **read** the letter, she burst into tears. *(past)*" },
+            { "text": "*Once* you**’ve read** the instructions, you’ll find it easy. *(future)*" },
+            { "text": "I’ll call you *the minute* I**’ve landed**. *(future)*" } ] },
+          { "type": "tip", "blocks": [
+            { "type": "text", "text": "The past perfect (**after she had left**) and the present simple (**after he leaves**) are also possible with the same meanings." } ] } ] },
+        { "type": "section", "id": "ad000003-0000-4000-8000-00000000000d", "label": "D", "title": "News reports", "blocks": [
+          { "type": "text", "text": "News reports often **introduce** a recent event with the present perfect and then give the **details** in the past simple." },
+          { "type": "examples", "items": [
+            { "text": "A missing climber **has been found** alive in the Alps. Rescuers **reached** him early on Tuesday." } ] } ] },
+        { "type": "section", "id": "ad000003-0000-4000-8000-00000000000e", "label": "E", "title": "The first time", "blocks": [
+          { "type": "text", "text": "After **It / This / That is** or **will be the first time**, we use the present perfect. After **It was the first time**, we use the past perfect." },
+          { "type": "examples", "items": [
+            { "text": "*This is the first time* I**’ve tried** sushi." },
+            { "text": "*It will be the first time* the club **has reached** a final." },
+            { "text": "*It was the first time* she**’d flown** alone." } ] } ] }
+      ] },
+      "topics": [
+        {
+          "title": "Finished time or not?",
+          "explanation": { "format": "blocks", "blocks": [
+            { "type": "text", "text": "Is the period over when you speak? Over: **past simple**. Still going: **present perfect**." },
+            { "type": "seeAlso", "links": [ { "section": "ad000003-0000-4000-8000-00000000000a" } ] } ] },
+          "exercises": [
+            { "type": "gaps", "instruction": "Present perfect or past simple? Mind the time in brackets.",
+              "items": [
+                { "text": "(11 a.m.) I {{haven’t had|have not had}} any coffee this morning — no wonder I’m tired.", "hint": "not / have" },
+                { "text": "(9 p.m.) I {{didn’t have|did not have}} time for breakfast this morning.", "hint": "not / have" },
+                { "text": "I {{’ve sent|have sent}} thirty emails today, and it’s only lunchtime.", "hint": "send" },
+                { "text": "(5 p.m.) I {{overslept}} this morning, so I missed the first meeting.", "hint": "oversleep" },
+                { "text": "It’s only the 20th and we {{’ve spent|have spent}} the whole budget for this month.", "hint": "spend" } ] },
+            { "type": "choice", "instruction": "Choose the better form.",
+              "items": [
+                { "text": "(10 a.m.) I {{haven’t seen}} Tom this morning.", "options": ["didn’t see", "haven’t seen"] },
+                { "text": "(Evening) I {{didn’t see}} Tom this morning — was he ill?", "options": ["didn’t see", "haven’t seen"] },
+                { "text": "(Thursday) It {{’s been}} a busy week so far.", "options": ["was", "’s been"] },
+                { "text": "(Monday) It {{was}} a lovely weekend.", "options": ["was", "’s been"] } ] }
+          ]
+        },
+        {
+          "title": "Since",
+          "explanation": { "format": "blocks", "blocks": [
+            { "type": "text", "text": "Since + a point in the past: **past simple**; the main clause: **present perfect**. If both situations continue until now, both are in the present perfect." },
+            { "type": "seeAlso", "links": [ { "section": "ad000003-0000-4000-8000-00000000000b" } ] } ] },
+          "exercises": [
+            { "type": "gaps", "instruction": "Present perfect or past simple? Use the verbs in brackets.",
+              "items": [
+                { "text": "Prices {{have risen|’ve risen}} sharply since the new tax {{came}} in.", "hint": "rise / come" },
+                { "text": "She {{hasn’t driven|has not driven}} since she {{had}} the accident.", "hint": "not drive / have" },
+                { "text": "A lot {{has changed|’s changed}} since I last {{wrote}} to you.", "hint": "change / write" },
+                { "text": "Since he {{started}} running, he {{’s felt|has felt}} much healthier.", "hint": "start / feel" },
+                { "text": "Have you {{made}} any friends since you {{’ve lived|have lived}} here?", "hint": "make / live", "note": "You still live here, so **since you’ve lived**." } ] },
+            { "type": "choice", "instruction": "Choose the better form.",
+              "items": [
+                { "text": "Since I {{moved}} here, I’ve made lots of friends.", "options": ["moved", "’ve moved"] },
+                { "text": "Since I {{’ve worked}} from home, I’ve saved a fortune on travel.", "options": ["worked", "’ve worked"] },
+                { "text": "He’s been much happier since he {{changed}} jobs.", "options": ["changed", "’s changed"] } ] }
+          ]
+        },
+        {
+          "title": "Time clauses: past or future?",
+          "explanation": { "format": "blocks", "blocks": [
+            { "type": "text", "text": "After **when, once, as soon as, until, the minute**…: past simple for the **past**, present perfect for the **future**." },
+            { "type": "seeAlso", "links": [ { "section": "ad000003-0000-4000-8000-00000000000c" } ] } ] },
+          "exercises": [
+            { "type": "choice", "instruction": "Past or future? Choose the form.",
+              "items": [
+                { "text": "Once you {{’ve read}} the instructions, you’ll find it easy.", "options": ["read", "’ve read"] },
+                { "text": "I’ll call you the minute I {{’ve landed}}.", "options": ["landed", "’ve landed"] },
+                { "text": "The minute I {{landed}}, I switched on my phone.", "options": ["landed", "’ve landed"] },
+                { "text": "We can’t leave until everyone {{has paid}}.", "options": ["paid", "has paid"] },
+                { "text": "By the time we {{got}} there, the film had started.", "options": ["got", "have got"] } ] },
+            { "type": "gaps", "instruction": "Present perfect or past simple?",
+              "items": [
+                { "text": "As soon as I {{’ve finished|have finished}} this report, I’ll join you.", "hint": "finish" },
+                { "text": "After he {{left}} university, he travelled for a year.", "hint": "leave" },
+                { "text": "When you {{’ve found|have found}} a seat, please wait for the announcement.", "hint": "find" },
+                { "text": "I recognised her the moment she {{spoke}}.", "hint": "speak" } ] }
+          ]
+        },
+        {
+          "title": "News and first times",
+          "explanation": { "format": "blocks", "blocks": [
+            { "type": "text", "text": "News: introduce with the **present perfect**, give details in the **past simple**. **It’s / It will be the first time** + present perfect; **It was the first time** + past perfect." },
+            { "type": "seeAlso", "links": [ { "section": "ad000003-0000-4000-8000-00000000000d" }, { "section": "ad000003-0000-4000-8000-00000000000e" } ] } ] },
+          "exercises": [
+            { "type": "gaps", "instruction": "Use the verbs in brackets in the right tense.",
+              "items": [
+                { "text": "A missing climber {{has been found|’s been found}} alive. Rescuers {{reached}} him early on Tuesday.", "hint": "be found / reach" },
+                { "text": "The company {{has announced|’s announced}} record profits. Sales {{rose}} by 12% last year.", "hint": "announce / rise" },
+                { "text": "This is the first time I {{’ve eaten|have eaten}} octopus.", "hint": "eat" },
+                { "text": "It will be the first time the club {{has played|’s played}} in a final.", "hint": "play" },
+                { "text": "It was the first time she {{’d flown|had flown}} alone.", "hint": "fly" } ] },
+            { "type": "choice", "instruction": "Choose the better form.",
+              "items": [
+                { "text": "This is the first time I {{’ve been}} to Rome.", "options": ["was", "’ve been"] },
+                { "text": "It was the first time we {{’d met}}.", "options": ["’ve met", "’d met"] },
+                { "text": "Police {{have arrested}} two men after a robbery in the city centre.", "options": ["arrested", "have arrested"] },
+                { "text": "The robbery {{happened}} at about three in the morning.", "options": ["happened", "has happened"] } ] }
+          ]
+        }
+      ]
+    }
+  ]
+}
