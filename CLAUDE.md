@@ -20,20 +20,21 @@ Versions live in `gradle/libs.versions.toml`.
 | Module | Purpose |
 |--------|---------|
 | `content/` | Course content, independent of the rest: text markup, theory blocks, exercise types, `validate()`, strict JSON (`ContentJson`) |
-| `content-compose/` | Draws content: `ContentView` (theory blocks), `ExerciseView` (every exercise type), `ContentTheme`, `ImageLoader`; knows nothing of courses or checking |
+| `content-compose/` | Draws content: `ContentView` (theory blocks), `ExerciseView` (the layers of every exercise, `Framed` for look and aside, a body per type), `ContentTheme`, `ImageLoader`; knows nothing of courses or checking |
 | `core/` | Pure business logic, no UI/SQL/IO: course model and file (`CourseJson`), journal events, checking, course policies, `replay()`, ports, `CourseService` / `StudyService` |
 | `client/` | Storage adapters: SQLite (`LocalStorage`), course import/export with pictures (`CourseLibrary`), sample course; `desktopMain` has zip, picture files, HTTP and the DB in `<Documents>/polylingy` |
 | `app/` | Compose UI: screens, ViewModels, `AppContainer` (manual DI); `desktopMain` has `main()` and native file dialogs |
 
 Dependencies point only towards `core` (and `core` → `content`). Root package: `com.polylingy`.
 
-Version 0.2 is the rewrite to the current model (courses with units and theory, six exercise types, course policies); how it went is in `docs/migration-plan.md`. Example courses for manual checks are in `examples/`.
+Version 0.2 is the rewrite to the current model (courses with units and theory, exercise types, course policies); how it went is in `docs/migration-plan.md`. Version 0.3 added exercise layers (`look`, `aside`), `expand` and `fix`, and the formal schema of the course file. Example courses for manual checks are in `examples/`.
 
 Key files:
 - `app/src/desktopMain/kotlin/com/polylingy/app/Main.kt` — entry point: opens storage, seeds the sample course, opens the window
 - `app/src/commonMain/kotlin/com/polylingy/app/AppContainer.kt` — builds every long-lived object (clock, random, services)
 - `app/src/commonMain/kotlin/com/polylingy/app/App.kt` — routes and `Navigator`; screens in `courses/`, `course/`, `study/`, `edit/` (JSON editor of units and topics), `settings/` (study settings of a course), look in `ui/Look.kt`
-- `content/src/commonMain/kotlin/com/polylingy/content/` — `Inline`, `Block`, `Exercise`, `ContentJson`
+- `content/src/commonMain/kotlin/com/polylingy/content/` — `Inline`, `Block`, `Exercise` (its KDoc lists the layers), `Layers.kt` (`Look`, `Aside`), `ContentJson`
+- `docs/course.schema.json` — formal JSON Schema of the course file; `SchemaTest` (content) and `CourseSchemaTest` (core) keep it equal to the code
 - `core/src/commonMain/kotlin/com/polylingy/core/content/CourseJson.kt` — reading and writing course files, all checks
 - `client/src/commonMain/kotlin/com/polylingy/client/CourseLibrary.kt` — import/export with pictures
 - `core/src/commonMain/kotlin/com/polylingy/core/rules/TextMatcher.kt`, `ExerciseChecker.kt` — checking answers
@@ -73,6 +74,9 @@ Courses get in and out as files: `course.json` alone or a zip with `course.json`
 
 # Build the Windows installer -> app/build/compose/binaries/main/msi/
 ./gradlew :app:packageMsi
+
+# Check a course file as import does (comma-separated for several)
+./gradlew :client:checkCourse -Pcourse=examples/advanced-grammar.json
 ```
 
 ## Verifying Changes
@@ -103,6 +107,16 @@ git checkout -b <branch-name>   # e.g. feat/streak-counter, fix/review-date-off-
 
 Do not commit directly to `master`.
 
+## Course Format Changes
+
+The course file format is fixed by code, tests and docs together; change all of them in one go:
+- the model in `content` (or `core`) with `validate()`, and `formatVersion` + its history in `docs/content-format.md` §9 when the JSON can say something new;
+- `docs/course.schema.json` — the schema tests fail until it has exactly the new fields and types;
+- a sample in `content/src/commonTest/.../Samples.kt` (and `examples/` when it shows the feature);
+- the format description in `docs/content-format.md`.
+
+To write a course (by hand or from a book), follow `.claude/skills/make-course/SKILL.md`.
+
 ## Additional Docs
 
 | File | When to read |
@@ -110,6 +124,7 @@ Do not commit directly to `master`.
 | `docs/architecture.md` | Architecture: modules, documents vs journal, replay, behaviour decisions, known debts, sync concept, open questions |
 | `docs/learning-model.md` | Learning model: units, rounds, grades, course policies, checking and typos |
 | `docs/migration-plan.md` | How 0.2 was built (done): stages, invariants, decisions, open questions |
-| `docs/content-format.md` | Course format: theory blocks, exercise types, explanations, links, import, validation, `formatVersion` |
+| `docs/content-format.md` | Course format: theory blocks, exercise layers and types, explanations, links, import, validation, schema, `formatVersion` |
+| `docs/course.schema.json` | Formal JSON Schema of `course.json`, format 3 |
 | `docs/testing.md` | How changes are verified: test levels, UI tests, screenshots, manual checks |
 | `.claude/docs/architectural_patterns.md` | Code conventions: ports, DI, ViewModels, testing helpers |

@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -54,6 +56,11 @@ private fun style(bold: Boolean, italic: Boolean) = SpanStyle(
 fun InlineFlow(inline: Inline, modifier: Modifier = Modifier, blank: @Composable (InlineNode.Blank) -> Unit) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         for (line in chunks(inline)) {
+            // An empty line (two line breaks) parts paragraphs, as in a letter.
+            if (line.isEmpty()) {
+                Spacer(Modifier.height(6.dp))
+                continue
+            }
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(5.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp),

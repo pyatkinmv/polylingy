@@ -23,7 +23,99 @@ class ValidationTest {
 
     @Test fun itemCounts() {
         val counts = Samples.exercises.mapValues { exercise(it.value).itemCount }
-        assertEquals(mapOf("gaps" to 4, "choice" to 2, "pictures" to 2, "table" to 4, "match" to 3, "order" to 2), counts)
+        assertEquals(mapOf("gaps" to 4, "choice" to 2, "pictures" to 2, "table" to 4, "match" to 3, "order" to 2,
+            "choiceInText" to 2, "expand" to 2, "fix" to 4, "layers" to 2, "article" to 2), counts)
+    }
+
+    // layers
+
+    @Test fun lookAndAsideAreCheckedOnEveryType() {
+        for (json in Samples.ofEachType) {
+            val withLayers = json.trimEnd().removeSuffix("}") +
+                """, "look": { "type": "email", "from": " ", "subject": "**x" }, "aside": { "image": { "src": "/x.png", "alt": "" }, "side": "top" } }"""
+            assertEquals(listOf(
+                "exercises[0].look.from: must not be empty",
+                "exercises[0].look.subject: ** at 1 is not closed",
+                "exercises[0].aside.image.src: must be an https:// URL or a relative path inside the course archive, like images/cat.png",
+                "exercises[0].aside.image.alt: must not be empty: describe the picture",
+            ), problemsOf(withLayers), json)
+        }
+    }
+
+    @Test fun articleNeedsATitle() {
+        assertProblems(ex("fix", """"look": { "type": "article", "title": "", "source": "" }, "items": [{ "text": "{{a}}" }]"""),
+            "exercises[0].look.title: must not be empty",
+            "exercises[0].look.source: must not be empty")
+    }
+
+    @Test fun anUnknownLookIsAnUnknownType() {
+        val problems = exercise(ex("gaps", """"look": { "type": "chat", "with": "Tom" }, "items": [{ "text": "{{a}}" }]""")).validate(at)
+        assertEquals(listOf(Problem(Path("exercises[0].look"), "unknown look \"chat\"", Problem.Kind.UNKNOWN_TYPE)), problems)
+    }
+
+    // choice in the text
+
+    @Test fun choicePlacesInTheTextNeedOptions() {
+        assertProblems(ex("choice", """"items": [{ "text": "I {{admit}} it." }]"""),
+            "exercises[0].items[0].text: each place needs its options {{right|other}}, or the item needs \"options\": \"{{admit}}\" has one")
+        assertProblems(ex("choice", """"items": [{ "text": "I {{admit|admit}} it." }]"""),
+            "exercises[0].items[0].text: \"{{admit|admit}}\" has the same option twice")
+        assertProblems(ex("choice", """"items": [{ "text": "No place." }]"""),
+            "exercises[0].items[0].text: needs at least one blank {{…}}")
+    }
+
+    @Test fun choicePlacesFollowTheWrittenOrder() {
+        val choice = exercise(Samples.choiceInText) as Exercise.Choice
+        assertEquals(listOf(Exercise.ChoicePlace(listOf("apologise", "’m apologising"), "apologise"),
+            Exercise.ChoicePlace(listOf("admit", "’m admitting"), "admit")), choice.places)
+        val old = exercise(Samples.choice) as Exercise.Choice
+        assertEquals(Exercise.ChoicePlace(listOf("rains", "’s raining"), "’s raining"), old.places.first())
+    }
+
+    // expand
+
+    @Test fun expandRules() {
+        assertProblems(ex("expand", """"items": []"""), "exercises[0].items: needs at least one item")
+        assertProblems(ex("expand", """"items": [{ "text": "{{a}} {{b}}", "keys": [] }]"""),
+            "exercises[0].items[0].text: needs exactly one blank {{…}}, found 2",
+            "exercises[0].items[0].keys: needs at least one order of key words")
+        assertProblems(ex("expand", """"items": [{ "text": "{{a b}}", "keys": [["a", " "], [], ["a", "c"]] }]"""),
+            "exercises[0].items[0].keys[0][1]: must not be empty",
+            "exercises[0].items[0].keys[1]: needs at least one key word",
+            "exercises[0].items[0].keys[1]: must have the same key words as the first order, in another order",
+            "exercises[0].items[0].keys[2]: must have the same key words as the first order, in another order")
+    }
+
+    @Test fun anExpandAnswerMayBeLongerThanABlank() {
+        val long = "a ".repeat(70).trim()
+        assertProblems(ex("expand", """"items": [{ "text": "{{$long}}", "keys": [["a"]] }]"""))
+        val tooLong = "a".repeat(MAX_ANSWER_LENGTH + 1)
+        assertProblems(ex("expand", """"items": [{ "text": "{{$tooLong}}", "keys": [["a"]] }]"""),
+            "exercises[0].items[0].text: answer \"$tooLong\" is longer than $MAX_ANSWER_LENGTH characters")
+    }
+
+    // fix
+
+    @Test fun fixMarksAreRightOrWrongWithFixes() {
+        val fix = exercise(Samples.fix) as Exercise.Fix
+        assertEquals(listOf(
+            Exercise.FixMark("had been driving", emptyList()),
+            Exercise.FixMark("had been breaking", listOf("broke")),
+            Exercise.FixMark("signed", listOf("’ve signed", "have signed")),
+            Exercise.FixMark("signed", emptyList()),
+        ), fix.marks)
+    }
+
+    @Test fun fixRules() {
+        assertProblems(ex("fix", """"items": [{ "text": "No marks." }]"""), "exercises[0].items[0].text: needs at least one blank {{…}}")
+        assertProblems(ex("fix", """"items": [{ "text": "{{went|go}} {{ => went}} {{go => }} {{go => Go}}" }]"""),
+            "exercises[0].items[0].text: \"{{went|go}}\": a wrong word is written {{wrong => fix|other fix}}",
+            "exercises[0].items[0].text: \"{{=> went}}\" has nothing before =>",
+            "exercises[0].items[0].text: \"{{go =>}}\" has an empty fix",
+            "exercises[0].items[0].text: \"{{go => Go}}\": a fix must differ from the wrong word")
+        val long = "a".repeat(MAX_BLANK_LENGTH + 1)
+        assertProblems(ex("fix", """"items": [{ "text": "{{go => $long}}" }]"""),
+            "exercises[0].items[0].text: \"$long\" is longer than $MAX_BLANK_LENGTH characters")
     }
 
     // gaps
@@ -38,14 +130,14 @@ class ValidationTest {
         val fits = "a".repeat(MAX_BLANK_LENGTH)
         assertProblems(ex("gaps", """"items": [{ "text": "{{$fits}}" }]"""))
         assertProblems(ex("table", """"rows": [["x", "{{short|${fits}b}}"]]"""),
-            "exercises[0].rows[0][1]: answer \"${fits}b\" is longer than 40 characters")
+            "exercises[0].rows[0][1]: answer \"${fits}b\" is longer than $MAX_BLANK_LENGTH characters")
     }
 
     @Test fun gapsCheckMarkupHintNoteExampleAndWordBank() = assertProblems(
         ex("gaps", """"example": "I {{am}}", "wordBank": [" "],
             "items": [{ "text": "a **{{b}}", "hint": "", "note": "{{x}}" }]"""),
-        "exercises[0].example: blanks {{…}} are only allowed in exercises",
         "exercises[0].wordBank[0]: must not be empty",
+        "exercises[0].example: blanks {{…}} are only allowed in exercises",
         "exercises[0].items[0].text: ** at 3 is not closed",
         "exercises[0].items[0].hint: must not be empty",
         "exercises[0].items[0].note: blanks {{…}} are only allowed in exercises",
@@ -69,7 +161,7 @@ class ValidationTest {
             "exercises[0].items[0].options: has the same option twice",
             "exercises[0].items[0].options[2]: must not be empty")
         assertProblems(ex("choice", """"items": [{ "text": "{{a|b}}", "options": ["a", "c"] }]"""),
-            "exercises[0].items[0].text: a choice has one right answer, not variants")
+            "exercises[0].items[0].text: with \"options\" the blank holds only the right answer")
         assertProblems(ex("choice", """"items": [{ "text": "{{a}}", "options": ["b", "c"], "note": "" }]"""),
             "exercises[0].items[0].note: must not be empty",
             "exercises[0].items[0].options: must include the right answer \"a\"")

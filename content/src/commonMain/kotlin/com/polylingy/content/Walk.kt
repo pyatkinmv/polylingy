@@ -42,9 +42,11 @@ fun Exercise.images(at: Path): List<Pair<Path, Image>> {
             }
             extra.forEachIndexed { e, side -> if (side is Side.Picture) add((at / "extra")[e] / "image" / "src" to side.image) }
         }
-        is Exercise.Gaps, is Exercise.Choice, is Exercise.Table, is Exercise.Order, is Exercise.Unknown -> emptyList()
+        is Exercise.Gaps, is Exercise.Choice, is Exercise.Table, is Exercise.Order, is Exercise.Expand, is Exercise.Fix,
+        is Exercise.Unknown -> emptyList()
     }
-    return own + explanation?.images(at / "explanation").orEmpty()
+    val aside = aside?.let { listOf(at / "aside" / "image" / "src" to it.image) }.orEmpty()
+    return aside + own + explanation?.images(at / "explanation").orEmpty()
 }
 
 /** The same exercise under another id, e.g. when an imported course becomes a copy. */
@@ -55,6 +57,8 @@ fun Exercise.withId(id: Uuid): Exercise = when (this) {
     is Exercise.Table -> copy(id = id)
     is Exercise.Match -> copy(id = id)
     is Exercise.Order -> copy(id = id)
+    is Exercise.Expand -> copy(id = id)
+    is Exercise.Fix -> copy(id = id)
     is Exercise.Unknown -> copy(raw = JsonObject(raw + ("id" to JsonPrimitive(id.toString()))))
 }
 
@@ -81,5 +85,7 @@ fun Exercise.mapLinks(transform: (Block.Link) -> Block.Link): Exercise = when (t
     is Exercise.Table -> copy(explanation = explanation?.mapLinks(transform))
     is Exercise.Match -> copy(explanation = explanation?.mapLinks(transform))
     is Exercise.Order -> copy(explanation = explanation?.mapLinks(transform))
+    is Exercise.Expand -> copy(explanation = explanation?.mapLinks(transform))
+    is Exercise.Fix -> copy(explanation = explanation?.mapLinks(transform))
     is Exercise.Unknown -> this
 }

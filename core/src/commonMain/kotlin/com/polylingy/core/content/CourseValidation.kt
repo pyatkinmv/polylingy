@@ -2,12 +2,15 @@ package com.polylingy.core.content
 
 import com.polylingy.content.Block
 import com.polylingy.content.Content
+import com.polylingy.content.Exercise
+import com.polylingy.content.ItemResult
 import com.polylingy.content.Image
 import com.polylingy.content.images
 import com.polylingy.content.Path
 import com.polylingy.content.Problem
 import com.polylingy.content.validate
 import com.polylingy.content.walk
+import com.polylingy.core.rules.TextMatcher
 import kotlin.uuid.Uuid
 
 private val Accent = Regex("#[0-9A-Fa-f]{6}")
@@ -37,6 +40,15 @@ fun Course.validate(): List<Problem> = buildList {
     val theories = mutableListOf<Pair<Path, Content>>()
     val pages = mutableListOf<Pair<Path, Content>>()
 
+    /** Every model answer of an expand item must itself pass its key words, or the item can't be answered right. */
+    fun modelAnswers(exercise: Exercise.Expand, at: Path) = exercise.items.forEachIndexed { i, item ->
+        if (item.keys.isEmpty() || item.keys.any { it.isEmpty() }) return@forEachIndexed
+        for (variant in item.text.blanks.singleOrNull()?.variants.orEmpty()) {
+            val match = TextMatcher.keys(variant, item.keys)
+            if (match.result != ItemResult.CORRECT) error((at / "items")[i] / "keys", "the model answer \"$variant\" doesn't pass them: ${match.reason}")
+        }
+    }
+
     fun topic(topic: Topic, at: Path) {
         if (topic.title.isBlank()) error(at / "title", "must not be empty")
         topic.explanation?.let {
@@ -47,6 +59,7 @@ fun Course.validate(): List<Problem> = buildList {
         topic.exercises.forEachIndexed { e, exercise ->
             val exerciseAt = (at / "exercises")[e]
             addAll(exercise.validate(exerciseAt))
+            if (exercise is Exercise.Expand) modelAnswers(exercise, exerciseAt)
             exercise.explanation?.let { pages += exerciseAt / "explanation" to it }
         }
     }

@@ -72,18 +72,22 @@ private fun Option(text: String, selected: Boolean, result: ItemResult?, enabled
     )
 }
 
+/** Each place of a choice shows its options, shuffled, as pills in the sentence; each place is picked on its own. */
 @Composable
 internal fun ChoiceView(exercise: Exercise.Choice, response: Response.Choice, checks: List<ItemCheck>?, onChange: (Response) -> Unit, seed: Int) {
-    val shuffled = remember(exercise.id, seed) { exercise.items.mapIndexed { i, item -> item.options.shuffled(Random(seed + i)) } }
+    val places = exercise.places
+    val shuffled = remember(exercise.id, seed) { places.mapIndexed { p, place -> place.options.shuffled(Random(seed + p)) } }
+    val offsets = offsets(exercise.items.map { it.text })
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         exercise.items.forEachIndexed { i, item ->
-            val check = checks?.get(i)
-            Item(i + 1, item.note, showNote = check != null) {
-                InlineFlow(item.text) {
+            Item(numberOf(i, exercise.items.size), item.note, showNote = checks != null) {
+                InlineFlow(item.text) { blank ->
+                    val p = offsets[i] + blank.index
+                    val check = checks?.get(p)
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        for (option in shuffled[i]) {
-                            Option(option, response.picked[i] == option, check?.result, enabled = checks == null) {
-                                onChange(Response.Choice(response.picked.toMutableList().also { it[i] = option }))
+                        for (option in shuffled[p]) {
+                            Option(option, response.picked[p] == option, check?.result, enabled = checks == null) {
+                                onChange(Response.Choice(response.picked.toMutableList().also { it[p] = option }))
                             }
                         }
                         if (check != null && check.result != ItemResult.CORRECT) Text("→ ${check.rightAnswer}", color = colors.correct, fontWeight = FontWeight.SemiBold)
@@ -235,7 +239,7 @@ internal fun OrderView(exercise: Exercise.Order, response: Response.Order, check
             val placed = response.sentences[i]
             val check = checks?.get(i)
             fun update(words: List<String>) = onChange(Response.Order(response.sentences.toMutableList().also { it[i] = words }))
-            Item(i + 1, item.note, showNote = check != null) {
+            Item(numberOf(i, exercise.items.size), item.note, showNote = check != null) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     FlowRow(
                         Modifier.fillMaxWidth().heightIn(min = 40.dp).semantics { contentDescription = "Sentence ${i + 1}" },

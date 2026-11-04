@@ -52,6 +52,56 @@ class ExerciseCheckerTest {
         )
     }
 
+    @Test fun choiceInTheTextChecksEachPlace() {
+        val choice = exercise("choice", """"items": [
+            { "text": "I {{apologise|’m apologising}} and I {{admit|’m admitting}} it." },
+            { "text": "It {{’s raining}}.", "options": ["rains", "’s raining"] } ]""")
+        assertEquals(3, choice.itemCount)
+        assertEquals(
+            listOf(ItemCheck(CORRECT, "apologise"), ItemCheck(WRONG, "admit"), ItemCheck(CORRECT, "’s raining")),
+            Checking.check(choice, Response.Choice(listOf("apologise", "’m admitting", "’s raining"))),
+        )
+    }
+
+    private val expand = exercise("expand", """"items": [
+        { "text": "You’re {{constantly checking your phone}}.", "keys": [["constantly", "checking", "phone"]] },
+        { "text": "{{He’s always borrowing my charger}}.", "keys": [["always", "borrowing", "charger"], ["borrowing", "charger", "always"]] } ]""")
+
+    @Test fun expandTakesTheModelAnswerOrTheKeysInOrder() = assertEquals(
+        listOf(ItemCheck(CORRECT, "constantly checking your phone"), ItemCheck(CORRECT, "He’s always borrowing my charger")),
+        Checking.check(expand, Response.Blanks(listOf("Constantly checking your phone.", "he is borrowing my old charger always"))),
+    )
+
+    @Test fun aWrongExpandAnswerSaysWhy() = assertEquals(
+        listOf(
+            ItemCheck(WRONG, "constantly checking your phone", "Not found: checking"),
+            ItemCheck(WRONG, "He’s always borrowing my charger", "Wrong order: always before borrowing"),
+        ),
+        Checking.check(expand, Response.Blanks(listOf("constantly check your phone", "he's borrowing always my charger"))),
+    )
+
+    @Test fun anExpandTypoIsATypo() = assertEquals(
+        listOf(TYPO, WRONG),
+        Checking.check(expand, Response.Blanks(listOf("you are constantly chekcing the phone", ""))).map { it.result },
+    )
+
+    private val fix = exercise("fix", """"items": [
+        { "text": "We {{had been driving}} for hours when the car {{had been breaking => broke}} down." },
+        { "text": "Once you {{signed => ’ve signed|have signed}} the form, you can’t cancel." } ]""")
+
+    @Test fun fixWantsRightWordsKeptAndWrongOnesFixed() {
+        assertEquals(
+            listOf(ItemCheck(CORRECT, "had been driving"), ItemCheck(CORRECT, "broke"), ItemCheck(TYPO, "have signed")),
+            Checking.check(fix, Response.Blanks(listOf("", "broke", "have singed"))),
+        )
+        assertEquals(CORRECT, Checking.check(fix, Response.Blanks(listOf("Had been driving", "broke", "’ve signed")))[0].result, "a kept word typed again")
+    }
+
+    @Test fun fixMistakesAreAWrongWordKeptOrARightOneChanged() = assertEquals(
+        listOf(ItemCheck(WRONG, "had been driving"), ItemCheck(WRONG, "broke"), ItemCheck(WRONG, "’ve signed")),
+        Checking.check(fix, Response.Blanks(listOf("drove", "", "signs"))),
+    )
+
     @Test fun matchChecksEveryPair() {
         val match = exercise("match", """"pairs": [ ["I’m tired,", "so I’m going to bed."], ["Be quiet!", "The **baby** is sleeping."],
             [{ "image": { "src": "d.png", "alt": "Dan" } }, { "image": { "src": "s.png", "alt": "A shower" } }] ], "extra": ["It rains."]""")
@@ -73,7 +123,7 @@ class ExerciseCheckerTest {
     }
 
     @Test fun anEmptyResponseIsAllWrong() {
-        for (exercise in listOf(gaps, exercise("choice", """"items": [ { "text": "{{a}}", "options": ["a", "b"] } ]"""))) {
+        for (exercise in listOf(gaps, expand, exercise("choice", """"items": [ { "text": "{{a}}", "options": ["a", "b"] } ]"""))) {
             assertEquals(List(exercise.itemCount) { WRONG }, Checking.check(exercise, exercise.emptyResponse()).map { it.result })
         }
     }

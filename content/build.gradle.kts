@@ -21,6 +21,9 @@ kotlin {
         commonTest.dependencies {
             implementation(kotlin("test"))
         }
+        jvmTest.dependencies {
+            implementation(libs.json.schema.validator)
+        }
     }
 }
 

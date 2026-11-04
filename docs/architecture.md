@@ -64,7 +64,7 @@ flowchart TD
 | Модуль | Что внутри | Состояние |
 |---|---|---|
 | `content` | содержимое курса, независимое от остального: разметка `Inline`, блоки теории, типы упражнений, ответы и результаты пунктов, `validate()`, строгий JSON (`ContentJson`) | сделано |
-| `content-compose` | отрисовка содержимого: `ContentView` (блоки), `ExerciseView` (все типы упражнений), `ContentTheme`, `ImageLoader`, `LinkNames`; ничего не знает о курсах и проверке | сделано |
+| `content-compose` | отрисовка содержимого: `ContentView` (блоки), `ExerciseView` (слои любого упражнения, `Framed` — рамка и картинка, тело по типу), `ContentTheme`, `ImageLoader`, `LinkNames`; ничего не знает о курсах и проверке | сделано |
 | `core` | модель курса и его файл (`CourseJson`), журнал, проверка ответов, четыре политики и наборы, `replay()`, порты, `CourseService` / `StudyService` | сделано |
 | `client` | реализации портов: SQLite (`LocalStorage`), импорт и экспорт с картинками (`CourseLibrary`), пример курса; в `desktopMain` — zip, файлы картинок, HTTP, путь к базе | сделано |
 | `app` | экраны, ViewModel, навигация, `AppContainer`; в `desktopMain` — `main()` и нативные диалоги файлов | сделано, только десктоп |

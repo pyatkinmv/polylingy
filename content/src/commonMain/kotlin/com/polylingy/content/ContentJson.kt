@@ -21,6 +21,7 @@ object ContentJson {
         polymorphicDefaultDeserializer(Block::class) { UnknownBlockSerializer }
         polymorphicDefaultDeserializer(Exercise::class) { UnknownExerciseSerializer }
         polymorphicDefaultDeserializer(Content::class) { UnknownContentSerializer }
+        polymorphicDefaultDeserializer(Look::class) { UnknownLookSerializer }
     }
 
     /** For files of this app's format version: an unknown field is an error. */

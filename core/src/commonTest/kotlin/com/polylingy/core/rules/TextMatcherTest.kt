@@ -79,6 +79,33 @@ class TextMatcherTest {
         assertEquals("", TextMatcher.normalize(" . "))
     }
 
+    @Test fun keysMayHaveAnyWordsBetweenThem() {
+        val keys = listOf(listOf("always", "borrowing", "my charger"))
+        assertEquals(KeysMatch(CORRECT), TextMatcher.keys("You’re ALWAYS borrowing my charger!", keys))
+        assertEquals(KeysMatch(CORRECT), TextMatcher.keys("always, always borrowing — my charger", keys))
+        assertEquals(KeysMatch(WRONG, "Not found: my charger"), TextMatcher.keys("always borrowing my old charger", keys), "a phrase stands together")
+        assertEquals(KeysMatch(TYPO), TextMatcher.keys("always borrowimg my charger", keys))
+    }
+
+    @Test fun oneTypoInOneKey() {
+        val keys = listOf(listOf("constantly", "checking", "phone"))
+        assertEquals(KeysMatch(TYPO), TextMatcher.keys("constatnly checking my phone", keys))
+        assertEquals(KeysMatch(WRONG, "More than one typo"), TextMatcher.keys("constatnly chekcing my phone", keys))
+        assertEquals(KeysMatch(WRONG, "Not found: checking"), TextMatcher.keys("constantly check my phone", keys), "a missing letter is not a typo")
+    }
+
+    @Test fun theReasonNamesMissingKeysOrTheFirstWrongPair() {
+        val keys = listOf(listOf("continually", "interrupting", "me"))
+        assertEquals(KeysMatch(WRONG, "Not found: continually, me"), TextMatcher.keys("interrupting all the time", keys))
+        assertEquals(KeysMatch(WRONG, "Wrong order: continually before interrupting"), TextMatcher.keys("interrupting me continually", keys))
+        assertEquals(KeysMatch(CORRECT), TextMatcher.keys("me interrupting continually", listOf(listOf("me", "interrupting", "continually")) + keys))
+    }
+
+    @Test fun keysNeedAnOrder() {
+        assertFailsWith<IllegalArgumentException> { TextMatcher.keys("x", emptyList()) }
+        assertFailsWith<IllegalArgumentException> { TextMatcher.keys("x", listOf(emptyList())) }
+    }
+
     @Test fun anItemNeedsARightAnswer() {
         assertFailsWith<IllegalArgumentException> { TextMatcher.match("x", emptyList()) }
     }

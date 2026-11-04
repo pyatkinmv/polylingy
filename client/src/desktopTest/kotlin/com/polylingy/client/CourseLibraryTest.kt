@@ -112,7 +112,7 @@ class CourseLibraryTest {
     }
 
     @Test fun formatErrorsAreReportedAndNothingIsSaved() {
-        assertEquals(listOf("formatVersion: missing; this app writes 2"), problems(CourseSource("x.json", """{ "name": "X" }""")))
+        assertEquals(listOf("formatVersion: missing; this app writes 3"), problems(CourseSource("x.json", """{ "name": "X" }""")))
         assertEquals(emptyList(), storage.courses.all())
     }
 
@@ -136,7 +136,7 @@ class CourseLibraryTest {
 
         storage.courseSettings.save(course.id, settings.copy(picker = PickerSpec.Alternate(newPerDay = 7)), Instant.parse("2026-11-02T10:00:00Z"))
         val exported = library.export(course.id).bytes.decodeToString()
-        assertTrue("\"formatVersion\": 2" in exported, exported)
+        assertTrue("\"formatVersion\": 3" in exported, exported)
         assertTrue("\"alternate\"" in exported && "\"newPerDay\": 7" in exported, "the file carries the current settings")
         assertTrue("\"settings\"" !in exported)
         val again = library.import("old.json", exported.encodeToByteArray()).course
@@ -156,7 +156,7 @@ class CourseLibraryTest {
     }
 
     @Test fun aStudyOnlyCourseCantBeExported() {
-        val newer = """{ "formatVersion": 3, "name": "Future", "topics": [ { "title": "T", "exercises": [ { "type": "dictation" } ] } ] }"""
+        val newer = """{ "formatVersion": 4, "name": "Future", "topics": [ { "title": "T", "exercises": [ { "type": "dictation" } ] } ] }"""
         val (course, warnings) = library.import(CourseSource("future.json", newer))
         assertEquals(listOf("topics[0].exercises[0]: unknown exercise type \"dictation\""), warnings.map { it.toString() })
         assertFailsWith<IllegalArgumentException> { library.export(course.id) }
