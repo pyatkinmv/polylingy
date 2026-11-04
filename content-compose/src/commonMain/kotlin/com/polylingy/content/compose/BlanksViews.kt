@@ -29,7 +29,7 @@ import com.polylingy.content.ItemResult
 import com.polylingy.content.Response
 
 /** Index of each item's first blank in [Response.Blanks.values]. */
-private fun offsets(texts: List<Inline>): List<Int> = texts.runningFold(0) { acc, text -> acc + text.blanks.size }
+internal fun offsets(texts: List<Inline>): List<Int> = texts.runningFold(0) { acc, text -> acc + text.blanks.size }
 
 /**
  * [text] with its blanks — fields to type into, or the checked answers — numbered from [offset]. [hint] shows
@@ -67,9 +67,8 @@ internal fun GapsView(exercise: Exercise.Gaps, response: Response.Blanks, checks
                 InlineText(example, style = MaterialTheme.typography.bodyLarge.copy(color = colors.muted))
             }
         }
-        WordBank(exercise.wordBank)
         exercise.items.forEachIndexed { i, item ->
-            Item(i + 1, item.note, showNote = checks != null) {
+            Item(numberOf(i, exercise.items.size), item.note, showNote = checks != null) {
                 BlankText(item.text, offsets[i], response, checks, onChange, onSubmit, hint = item.hint)
                 if (checks != null) item.hint?.let { Text("($it)", color = colors.muted, style = MaterialTheme.typography.bodySmall) }
             }
@@ -81,7 +80,6 @@ internal fun GapsView(exercise: Exercise.Gaps, response: Response.Blanks, checks
 internal fun PicturesView(exercise: Exercise.Pictures, response: Response.Blanks, checks: List<ItemCheck>?, onChange: (Response) -> Unit, onSubmit: () -> Unit) {
     val offsets = offsets(exercise.items.map { it.text })
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        WordBank(exercise.wordBank)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             exercise.items.forEachIndexed { i, item ->
                 Column(

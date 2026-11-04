@@ -9,7 +9,8 @@ Everything runs offline; data stays on your machine.
 ## Features
 
 - Theory pages built from blocks: sections, situations with pictures, tables, examples, word lists, tips, links
-- Six exercise types: gaps, choice, pictures with gaps, tables with gaps, matching, word order
+- Eight exercise types: gaps, choice, pictures with gaps, tables with gaps, matching, word order, expanding notes,
+  find and fix; any of them can sit in a frame (an email, an article) with a picture next to it
 - Answers are checked item by item; one typo per item is forgiven unless you turn that off
 - Explanations after every check: per exercise, per topic, and short notes per item, with links into the theory
 - Study settings per course, as four questions: when an answer counts, when a topic is done, when it comes back,
@@ -37,7 +38,7 @@ it isn't checked for now.
 
 ```json
 {
-  "formatVersion": 2,
+  "formatVersion": 3,
   "name": "English Grammar",
   "units": [
     {
@@ -56,7 +57,12 @@ it isn't checked for now.
 ```
 
 The full format — every block and exercise type, explanations, links, pictures, validation and `formatVersion` —
-is in `docs/content-format.md`.
+is in `docs/content-format.md`; its formal description is the JSON Schema `docs/course.schema.json`.
+To check a course file the way import does, without the app:
+
+```bash
+./gradlew :client:checkCourse -Pcourse=path/to/course.json
+```
 
 ## Project layout
 

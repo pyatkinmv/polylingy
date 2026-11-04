@@ -31,7 +31,10 @@ data class Problem(val path: Path, val message: String, val kind: Kind = Kind.ER
 internal enum class BlankRule { NONE, ANY, AT_LEAST_ONE, EXACTLY_ONE }
 
 /** The longest answer a blank accepts: the field stops taking characters here, so every variant must fit. */
-const val MAX_BLANK_LENGTH = 40
+const val MAX_BLANK_LENGTH = 60
+
+/** The longest answer typed as a whole sentence (expand). */
+const val MAX_ANSWER_LENGTH = 150
 
 /** Collects problems while a validate() walks a tree. */
 internal class Checks(private val out: MutableList<Problem>) {
@@ -49,8 +52,11 @@ internal class Checks(private val out: MutableList<Problem>) {
 
     fun notBlank(value: String?, at: Path) = require(value == null || value.isNotBlank(), at, "must not be empty")
 
-    /** Checks markup and blanks; [mayBeEmpty] is for table cells, which are often left empty. */
-    fun text(inline: Inline?, at: Path, blanks: BlankRule = BlankRule.NONE, mayBeEmpty: Boolean = false) {
+    /**
+     * Checks markup and blanks; [mayBeEmpty] is for table cells, which are often left empty. Every variant of a blank must
+     * fit [maxBlank]; null — the caller checks lengths itself.
+     */
+    fun text(inline: Inline?, at: Path, blanks: BlankRule = BlankRule.NONE, mayBeEmpty: Boolean = false, maxBlank: Int? = MAX_BLANK_LENGTH) {
         if (inline == null) return
         require(mayBeEmpty || inline.text.isNotBlank(), at, "must not be empty")
         inline.problems.forEach { error(at, it) }
@@ -61,8 +67,8 @@ internal class Checks(private val out: MutableList<Problem>) {
             BlankRule.AT_LEAST_ONE -> require(count >= 1, at, "needs at least one blank {{…}}")
             BlankRule.EXACTLY_ONE -> require(count == 1, at, "needs exactly one blank {{…}}, found $count")
         }
-        for (blank in inline.blanks) for (variant in blank.variants) {
-            require(variant.length <= MAX_BLANK_LENGTH, at, "answer \"$variant\" is longer than $MAX_BLANK_LENGTH characters")
+        if (maxBlank != null) for (blank in inline.blanks) for (variant in blank.variants) {
+            require(variant.length <= maxBlank, at, "answer \"$variant\" is longer than $maxBlank characters")
         }
     }
 

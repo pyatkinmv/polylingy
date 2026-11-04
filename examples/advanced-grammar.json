@@ -1,5 +1,5 @@
 {
-  "formatVersion": 2,
+  "formatVersion": 3,
   "name": "Advanced Grammar: Units 1–3",
   "description": "Present and past at C1 level, unit by unit after *Advanced Grammar in Use* (4th ed.): own explanations and exercises.",
   "theme": { "accent": "#1F6B45" },
@@ -104,7 +104,12 @@
                 [ "I promise to call you tonight.", "gives their word" ],
                 [ "I warn you, the dog bites.", "gives a warning" ],
                 [ "I congratulate you both.", "praises a success" ],
-                [ "I name this ship Aurora.", "gives a name" ] ] }
+                [ "I name this ship Aurora.", "gives a name" ] ] },
+            { "type": "choice", "instruction": "Choose the more likely form in each place.",
+              "look": { "type": "email", "from": "Nina", "to": "Uncle Leo", "subject": "Re: How’s the new job?" },
+              "items": [
+                { "text": "Dear Leo,\n\nThanks for your message, and I {{apologise|’m apologising}} for not writing sooner. You were right, and I {{admit|’m admitting}} that the first month was hard. I {{’m now realising|now realise}} how much there is to learn, so I {{’m considering|consider}} evening classes in accounting. My manager {{seems|is seeming}} pleased so far, and the office {{has|is having}} a view of the river.\n\nI {{promise|’m promising}} to visit in the spring.\n\nLove, Nina" } ],
+              "explanation": { "format": "blocks", "blocks": [{ "type": "text", "text": "Verbs that perform the action by saying them — *apologise, admit, promise* — are usually simple. *Realise* and *consider* can be continuous when the meaning is a process going on now." }] } }
           ]
         }
       ]
@@ -171,7 +176,16 @@
               "items": [
                 { "answer": "So this man walks into a shop." },
                 { "answer": "She’s wearing an enormous hat." },
-                { "answer": "Suddenly the lights go out." } ] }
+                { "answer": "Suddenly the lights go out." } ] },
+            { "type": "gaps", "instruction": "Complete the story. Use the present simple or the present continuous of the verbs in brackets.",
+              "look": { "type": "article", "source": "Short stories for the train", "title": "The wrong umbrella" },
+              "items": [
+                { "text": "So this woman {{walks}} (walk) into a café. It {{’s pouring|is pouring}} (pour) outside, and she {{’s carrying|is carrying}} (carry) a huge red umbrella. She {{leaves}} (leave) it by the door and {{orders}} (order) a coffee. Ten minutes later a man in a grey coat {{picks}} (pick) it up and {{walks}} (walk) out." } ] },
+            { "type": "gaps", "instruction": "Complete the email. Use the present simple or the present continuous of the verbs in brackets.",
+              "look": { "type": "email", "from": "Sam", "to": "the team", "subject": "Some news from head office" },
+              "items": [
+                { "text": "Hi all,\n\nRita from head office {{says}} (say) that the move to the new building is going ahead. She {{tells|’s telling|is telling}} (tell) me that we {{’re moving|are moving}} (move) in March, and the board {{wants}} (want) everyone to clear their desks by the end of February. I {{hear}} (hear) the canteen there is excellent.\n\nSam" } ],
+              "explanation": { "format": "blocks", "blocks": [{ "type": "text", "text": "To pass on news we often use *say, tell, hear* in the present simple — and sometimes *tell* in the present continuous." }] } }
           ]
         },
         {
@@ -212,7 +226,15 @@
               "items": [
                 { "answer": "You’re always changing your mind." },
                 { "answer": "She’s constantly checking her phone." },
-                { "answer": "They were forever asking for money." } ] }
+                { "answer": "They were forever asking for money." } ] },
+            { "type": "expand", "instruction": "Expand one set of notes to finish each reply.",
+              "wordBank": ["constantly / check / phone", "always / borrow / charger", "continually / interrupt / me", "forever / change / plans"],
+              "example": "**A** Where are my keys again?\n**B** You’re **forever losing your keys**.",
+              "items": [
+                { "text": "**A** Sorry — one quick message, then I’m all yours.\n**B** You’re {{constantly checking your phone|constantly checking the phone}}.", "keys": [["constantly", "checking", "phone"]] },
+                { "text": "**A** Can I take yours? Mine’s flat.\n**B** You’re {{always borrowing my charger}}.", "keys": [["always", "borrowing", "charger"]], "note": "After *always* the verb is in the **-ing** form." },
+                { "text": "**A** Wait — let me just finish my point!\n**B** You’re {{continually interrupting me}}.", "keys": [["continually", "interrupting", "me"]] },
+                { "text": "**A** Let’s go to the beach tomorrow instead.\n**B** You’re {{forever changing our plans|forever changing the plans}}.", "keys": [["forever", "changing", "plans"]] } ] }
           ]
         },
         {
@@ -334,7 +356,12 @@
                 { "text": "As soon as I {{’ve finished|have finished}} this report, I’ll join you.", "hint": "finish" },
                 { "text": "After he {{left}} university, he travelled for a year.", "hint": "leave" },
                 { "text": "When you {{’ve found|have found}} a seat, please wait for the announcement.", "hint": "find" },
-                { "text": "I recognised her the moment she {{spoke}}.", "hint": "speak" } ] }
+                { "text": "I recognised her the moment she {{spoke}}.", "hint": "speak" } ] },
+            { "type": "fix", "instruction": "One sentence in each pair is wrong. Correct the verb in it; keep ✓ for the right one.",
+              "items": [
+                { "text": "a  Once you {{signed => ’ve signed|have signed|sign}} the form, you can’t cancel the order.\nb  Once she {{signed}}, the deal was done." },
+                { "text": "a  The minute I {{landed}}, I switched my phone back on.\nb  I’ll text you the minute I {{landed => land|’ve landed|have landed}}." },
+                { "text": "a  We can’t leave until everyone {{paid => has paid|’s paid|pays}}.\nb  We waited until everyone {{had paid}}." } ] }
           ]
         },
         {
@@ -355,7 +382,11 @@
                 { "text": "This is the first time I {{’ve been}} to Rome.", "options": ["was", "’ve been"] },
                 { "text": "It was the first time we {{’d met}}.", "options": ["’ve met", "’d met"] },
                 { "text": "Police {{have arrested}} two men after a robbery in the city centre.", "options": ["arrested", "have arrested"] },
-                { "text": "The robbery {{happened}} at about three in the morning.", "options": ["happened", "has happened"] } ] }
+                { "text": "The robbery {{happened}} at about three in the morning.", "options": ["happened", "has happened"] } ] },
+            { "type": "fix", "instruction": "Correct the verbs in italics where they are wrong.",
+              "look": { "type": "article", "source": "Riverside Weekly", "title": "Local baker wins national prize" },
+              "items": [
+                { "text": "Maria Costa {{has won}} the National Bread Award. It’s the first time a baker from our town {{won => has won|’s won}} it. Maria {{opened}} her bakery in 2015, and she {{has made => made}} her first sourdough loaf the same week. “I {{’ve never been}} so surprised,” she told us." } ] }
           ]
         }
       ]

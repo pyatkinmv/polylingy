@@ -61,7 +61,54 @@ object Samples {
             { "answer": "Is it raining now?", "accept": ["Is it now raining?"] } ] }
     """.trimIndent()
 
-    val exercises = mapOf("gaps" to gaps, "choice" to choice, "pictures" to pictures, "table" to table, "match" to match, "order" to order)
+    /** Choice with its places in the text: each blank lists its options, the right one first. */
+    val choiceInText = """
+        { "id": "$ID", "type": "choice", "instruction": "Choose the more likely form in each place.",
+          "items": [
+            { "text": "Thanks for your message, and I {{apologise|’m apologising}} for not writing sooner.\nI {{admit|’m admitting}} the first month was hard." } ] }
+    """.trimIndent()
+
+    val expand = """
+        { "id": "$ID", "type": "expand", "instruction": "Expand one set of notes to finish each reply.",
+          "wordBank": ["constantly / check / phone", "always / borrow / charger"],
+          "example": "**A** Where are my keys again?\n**B** You’re **forever losing your keys**.",
+          "items": [
+            { "text": "**A** Sorry — one quick message.\n**B** You’re {{constantly checking your phone}}.",
+              "keys": [["constantly", "checking", "phone"]] },
+            { "text": "**A** Can I take yours? Mine’s flat.\n**B** You’re {{always borrowing my charger|always borrowing my phone charger}}.",
+              "keys": [["always", "borrowing", "charger"]], "note": "After *always* the verb takes **-ing**." } ] }
+    """.trimIndent()
+
+    val fix = """
+        { "id": "$ID", "type": "fix", "instruction": "Correct the verbs in italics where they are wrong.",
+          "items": [
+            { "text": "We {{had been driving}} for six hours when the car {{had been breaking => broke}} down." },
+            { "text": "a  Once you {{signed => ’ve signed|have signed}} the form, you can’t cancel.\nb  Once she {{signed}}, the deal was done." } ] }
+    """.trimIndent()
+
+    /** Every layer at once: a look and an aside around gaps. */
+    val layers = """
+        { "id": "$ID", "type": "gaps", "instruction": "Complete the email.",
+          "look": { "type": "email", "from": "Maya", "to": "Theo", "subject": "The strangest commute ever" },
+          "aside": { "image": { "src": "images/tram.png", "alt": "A tram stop", "caption": "My tram stop" }, "side": "left", "size": "small" },
+          "wordBank": ["wait", "drop"],
+          "items": [ { "text": "I {{was waiting}} for the tram when a man {{dropped}} his phone." } ] }
+    """.trimIndent()
+
+    val article = """
+        { "id": "$ID", "type": "fix",
+          "look": { "type": "article", "title": "Five minutes with our new head of design", "source": "Staff magazine" },
+          "aside": { "image": { "src": "https://img.polylingy.app/en/ana.png", "alt": "Ana" } },
+          "items": [ { "text": "I {{have worked}} here since May and {{have been finishing => have finished}} two projects." } ] }
+    """.trimIndent()
+
+    val exercises = mapOf(
+        "gaps" to gaps, "choice" to choice, "pictures" to pictures, "table" to table, "match" to match, "order" to order,
+        "choiceInText" to choiceInText, "expand" to expand, "fix" to fix, "layers" to layers, "article" to article,
+    )
+
+    /** One sample of each type, to put any look or aside on. */
+    val ofEachType = listOf(gaps, choice, pictures, table, match, order, expand, fix)
 
     /** Section A of a textbook unit, using every block type. */
     val theory = """

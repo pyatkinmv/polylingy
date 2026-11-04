@@ -6,6 +6,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.performTextInput
 import com.polylingy.app.AppContainer
+import com.polylingy.content.MAX_BLANK_LENGTH
 import kotlinx.datetime.LocalDateTime
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -227,13 +228,13 @@ class StudyUiTest {
         text("1 typo").assertIsDisplayed()
     }
 
-    @Test fun aBlankTakesAtMostFortyCharacters() = appTest(seed) {
+    @Test fun aBlankTakesAtMostSixtyCharacters() = appTest(seed) {
         click("Grammar in Use")
         click("Present simple")
         click("Continue →")
-        test.onNode(hasContentDescription("Blank 1")).performTextInput("x".repeat(45))
+        test.onNode(hasContentDescription("Blank 1")).performTextInput("x".repeat(MAX_BLANK_LENGTH + 5))
         test.waitForIdle()
-        test.onNode(hasContentDescription("Blank 1") and hasText("x".repeat(40), substring = false)).assertExists()
+        test.onNode(hasContentDescription("Blank 1") and hasText("x".repeat(MAX_BLANK_LENGTH), substring = false)).assertExists()
         screenshot("blank-full")
     }
 }

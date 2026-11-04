@@ -40,6 +40,20 @@ interface CourseArchives {
 /** A course file as picked by the user: its JSON and, from a zip, the files next to it (`images/…`). */
 class CourseSource(val fileName: String, val json: String, val files: Map<String, ByteArray> = emptyMap())
 
+/**
+ * Reads and checks a course file exactly as import does, without saving anything: the format, the content, and that
+ * every picture of the archive is in it. Throws [CourseFormatException] listing every problem; on success the course
+ * and its warnings (unknown content of a newer format).
+ */
+fun CourseSource.check(now: kotlin.time.Instant): ImportResult {
+    val read = CourseJson.read(json, now)
+    val missing = read.course.images().filter { (_, image) -> !image.isUrl && image.src !in files }.map { (at, image) ->
+        Problem(at, if (files.isEmpty()) "\"${image.src}\" needs a zip archive with that file, or an https:// URL" else "the archive has no file \"${image.src}\"")
+    }
+    if (missing.isNotEmpty()) throw CourseFormatException(missing)
+    return ImportResult(read.course, read.warnings)
+}
+
 /** A course written for the user to save: a `.json`, or a `.zip` when it has pictures of its own. */
 class CourseExport(val fileName: String, val bytes: ByteArray)
 
@@ -67,12 +81,8 @@ class CourseLibrary(
     fun import(source: CourseSource): ImportResult {
         log.info { "Importing ${source.fileName} (${source.files.size} files besides course.json)" }
         try {
-            val read = CourseJson.read(source.json, clock.now().instant)
+            val read = source.check(clock.now().instant)
             val pictures = read.course.images()
-            val missing = pictures.filter { (_, image) -> !image.isUrl && image.src !in source.files }.map { (at, image) ->
-                Problem(at, if (source.files.isEmpty()) "\"${image.src}\" needs a zip archive with that file, or an https:// URL" else "the archive has no file \"${image.src}\"")
-            }
-            if (missing.isNotEmpty()) throw CourseFormatException(missing)
 
             val course = service.import(read.course)
             val warnings = read.warnings.toMutableList()
@@ -138,6 +148,6 @@ class CourseLibrary(
         import(sample)
         log.info { "Added the sample course" }
     }
-
-    private val Image.isUrl get() = src.startsWith("https://")
 }
+
+private val Image.isUrl get() = src.startsWith("https://")

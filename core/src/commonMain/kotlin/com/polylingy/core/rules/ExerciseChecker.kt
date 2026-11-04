@@ -27,13 +27,50 @@ object BlanksChecker : ExerciseChecker<Exercise, Response.Blanks> {
     }
 }
 
-/** The picked option must be the right one; no typos when nothing is typed. */
+/** The picked option of each place must be the right one; no typos when nothing is typed. */
 object ChoiceChecker : ExerciseChecker<Exercise.Choice, Response.Choice> {
     override fun check(exercise: Exercise.Choice, response: Response.Choice): List<ItemCheck> {
-        require(response.picked.size == exercise.items.size) { "expected ${exercise.items.size} picks, got ${response.picked.size}" }
-        return exercise.items.zip(response.picked) { item, picked ->
-            val answer = item.text.blanks.single().answer
-            ItemCheck(if (picked == answer) ItemResult.CORRECT else ItemResult.WRONG, answer)
+        val places = exercise.places
+        require(response.picked.size == places.size) { "expected ${places.size} picks, got ${response.picked.size}" }
+        return places.zip(response.picked) { place, picked ->
+            ItemCheck(if (picked == place.answer) ItemResult.CORRECT else ItemResult.WRONG, place.answer)
+        }
+    }
+}
+
+/**
+ * A typed answer is right when it is a model answer, or has the key words in one of the allowed orders
+ * ([TextMatcher.keys]); a wrong one gets a one-line reason. The model answer is shown next to it.
+ */
+object ExpandChecker : ExerciseChecker<Exercise.Expand, Response.Blanks> {
+    override fun check(exercise: Exercise.Expand, response: Response.Blanks): List<ItemCheck> {
+        require(response.values.size == exercise.items.size) { "expected ${exercise.items.size} answers, got ${response.values.size}" }
+        return exercise.items.zip(response.values) { item, given ->
+            val variants = item.text.blanks.single().variants
+            val model = TextMatcher.match(given, variants)
+            if (model.result == ItemResult.CORRECT) return@zip ItemCheck(ItemResult.CORRECT, model.variant)
+            val keys = TextMatcher.keys(given, item.keys)
+            ItemCheck(keys.result, variants.first(), keys.reason)
+        }
+    }
+}
+
+/**
+ * Each mark: a right word must be kept (an empty value, or the word itself typed again); a wrong one must be fixed
+ * with one of its fixes, by [TextMatcher]. The right answer shown is the word itself for a right one, the first fix
+ * for a wrong one.
+ */
+object FixChecker : ExerciseChecker<Exercise.Fix, Response.Blanks> {
+    override fun check(exercise: Exercise.Fix, response: Response.Blanks): List<ItemCheck> {
+        val marks = exercise.marks
+        require(response.values.size == marks.size) { "expected ${marks.size} answers, got ${response.values.size}" }
+        return marks.zip(response.values) { mark, given ->
+            val kept = given.isBlank() || TextMatcher.normalize(given) == TextMatcher.normalize(mark.shown)
+            when {
+                !mark.wrong -> ItemCheck(if (kept) ItemResult.CORRECT else ItemResult.WRONG, mark.shown)
+                kept -> ItemCheck(ItemResult.WRONG, mark.fixes.first())
+                else -> TextMatcher.match(given, mark.fixes).let { ItemCheck(it.result, it.variant) }
+            }
         }
     }
 }
@@ -71,6 +108,8 @@ object Checking {
         is Exercise.Choice -> ChoiceChecker.check(exercise, response.expect())
         is Exercise.Match -> MatchChecker.check(exercise, response.expect())
         is Exercise.Order -> OrderChecker.check(exercise, response.expect())
+        is Exercise.Expand -> ExpandChecker.check(exercise, response.expect())
+        is Exercise.Fix -> FixChecker.check(exercise, response.expect())
         is Exercise.Unknown -> throw IllegalArgumentException("an exercise of unknown type \"${exercise.type}\" can't be checked")
     }
 

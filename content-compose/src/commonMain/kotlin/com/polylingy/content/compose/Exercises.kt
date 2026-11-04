@@ -49,7 +49,8 @@ import com.polylingy.content.MAX_BLANK_LENGTH
 import com.polylingy.content.Response
 
 /**
- * One exercise, any type: the instruction, then the exercise itself. Before checking, [response] is what the learner
+ * One exercise, any type, drawn as its layers (see [Exercise]): the instruction, the word bank, the look's frame with
+ * the aside picture and the body inside, and once checked the explanation. Only the body depends on the type. Before checking, [response] is what the learner
  * has entered and [onChange] reports edits; after checking, [checks] (one per item) shows what was right, and the
  * explanation follows. The view never decides what is right: it only shows [checks].
  *
@@ -68,14 +69,19 @@ fun ExerciseView(
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(18.dp)) {
         exercise.instruction?.let { InlineText(it, style = MaterialTheme.typography.titleMedium) }
-        when (exercise) {
-            is Exercise.Gaps -> GapsView(exercise, response as Response.Blanks, checks, onChange, onSubmit)
-            is Exercise.Pictures -> PicturesView(exercise, response as Response.Blanks, checks, onChange, onSubmit)
-            is Exercise.Table -> TableView(exercise, response as Response.Blanks, checks, onChange, onSubmit)
-            is Exercise.Choice -> ChoiceView(exercise, response as Response.Choice, checks, onChange, seed)
-            is Exercise.Match -> MatchView(exercise, response as Response.Match, checks, onChange, seed)
-            is Exercise.Order -> OrderView(exercise, response as Response.Order, checks, onChange, seed)
-            is Exercise.Unknown -> Text("This exercise needs a newer version of Polylingy.", color = colors.muted)
+        WordBank(exercise.wordBank)
+        Framed(exercise.look, exercise.aside) {
+            when (exercise) {
+                is Exercise.Gaps -> GapsView(exercise, response as Response.Blanks, checks, onChange, onSubmit)
+                is Exercise.Pictures -> PicturesView(exercise, response as Response.Blanks, checks, onChange, onSubmit)
+                is Exercise.Table -> TableView(exercise, response as Response.Blanks, checks, onChange, onSubmit)
+                is Exercise.Choice -> ChoiceView(exercise, response as Response.Choice, checks, onChange, seed)
+                is Exercise.Match -> MatchView(exercise, response as Response.Match, checks, onChange, seed)
+                is Exercise.Order -> OrderView(exercise, response as Response.Order, checks, onChange, seed)
+                is Exercise.Expand -> ExpandView(exercise, response as Response.Blanks, checks, onChange, onSubmit)
+                is Exercise.Fix -> FixView(exercise, response as Response.Blanks, checks, onChange, onSubmit)
+                is Exercise.Unknown -> Text("This exercise needs a newer version of Polylingy.", color = colors.muted)
+            }
         }
         if (checks != null) exercise.explanation?.let { ExplanationView(it, onLink) }
     }
@@ -93,11 +99,14 @@ fun ExplanationView(content: com.polylingy.content.Content, onLink: (Block.Link)
     }
 }
 
+/** The number of item [index] of [count]: none when the exercise has one item, a text that is the whole body. */
+internal fun numberOf(index: Int, count: Int): Int? = if (count == 1) null else index + 1
+
 /** A numbered item with an optional note under it, shown once the exercise is checked. */
 @Composable
-internal fun Item(number: Int, note: com.polylingy.content.Inline?, showNote: Boolean, content: @Composable () -> Unit) {
+internal fun Item(number: Int?, note: com.polylingy.content.Inline?, showNote: Boolean, content: @Composable () -> Unit) {
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text("$number", Modifier.width(20.dp), color = colors.muted, fontWeight = FontWeight.SemiBold)
+        if (number != null) Text("$number", Modifier.width(20.dp), color = colors.muted, fontWeight = FontWeight.SemiBold)
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             content()
             if (showNote && note != null) InlineText(note, style = MaterialTheme.typography.bodySmall.copy(color = colors.muted))
@@ -126,26 +135,34 @@ internal fun WordBank(words: List<String>) {
  * characters, when its edge turns amber so the learner sees why.
  */
 @Composable
-internal fun BlankField(value: String, onValueChange: (String) -> Unit, label: String, onSubmit: () -> Unit, placeholder: String? = null) {
+internal fun BlankField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    onSubmit: () -> Unit,
+    placeholder: String? = null,
+    maxLength: Int = MAX_BLANK_LENGTH,
+    minChars: Int = 6,
+) {
     val focus = LocalFocusManager.current
     var focused by remember { mutableStateOf(false) }
-    val full = value.length >= MAX_BLANK_LENGTH
+    val full = value.length >= maxLength
     val shape = RoundedCornerShape(8.dp)
     val edge = when {
         full -> BlankFull
         focused -> BlankFocus
         else -> BlankEdge
     }
-    val shown = maxOf(value.length, placeholder?.length ?: 0, 6)
+    val shown = maxOf(value.length, placeholder?.length ?: 0, minChars)
     BasicTextField(
         value = value,
-        onValueChange = { onValueChange(it.replace("\n", "").take(MAX_BLANK_LENGTH)) },
+        onValueChange = { onValueChange(it.replace("\n", "").take(maxLength)) },
         singleLine = true,
         textStyle = LocalTextStyle.current.copy(color = colors.ink),
         cursorBrush = SolidColor(colors.ink),
         keyboardOptions = KeyboardOptions.Default,
         modifier = Modifier
-            .width(((minOf(shown, MAX_BLANK_LENGTH) + 2) * 9.5).dp)
+            .width(((minOf(shown, maxLength) + 2) * 9.5).dp)
             .semantics { contentDescription = label }
             .onFocusChanged { focused = it.isFocused }
             .onPreviewKeyEvent {

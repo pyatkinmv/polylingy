@@ -61,10 +61,21 @@ object CourseJson {
      * Brings a document of an older format up to this one; a newer or current one is returned as it is.
      * 1 → 2: `settings` moved into `rules` — `allowTypos` became `grading.typos`, `newPerDay` became `picker.newPerDay` —
      * and the pickers were renamed: `reviews-first` → `conveyor`, `random` → `shuffle`.
+     * 2 → 3: only additions (exercise layers `look` and `aside`, choice places in the text, types `expand` and `fix`),
+     * so the number alone changes.
      */
     internal fun upgrade(root: JsonObject): JsonObject {
         val version = (root["formatVersion"] as? JsonPrimitive)?.takeUnless { it.isString }?.intOrNull ?: return root
-        if (version != 1) return root
+        return when (version) {
+            1 -> to3(to2(root))
+            2 -> to3(root)
+            else -> root
+        }
+    }
+
+    private fun to3(root: JsonObject) = JsonObject(root + ("formatVersion" to JsonPrimitive(3)))
+
+    private fun to2(root: JsonObject): JsonObject {
         val settings = root["settings"] as? JsonObject
         var rules = root["rules"] as? JsonObject ?: if (settings != null) JsonObject(emptyMap()) else null
         fun JsonObject.with(key: String, value: JsonElement) = JsonObject(this + (key to value))

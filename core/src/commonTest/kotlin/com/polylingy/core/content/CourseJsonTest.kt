@@ -38,7 +38,7 @@ class CourseJsonTest {
         assertEquals("English Grammar in Use", course.name)
         assertEquals("Units on *present* tenses.", course.description?.text)
         assertEquals("#2F6B5E", course.theme?.accent)
-        assertEquals(2, course.formatVersion, "a file of format 1 is brought up to 2")
+        assertEquals(3, course.formatVersion, "a file of format 1 is brought up to 3")
         assertEquals(RulesSpec(Preset.SM2, grading = GradingSpec.Threshold(0.75, typos = false)), course.rules, "settings.allowTypos became grading.typos")
         val unit = course.units.single()
         assertEquals(Uuid.parse(UNIT_ID), unit.id)
@@ -89,9 +89,9 @@ class CourseJsonTest {
     @Test fun notAnObject() = assertEquals(listOf("$: a course file must be a JSON object"), problems("[]"))
 
     @Test fun formatVersionIsRequiredAndWholeNumber() {
-        assertEquals(listOf("formatVersion: missing; this app writes 2"), problems("""{ "name": "X", "topics": [] }"""))
+        assertEquals(listOf("formatVersion: missing; this app writes 3"), problems("""{ "name": "X", "topics": [] }"""))
         for (bad in listOf("\"1\"", "1.5", "0", "null")) {
-            assertEquals(listOf("formatVersion: must be a whole number like 2"), problems("""{ "formatVersion": $bad, "name": "X" }"""), bad)
+            assertEquals(listOf("formatVersion: must be a whole number like 3"), problems("""{ "formatVersion": $bad, "name": "X" }"""), bad)
         }
     }
 
@@ -193,6 +193,16 @@ class CourseJsonTest {
         assertNull(read(v1("\"settings\": {}")).course.rules?.grading, "an empty settings object changes nothing")
     }
 
+    @Test fun formatTwoIsReadAsThree() {
+        val v2 = flatWithExercise("""{ "type": "gaps", "items": [ { "text": "{{a}}" } ] }""").replace("\"formatVersion\": 1", "\"formatVersion\": 2")
+        assertEquals(3, read(v2).course.formatVersion)
+    }
+
+    @Test fun anExpandModelAnswerMustPassItsKeys() {
+        val course = flatWithExercise("""{ "type": "expand", "items": [ { "text": "{{always borrowing|borrowing it}}", "keys": [["always", "borrowing"]] } ] }""")
+        assertEquals(listOf("topics[0].exercises[0].items[0].keys: the model answer \"borrowing it\" doesn't pass them: Not found: always"), problems(course))
+    }
+
     @Test fun formatTwoHasNoSettingsAndNoOldPickerNames() {
         val v2 = flatWithExercise("""{ "type": "gaps", "items": [ { "text": "{{a}}" } ] }""").replace("\"formatVersion\": 1", "\"formatVersion\": $FORMAT_VERSION")
         assertTrue(problems(v2.replace("\"name\": \"X\"", "\"name\": \"X\", \"settings\": { \"allowTypos\": false }")).single().contains("settings"))
@@ -244,14 +254,14 @@ class CourseJsonTest {
     // newer format
 
     private val newer = CourseSamples.units
-        .replace("\"formatVersion\": 1", "\"formatVersion\": 3, \"level\": \"B1\"")
+        .replace("\"formatVersion\": 1", "\"formatVersion\": 4, \"level\": \"B1\"")
         .replace("\"type\": \"order\"", "\"type\": \"dictation\"")
         .replace("{ \"type\": \"text\", \"text\": \"He**’s cycling**.\" }", "{ \"type\": \"video\", \"src\": \"v.mp4\" }")
 
     @Test fun aNewerFileIsReadLenientlyWithWarnings() {
         val (course, warnings) = read(newer)
         assertTrue(course.studyOnly)
-        assertEquals(3, course.formatVersion)
+        assertEquals(4, course.formatVersion)
         assertEquals(
             listOf(
                 "units[0].theory.blocks[0].blocks[0]: unknown block type \"video\"",
@@ -295,7 +305,7 @@ class CourseJsonTest {
 
     @Test fun writtenFilesStartWithTheFormatVersion() {
         val written = CourseJson.write(read(CourseSamples.flat).course)
-        assertTrue(written.lines()[1].trim() == "\"formatVersion\": 2,", written.lines()[1])
+        assertTrue(written.lines()[1].trim() == "\"formatVersion\": 3,", written.lines()[1])
     }
 
     @Test fun storedDocumentsAreReadWithoutChecks() {

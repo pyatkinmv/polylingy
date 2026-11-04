@@ -336,6 +336,8 @@ private fun Exercise.typeName() = when (this) {
     is Exercise.Table -> "table"
     is Exercise.Match -> "match"
     is Exercise.Order -> "order"
+    is Exercise.Expand -> "expand"
+    is Exercise.Fix -> "fix"
     is Exercise.Unknown -> "unknown"
 }
 

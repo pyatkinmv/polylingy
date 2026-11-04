@@ -30,4 +30,5 @@ internal abstract class RawObjectSerializer<T>(name: String, private val wrap: (
 
 internal object UnknownBlockSerializer : RawObjectSerializer<Block.Unknown>("unknownBlock", Block::Unknown)
 internal object UnknownExerciseSerializer : RawObjectSerializer<Exercise.Unknown>("unknownExercise", Exercise::Unknown)
+internal object UnknownLookSerializer : RawObjectSerializer<Look.Unknown>("unknownLook", Look::Unknown)
 internal object UnknownContentSerializer : RawObjectSerializer<Content.Unknown>("unknownContent", Content::Unknown)

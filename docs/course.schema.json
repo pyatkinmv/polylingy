@@ -1,0 +1,1382 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://polylingy.app/schema/course-3.json",
+  "title": "Polylingy course, format 3",
+  "description": "The shape of course.json. The app checks more than this schema can say (markup, blanks per item, links pointing at real sections, model answers passing their keys): run ./gradlew :app:checkCourse. See docs/content-format.md.",
+  "$ref": "#/$defs/course",
+  "$defs": {
+    "uuid": {
+      "description": "A UUID. Ids may be left out in a file: the app adds them on import.",
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+    },
+    "instant": {
+      "description": "A moment in UTC, ISO 8601: 2026-11-01T10:00:00Z.",
+      "type": "string",
+      "format": "date-time"
+    },
+    "inline": {
+      "description": "Text with markup: **bold**, *italic*, line breaks \\n; in exercises blanks {{answer|other variant}}. \\\\ makes the next * { } | \\\\ literal. See content-format.md, section 3.",
+      "type": "string",
+      "minLength": 1
+    },
+    "image": {
+      "description": "A picture: an https:// URL or a path inside the course archive (images/cat.png). alt describes it.",
+      "type": "object",
+      "properties": {
+        "src": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "alt": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "caption": {
+          "$ref": "#/$defs/inline"
+        }
+      },
+      "required": [
+        "src",
+        "alt"
+      ],
+      "additionalProperties": false
+    },
+    "course": {
+      "description": "A course file (course.json). It has either units or topics, not both.",
+      "type": "object",
+      "properties": {
+        "formatVersion": {
+          "description": "The format this file is written in. This schema describes 3.",
+          "const": 3
+        },
+        "id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 50
+        },
+        "description": {
+          "$ref": "#/$defs/inline"
+        },
+        "createdAt": {
+          "$ref": "#/$defs/instant"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "updatedAt": {
+          "$ref": "#/$defs/instant"
+        },
+        "theme": {
+          "$ref": "#/$defs/theme"
+        },
+        "rules": {
+          "$ref": "#/$defs/rules"
+        },
+        "units": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/unit"
+          }
+        },
+        "topics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/topic"
+          }
+        }
+      },
+      "required": [
+        "formatVersion",
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "theme": {
+      "description": "The course's look.",
+      "type": "object",
+      "properties": {
+        "accent": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "unit": {
+      "description": "A part of a course: a page of theory and the topics that practise it.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "subtitle": {
+          "$ref": "#/$defs/inline"
+        },
+        "theory": {
+          "$ref": "#/$defs/content"
+        },
+        "topics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/topic"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "title",
+        "topics"
+      ],
+      "additionalProperties": false
+    },
+    "topic": {
+      "description": "The unit of spaced repetition; each time it is shown, one of its exercises is picked.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "explanation": {
+          "$ref": "#/$defs/content"
+        },
+        "exercises": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/exercise"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "title",
+        "exercises"
+      ],
+      "additionalProperties": false
+    },
+    "rules": {
+      "description": "Study settings the course starts with: a preset and the parts that differ from it. See learning-model.md.",
+      "type": "object",
+      "properties": {
+        "preset": {
+          "enum": [
+            "quick",
+            "ladder",
+            "sm2"
+          ]
+        },
+        "grading": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/grading.all-correct"
+            },
+            {
+              "$ref": "#/$defs/grading.threshold"
+            }
+          ]
+        },
+        "mastery": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/mastery.consecutive"
+            }
+          ]
+        },
+        "scheduler": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/scheduler.once"
+            },
+            {
+              "$ref": "#/$defs/scheduler.ladder"
+            },
+            {
+              "$ref": "#/$defs/scheduler.sm2"
+            }
+          ]
+        },
+        "picker": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/picker.conveyor"
+            },
+            {
+              "$ref": "#/$defs/picker.shuffle"
+            },
+            {
+              "$ref": "#/$defs/picker.alternate"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "grading.all-correct": {
+      "description": "Right when every item is right.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "all-correct"
+        },
+        "typos": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "grading.threshold": {
+      "description": "Right when at least min of the items are right.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "threshold"
+        },
+        "min": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "typos": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type",
+        "min"
+      ],
+      "additionalProperties": false
+    },
+    "mastery.consecutive": {
+      "description": "Learned after this many right answers in a row.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "consecutive"
+        },
+        "learning": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "review": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "type",
+        "learning",
+        "review"
+      ],
+      "additionalProperties": false
+    },
+    "scheduler.once": {
+      "description": "Once learned, never shown again.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "once"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "scheduler.ladder": {
+      "description": "Reviews after these days; without retire the last gap doubles.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "ladder"
+        },
+        "days": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "minItems": 1
+        },
+        "retire": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "scheduler.sm2": {
+      "description": "SuperMemo-2.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "sm2"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "picker.conveyor": {
+      "description": "Stays on a topic until its round is done.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "conveyor"
+        },
+        "newPerDay": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "picker.shuffle": {
+      "description": "Topics in random order.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "shuffle"
+        },
+        "newPerDay": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "picker.alternate": {
+      "description": "Moves on after every answer.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "alternate"
+        },
+        "newPerDay": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "content": {
+      "description": "A page of content: unit theory or an explanation.",
+      "type": "object",
+      "properties": {
+        "format": {
+          "const": "blocks"
+        },
+        "blocks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/block"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "format",
+        "blocks"
+      ],
+      "additionalProperties": false
+    },
+    "block": {
+      "description": "A building block of a content page, told apart by \"type\".",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/block.section"
+        },
+        {
+          "$ref": "#/$defs/block.text"
+        },
+        {
+          "$ref": "#/$defs/block.situation"
+        },
+        {
+          "$ref": "#/$defs/block.image"
+        },
+        {
+          "$ref": "#/$defs/block.table"
+        },
+        {
+          "$ref": "#/$defs/block.quote"
+        },
+        {
+          "$ref": "#/$defs/block.examples"
+        },
+        {
+          "$ref": "#/$defs/block.words"
+        },
+        {
+          "$ref": "#/$defs/block.tip"
+        },
+        {
+          "$ref": "#/$defs/block.seeAlso"
+        }
+      ]
+    },
+    "block.section": {
+      "description": "A lettered part of a page. id is set only on sections a seeAlso link points at.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "section"
+        },
+        "id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "title": {
+          "$ref": "#/$defs/inline"
+        },
+        "blocks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/block"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "type",
+        "label",
+        "blocks"
+      ],
+      "additionalProperties": false
+    },
+    "block.text": {
+      "description": "A paragraph.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "text"
+        },
+        "text": {
+          "$ref": "#/$defs/inline"
+        }
+      },
+      "required": [
+        "type",
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    "block.situation": {
+      "description": "A framed example situation, with an optional aside block (usually a picture).",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "situation"
+        },
+        "blocks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/block"
+          },
+          "minItems": 1
+        },
+        "aside": {
+          "$ref": "#/$defs/block"
+        }
+      },
+      "required": [
+        "type",
+        "blocks"
+      ],
+      "additionalProperties": false
+    },
+    "block.image": {
+      "description": "A picture.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "image"
+        },
+        "src": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "alt": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "caption": {
+          "$ref": "#/$defs/inline"
+        }
+      },
+      "required": [
+        "type",
+        "src",
+        "alt"
+      ],
+      "additionalProperties": false
+    },
+    "cell": {
+      "description": "A theory table cell: a text, or {text, rowSpan}.",
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "description": "A cell spanning rows.",
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string"
+            },
+            "rowSpan": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "text"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "block.table": {
+      "description": "A table; all rows have the same number of columns, counting cells spanned from above.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "table"
+        },
+        "head": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/cell"
+            }
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "type",
+        "rows"
+      ],
+      "additionalProperties": false
+    },
+    "block.quote": {
+      "description": "A line of speech in a bubble.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "quote"
+        },
+        "text": {
+          "$ref": "#/$defs/inline"
+        },
+        "who": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "aside": {
+          "$ref": "#/$defs/block"
+        }
+      },
+      "required": [
+        "type",
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    "example": {
+      "description": "One example; not is the wrong form to contrast with.",
+      "type": "object",
+      "properties": {
+        "text": {
+          "$ref": "#/$defs/inline"
+        },
+        "not": {
+          "$ref": "#/$defs/inline"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    "block.examples": {
+      "description": "A list of examples.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "examples"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/example"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "type",
+        "items"
+      ],
+      "additionalProperties": false
+    },
+    "block.words": {
+      "description": "A row of words.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "words"
+        },
+        "words": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "type",
+        "words"
+      ],
+      "additionalProperties": false
+    },
+    "block.tip": {
+      "description": "A highlighted tip.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "tip"
+        },
+        "blocks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/block"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "type",
+        "blocks"
+      ],
+      "additionalProperties": false
+    },
+    "link": {
+      "description": "A link to a theory section (its id) or to the top of a unit's theory (its id).",
+      "oneOf": [
+        {
+          "description": "To a section.",
+          "type": "object",
+          "properties": {
+            "section": {
+              "$ref": "#/$defs/uuid"
+            }
+          },
+          "required": [
+            "section"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "description": "To a unit.",
+          "type": "object",
+          "properties": {
+            "unit": {
+              "$ref": "#/$defs/uuid"
+            }
+          },
+          "required": [
+            "unit"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "block.seeAlso": {
+      "description": "Links to theory.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "seeAlso"
+        },
+        "links": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/link"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "type",
+        "links"
+      ],
+      "additionalProperties": false
+    },
+    "exercise": {
+      "description": "An exercise, told apart by \"type\". Every type has the same layers: instruction, wordBank (some types), look, aside, the body (the type's own fields), explanation. See content-format.md, section 5.",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/exercise.gaps"
+        },
+        {
+          "$ref": "#/$defs/exercise.choice"
+        },
+        {
+          "$ref": "#/$defs/exercise.pictures"
+        },
+        {
+          "$ref": "#/$defs/exercise.table"
+        },
+        {
+          "$ref": "#/$defs/exercise.match"
+        },
+        {
+          "$ref": "#/$defs/exercise.order"
+        },
+        {
+          "$ref": "#/$defs/exercise.expand"
+        },
+        {
+          "$ref": "#/$defs/exercise.fix"
+        }
+      ]
+    },
+    "look": {
+      "description": "Layer 3: a frame with a header around the body. Fits every exercise type.",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/look.email"
+        },
+        {
+          "$ref": "#/$defs/look.article"
+        }
+      ]
+    },
+    "look.email": {
+      "description": "An email: subject on top, then the sender (with an initial) and the recipient.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "email"
+        },
+        "from": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "to": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "subject": {
+          "$ref": "#/$defs/inline"
+        }
+      },
+      "required": [
+        "type",
+        "from",
+        "subject"
+      ],
+      "additionalProperties": false
+    },
+    "look.article": {
+      "description": "A page of a magazine, newspaper or blog: a small source line over the title.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "article"
+        },
+        "title": {
+          "$ref": "#/$defs/inline"
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        }
+      },
+      "required": [
+        "type",
+        "title"
+      ],
+      "additionalProperties": false
+    },
+    "aside": {
+      "description": "Layer 4: one picture next to the body, inside the frame when there is a look. side and size are words: left/right take ¼, ⅓, ½ of the width (small, medium, large), top/bottom ⅓, ½, all of it; the picture keeps its proportions.",
+      "type": "object",
+      "properties": {
+        "image": {
+          "$ref": "#/$defs/image"
+        },
+        "side": {
+          "enum": [
+            "left",
+            "right",
+            "top",
+            "bottom"
+          ],
+          "default": "right"
+        },
+        "size": {
+          "enum": [
+            "small",
+            "medium",
+            "large"
+          ],
+          "default": "medium"
+        }
+      },
+      "required": [
+        "image"
+      ],
+      "additionalProperties": false
+    },
+    "exercise.gaps": {
+      "description": "Sentences with blanks to type into. Each blank is one item; one item may hold a whole text with many blanks.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "gaps"
+        },
+        "id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "instruction": {
+          "$ref": "#/$defs/inline"
+        },
+        "explanation": {
+          "$ref": "#/$defs/content"
+        },
+        "look": {
+          "$ref": "#/$defs/look"
+        },
+        "aside": {
+          "$ref": "#/$defs/aside"
+        },
+        "wordBank": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          }
+        },
+        "example": {
+          "$ref": "#/$defs/inline"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/gapItem"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "type",
+        "items"
+      ],
+      "additionalProperties": false
+    },
+    "gapItem": {
+      "description": "text has at least one blank {{answer|variant}} (each variant at most 60 characters); hint shows in brackets, note under a wrong answer.",
+      "type": "object",
+      "properties": {
+        "text": {
+          "$ref": "#/$defs/inline"
+        },
+        "hint": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "note": {
+          "$ref": "#/$defs/inline"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    "exercise.choice": {
+      "description": "An option is picked in each place. Each place is one item.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "choice"
+        },
+        "id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "instruction": {
+          "$ref": "#/$defs/inline"
+        },
+        "explanation": {
+          "$ref": "#/$defs/content"
+        },
+        "look": {
+          "$ref": "#/$defs/look"
+        },
+        "aside": {
+          "$ref": "#/$defs/aside"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/choiceItem"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "type",
+        "items"
+      ],
+      "additionalProperties": false
+    },
+    "choiceItem": {
+      "description": "Either one blank holding the right answer plus options, or no options and any number of blanks each listing its options, right one first: {{admit|’m admitting}}.",
+      "type": "object",
+      "properties": {
+        "text": {
+          "$ref": "#/$defs/inline"
+        },
+        "options": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "minItems": 2
+        },
+        "note": {
+          "$ref": "#/$defs/inline"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    "exercise.pictures": {
+      "description": "Picture cards, each with a sentence with blanks.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "pictures"
+        },
+        "id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "instruction": {
+          "$ref": "#/$defs/inline"
+        },
+        "explanation": {
+          "$ref": "#/$defs/content"
+        },
+        "look": {
+          "$ref": "#/$defs/look"
+        },
+        "aside": {
+          "$ref": "#/$defs/aside"
+        },
+        "wordBank": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/pictureItem"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "type",
+        "items"
+      ],
+      "additionalProperties": false
+    },
+    "pictureItem": {
+      "description": "A picture and a sentence with at least one blank.",
+      "type": "object",
+      "properties": {
+        "image": {
+          "$ref": "#/$defs/image"
+        },
+        "text": {
+          "$ref": "#/$defs/inline"
+        },
+        "note": {
+          "$ref": "#/$defs/inline"
+        }
+      },
+      "required": [
+        "image",
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    "exercise.table": {
+      "description": "A table with blanks in its cells; at least one blank.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "table"
+        },
+        "id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "instruction": {
+          "$ref": "#/$defs/inline"
+        },
+        "explanation": {
+          "$ref": "#/$defs/content"
+        },
+        "look": {
+          "$ref": "#/$defs/look"
+        },
+        "aside": {
+          "$ref": "#/$defs/aside"
+        },
+        "head": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "type",
+        "rows"
+      ],
+      "additionalProperties": false
+    },
+    "side": {
+      "description": "A side of a pair: a text, or {image}.",
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "description": "A picture side.",
+          "type": "object",
+          "properties": {
+            "image": {
+              "$ref": "#/$defs/image"
+            }
+          },
+          "required": [
+            "image"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "exercise.match": {
+      "description": "Pairs to match; right sides and extra are shown shuffled.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "match"
+        },
+        "id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "instruction": {
+          "$ref": "#/$defs/inline"
+        },
+        "explanation": {
+          "$ref": "#/$defs/content"
+        },
+        "look": {
+          "$ref": "#/$defs/look"
+        },
+        "aside": {
+          "$ref": "#/$defs/aside"
+        },
+        "pairs": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/side"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "minItems": 2
+        },
+        "extra": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/side"
+          }
+        }
+      },
+      "required": [
+        "type",
+        "pairs"
+      ],
+      "additionalProperties": false
+    },
+    "exercise.order": {
+      "description": "Sentences to build from their shuffled words.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "order"
+        },
+        "id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "instruction": {
+          "$ref": "#/$defs/inline"
+        },
+        "explanation": {
+          "$ref": "#/$defs/content"
+        },
+        "look": {
+          "$ref": "#/$defs/look"
+        },
+        "aside": {
+          "$ref": "#/$defs/aside"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/orderItem"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "type",
+        "items"
+      ],
+      "additionalProperties": false
+    },
+    "orderItem": {
+      "description": "answer is the sentence; accept lists other right orders of the same words.",
+      "type": "object",
+      "properties": {
+        "answer": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "accept": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          }
+        },
+        "note": {
+          "$ref": "#/$defs/inline"
+        }
+      },
+      "required": [
+        "answer"
+      ],
+      "additionalProperties": false
+    },
+    "exercise.expand": {
+      "description": "Replies to write from notes (the word bank). An answer is right when it has the key words of one of the orders, in that order, with any words between them.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "expand"
+        },
+        "id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "instruction": {
+          "$ref": "#/$defs/inline"
+        },
+        "explanation": {
+          "$ref": "#/$defs/content"
+        },
+        "look": {
+          "$ref": "#/$defs/look"
+        },
+        "aside": {
+          "$ref": "#/$defs/aside"
+        },
+        "wordBank": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          }
+        },
+        "example": {
+          "$ref": "#/$defs/inline"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/expandItem"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "type",
+        "items"
+      ],
+      "additionalProperties": false
+    },
+    "expandItem": {
+      "description": "text has exactly one blank: the model answer (variants allowed, at most 150 characters), which must itself pass the keys. keys: allowed orders of the same key words or phrases, in the forms the answer needs.",
+      "type": "object",
+      "properties": {
+        "text": {
+          "$ref": "#/$defs/inline"
+        },
+        "keys": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            },
+            "minItems": 1
+          },
+          "minItems": 1
+        },
+        "note": {
+          "$ref": "#/$defs/inline"
+        }
+      },
+      "required": [
+        "text",
+        "keys"
+      ],
+      "additionalProperties": false
+    },
+    "exercise.fix": {
+      "description": "Texts with marked words: {{right as it is}} or {{wrong => fix|other fix}}. Each mark is one item: keep a right word, fix a wrong one.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "fix"
+        },
+        "id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "instruction": {
+          "$ref": "#/$defs/inline"
+        },
+        "explanation": {
+          "$ref": "#/$defs/content"
+        },
+        "look": {
+          "$ref": "#/$defs/look"
+        },
+        "aside": {
+          "$ref": "#/$defs/aside"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/fixItem"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "type",
+        "items"
+      ],
+      "additionalProperties": false
+    },
+    "fixItem": {
+      "description": "A text with at least one mark.",
+      "type": "object",
+      "properties": {
+        "text": {
+          "$ref": "#/$defs/inline"
+        },
+        "note": {
+          "$ref": "#/$defs/inline"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

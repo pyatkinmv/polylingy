@@ -51,3 +51,16 @@ kover {
 }
 
 tasks.named("check") { dependsOn("koverVerify") }
+
+// Checks a course file as import does: ./gradlew :client:checkCourse -Pcourse=path/to/course.json (or .zip)
+tasks.register<JavaExec>("checkCourse") {
+    group = "verification"
+    description = "Checks a course file (-Pcourse=path) exactly as import does, and prints every problem."
+    val desktop = kotlin.jvm("desktop").compilations.getByName("main")
+    classpath = files(desktop.output.allOutputs, desktop.runtimeDependencyFiles)
+    mainClass.set("com.polylingy.client.CheckCourse")
+    javaLauncher.set(javaToolchains.launcherFor { languageVersion.set(JavaLanguageVersion.of(libs.versions.jdk.get().toInt())) })
+    jvmArgs("--enable-native-access=ALL-UNNAMED")
+    workingDir = rootDir
+    args((project.findProperty("course") as String?)?.split(",").orEmpty())
+}

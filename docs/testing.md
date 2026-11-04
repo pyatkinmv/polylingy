@@ -9,9 +9,11 @@
 | Содержимое | `content/src/commonTest` | разметка, `validate()` каждого блока и типа упражнения, строгий разбор, туда-обратно |
 | Правила | `core/src/commonTest` | файл курса (`CourseJson`), `CourseService`, `TextMatcher`, чекеры, каждая политика, сценарии `learning-model.md` (`ScenarioTest`), `StudyService` |
 | Эталон SM-2 | `core/src/jvmTest/.../Sm2GoldenTest.kt` | 856 сдач из 0.1 через новый `replay()` |
-| Хранилище | `client/src/desktopTest` | SQLite, нечитаемые курсы, импорт/экспорт JSON и zip, картинки, пример курса и курсы из `examples/` |
+| Схема формата | `content/src/jvmTest/.../SchemaTest.kt`, `core/src/jvmTest/.../CourseSchemaTest.kt` | образцы, курсы из `examples/` и всё, что пишет приложение, проходят `docs/course.schema.json`; сломанные — нет; поля схемы = поля классов, все типы на месте |
+| Хранилище | `client/src/desktopTest` | SQLite, нечитаемые курсы, импорт/экспорт JSON и zip, картинки, пример курса и курсы из `examples/`, `checkCourse` (`CheckCourseTest`) |
 | ViewModel | `app/src/desktopTest/.../courses` | логика списка курсов без UI |
 | Витрина | `app/src/desktopTest/.../ui/ShowcaseUiTest.kt` | каждый тип упражнения и страница теории из примера курса: ввод, проверка, узкое окно; скриншоты `ex-*.png`, `theory*.png` |
+| Слои | `app/src/desktopTest/.../ui/LayersUiTest.kt` | рамки `email` и `article`, картинка сбоку и сверху (узкое окно), банк слов, выбор в тексте, `expand` с причиной ошибки, `fix` и пары; скриншоты `layers-*.png`, `ex-expand*.png`, `ex-fix*.png` |
 | **UI** | `app/src/desktopTest/.../ui/*UiTest.kt` | настоящие экраны: список курсов (`CourseListUiTest`), путь от курса через теорию и упражнения до «на сегодня всё» и повторения на следующий день (`StudyUiTest`), добавление, правка и удаление юнитов и топиков с превью (`EditUiTest`), настройки курса — четыре вопроса, наборы, пересчёт прогресса (`SettingsUiTest`); на экране упражнений — пикеры «Конвейер» и «Чередование», прощённая и не прощённая опечатка (`StudyUiTest`) |
 | **Скриншоты** | те же UI-тесты, вызов `screenshot("имя")` | PNG в `app/build/screenshots/` для просмотра глазами |
 
