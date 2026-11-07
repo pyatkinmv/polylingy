@@ -27,7 +27,7 @@ Versions live in `gradle/libs.versions.toml`.
 
 Dependencies point only towards `core` (and `core` → `content`). Root package: `com.polylingy`.
 
-Version 0.2 is the rewrite to the current model (courses with units and theory, exercise types, course policies); how it went is in `docs/migration-plan.md`. Version 0.3 added exercise layers (`look`, `aside`), `expand` and `fix`, and the formal schema of the course file. Example courses for manual checks are in `examples/`.
+Version 0.2 is the rewrite to the current model (courses with units and theory, exercise types, course policies); how it went is in `docs/migration-plan.md`. Version 0.3 added exercise layers (`look`, `aside`), `expand` and `fix`, and the formal schema of the course file; 0.4 added sounds (played with JLayer), dialogues, annotations over words and the "How exercises look" settings; 0.5 added the docked player of long recordings, the `track` and `video` blocks and right-to-left text (Arabic). Example courses for manual checks are in `examples/`.
 
 Key files:
 - `app/src/desktopMain/kotlin/com/polylingy/app/Main.kt` — entry point: opens storage, seeds the sample course, opens the window
@@ -57,7 +57,7 @@ Key files:
 ```
 <Documents>/polylingy/
   polylingy.db       # course_document, course_settings, journal_event, setting
-  images/<courseId>/ # pictures of each course: images/… from its archive, remote/<hash> downloaded by URL
+  images/<courseId>/ # pictures and sounds of each course: images/…, audio/… from its archive, remote/<hash> downloaded by URL
   logs/              # polylingy.log, one file per day, kept 14 days
 ```
 
@@ -125,6 +125,6 @@ To write a course (by hand or from a book), follow `.claude/skills/make-course/S
 | `docs/learning-model.md` | Learning model: units, rounds, grades, course policies, checking and typos |
 | `docs/migration-plan.md` | How 0.2 was built (done): stages, invariants, decisions, open questions |
 | `docs/content-format.md` | Course format: theory blocks, exercise layers and types, explanations, links, import, validation, schema, `formatVersion` |
-| `docs/course.schema.json` | Formal JSON Schema of `course.json`, format 3 |
+| `docs/course.schema.json` | Formal JSON Schema of `course.json`, format 5 |
 | `docs/testing.md` | How changes are verified: test levels, UI tests, screenshots, manual checks |
 | `.claude/docs/architectural_patterns.md` | Code conventions: ports, DI, ViewModels, testing helpers |

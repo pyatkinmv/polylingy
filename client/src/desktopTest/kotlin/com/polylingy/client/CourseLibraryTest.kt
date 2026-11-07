@@ -54,7 +54,7 @@ class CourseLibraryTest {
     /** The example courses in `examples/` are what a person tries first: they must always import cleanly. */
     @Test fun theExampleCoursesImportWithoutWarnings() {
         val examples = java.io.File("../examples")
-        for (file in listOf("english-grammar.zip", "irregular-verbs.json", "advanced-grammar.json")) {
+        for (file in listOf("english-grammar.zip", "irregular-verbs.json", "advanced-grammar.json", "chinese-1.zip")) {
             val (course, warnings) = library.import(file, examples.resolve(file).readBytes())
             assertEquals(emptyList(), warnings, file)
             assertTrue(course.allTopics.size >= 8, "$file has a real number of topics")
@@ -71,6 +71,36 @@ class CourseLibraryTest {
         assertContentEquals(png, library.image(course.id, "images/cat.png"))
         assertNull(library.image(course.id, "images/unused.png"))
         assertEquals(course, storage.courses.get(course.id))
+    }
+
+    @Test fun theArabicExampleImportsWithItsTracks() {
+        val zip = java.io.File("../examples/arabic-sample.zip").readBytes()
+        val result = library.import("arabic-sample.zip", zip)
+        assertEquals(emptyList(), result.warnings.map { it.toString() })
+        assertTrue(library.image(result.course.id, "audio/s-greetings.mp3")!!.size > 10_000, "a track is stored whole")
+    }
+
+    @Test fun soundsTravelLikePictures() {
+        val mp3 = byteArrayOf(9, 8, 7)
+        val json = """{ "formatVersion": 5, "name": "Sounds",
+            "units": [ { "title": "U", "theory": { "format": "blocks", "blocks": [
+              { "type": "dialogue", "lines": [ { "who": "A", "text": "[你好](nǐ hǎo)", "audio": "audio/hi.mp3" } ] } ] },
+              "topics": [ { "title": "T", "exercises": [
+                { "type": "choice", "audio": "https://snd.example/xuesheng.mp3", "items": [ { "text": "{{学生|老师}}" } ] } ] } ] } ] }"""
+        downloads["https://snd.example/xuesheng.mp3"] = mp3
+        val (course, warnings) = library.import("sounds.zip", CourseArchive.zip(json, mapOf("audio/hi.mp3" to mp3)))
+        assertEquals(emptyList(), warnings)
+        assertContentEquals(mp3, library.image(course.id, "audio/hi.mp3"))
+        assertContentEquals(mp3, library.image(course.id, "https://snd.example/xuesheng.mp3"))
+
+        val export = library.export(course.id)
+        assertEquals("sounds.zip", export.fileName)
+        assertContentEquals(mp3, CourseArchive.read(export.fileName, export.bytes).files["audio/hi.mp3"])
+
+        assertEquals(listOf("units[0].theory.blocks[0].lines[0].audio: \"audio/hi.mp3\" needs a zip archive with that file, or an https:// URL"),
+            problems(CourseSource("sounds.json", json)))
+        val (_, missing) = library.import(CourseSource("x.json", json.replace("audio/hi.mp3", "https://snd.example/gone.mp3")))
+        assertEquals(listOf("units[0].theory.blocks[0].lines[0].audio: couldn't download the sound (404); it stays silent"), missing.map { it.toString() })
     }
 
     @Test fun aPictureMissingFromTheArchiveIsAnError() {
@@ -112,7 +142,7 @@ class CourseLibraryTest {
     }
 
     @Test fun formatErrorsAreReportedAndNothingIsSaved() {
-        assertEquals(listOf("formatVersion: missing; this app writes 3"), problems(CourseSource("x.json", """{ "name": "X" }""")))
+        assertEquals(listOf("formatVersion: missing; this app writes 5"), problems(CourseSource("x.json", """{ "name": "X" }""")))
         assertEquals(emptyList(), storage.courses.all())
     }
 
@@ -136,7 +166,7 @@ class CourseLibraryTest {
 
         storage.courseSettings.save(course.id, settings.copy(picker = PickerSpec.Alternate(newPerDay = 7)), Instant.parse("2026-11-02T10:00:00Z"))
         val exported = library.export(course.id).bytes.decodeToString()
-        assertTrue("\"formatVersion\": 3" in exported, exported)
+        assertTrue("\"formatVersion\": 5" in exported, exported)
         assertTrue("\"alternate\"" in exported && "\"newPerDay\": 7" in exported, "the file carries the current settings")
         assertTrue("\"settings\"" !in exported)
         val again = library.import("old.json", exported.encodeToByteArray()).course
@@ -156,7 +186,7 @@ class CourseLibraryTest {
     }
 
     @Test fun aStudyOnlyCourseCantBeExported() {
-        val newer = """{ "formatVersion": 4, "name": "Future", "topics": [ { "title": "T", "exercises": [ { "type": "dictation" } ] } ] }"""
+        val newer = """{ "formatVersion": 6, "name": "Future", "topics": [ { "title": "T", "exercises": [ { "type": "dictation" } ] } ] }"""
         val (course, warnings) = library.import(CourseSource("future.json", newer))
         assertEquals(listOf("topics[0].exercises[0]: unknown exercise type \"dictation\""), warnings.map { it.toString() })
         assertFailsWith<IllegalArgumentException> { library.export(course.id) }

@@ -23,6 +23,7 @@ import com.polylingy.app.study.StudyScreen
 import com.polylingy.app.study.StudyViewModel
 import com.polylingy.app.study.TheoryScreen
 import com.polylingy.app.ui.AppTheme
+import com.polylingy.content.compose.CourseContent
 import com.polylingy.core.content.CoursePart
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.serialization.Serializable
@@ -167,7 +168,7 @@ fun App(container: AppContainer, text: TextStyle = TextStyle.Default) {
             composable<TheoryRoute> { entry ->
                 val route = entry.toRoute<TheoryRoute>()
                 val course = container.storage.courses.get(Uuid.parse(route.courseId))
-                if (course != null) TheoryScreen(
+                if (course != null) CourseContent(container.audio(course.id), container.annotations(course.id)) { TheoryScreen(
                     course = course,
                     unitId = Uuid.parse(route.unitId),
                     section = route.section?.let(Uuid::parse),
@@ -175,18 +176,20 @@ fun App(container: AppContainer, text: TextStyle = TextStyle.Default) {
                     onStart = if (route.study) ({ go.studyInsteadOfTheory(course.id, route.studyUnit?.let(Uuid::parse), route.topicId?.let(Uuid::parse)) }) else null,
                     onBack = if (route.back) go::back else null,
                     go = go,
-                )
+                ) }
             }
             composable<EditorRoute> { entry ->
                 val route = entry.toRoute<EditorRoute>()
                 val courseId = Uuid.parse(route.courseId)
                 val unitId = route.unitId?.let(Uuid::parse)
                 val part = if (route.unit) CoursePart.Unit(unitId) else CoursePart.Topic(unitId, route.topicId?.let(Uuid::parse))
-                EditorScreen(
-                    viewModel = viewModel { EditorViewModel(container.courseService, container.study, container.storage.courses, courseId, part) },
-                    images = container.images(courseId),
-                    go = go,
-                )
+                CourseContent(container.audio(courseId), container.annotations(courseId)) {
+                    EditorScreen(
+                        viewModel = viewModel { EditorViewModel(container.courseService, container.study, container.storage.courses, courseId, part) },
+                        images = container.images(courseId),
+                        go = go,
+                    )
+                }
             }
             composable<SettingsRoute> { entry ->
                 val courseId = Uuid.parse(entry.toRoute<SettingsRoute>().courseId)
@@ -196,12 +199,14 @@ fun App(container: AppContainer, text: TextStyle = TextStyle.Default) {
                 val route = entry.toRoute<StudyRoute>()
                 val courseId = Uuid.parse(route.courseId)
                 val unitId = route.unitId?.let(Uuid::parse)
-                StudyScreen(
-                    viewModel = viewModel { StudyViewModel(container.study, courseId, unitId, route.topicId?.let(Uuid::parse)) },
-                    images = container.images(courseId),
-                    today = container.clock.now().localDate,
-                    go = go,
-                )
+                CourseContent(container.audio(courseId), container.annotations(courseId)) {
+                    StudyScreen(
+                        viewModel = viewModel { StudyViewModel(container.study, courseId, unitId, route.topicId?.let(Uuid::parse)) },
+                        images = container.images(courseId),
+                        today = container.clock.now().localDate,
+                        go = go,
+                    )
+                }
             }
         }
     }

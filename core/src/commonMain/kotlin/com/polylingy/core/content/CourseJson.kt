@@ -63,17 +63,20 @@ object CourseJson {
      * and the pickers were renamed: `reviews-first` → `conveyor`, `random` → `shuffle`.
      * 2 → 3: only additions (exercise layers `look` and `aside`, choice places in the text, types `expand` and `fix`),
      * so the number alone changes.
+     * 3 → 4: only additions (sounds, dialogues, annotations `[word](note)`, display settings): the number alone changes.
+     * 4 → 5: only additions (blocks `track` and `video`): the number alone changes.
      */
     internal fun upgrade(root: JsonObject): JsonObject {
         val version = (root["formatVersion"] as? JsonPrimitive)?.takeUnless { it.isString }?.intOrNull ?: return root
         return when (version) {
-            1 -> to3(to2(root))
-            2 -> to3(root)
+            1 -> numbered(to2(root))
+            2, 3, 4 -> numbered(root)
             else -> root
         }
     }
 
-    private fun to3(root: JsonObject) = JsonObject(root + ("formatVersion" to JsonPrimitive(3)))
+    /** Versions 2 → 3 → 4 → 5 only added things: a document of them reads as it is under the current number. */
+    private fun numbered(root: JsonObject) = JsonObject(root + ("formatVersion" to JsonPrimitive(FORMAT_VERSION)))
 
     private fun to2(root: JsonObject): JsonObject {
         val settings = root["settings"] as? JsonObject

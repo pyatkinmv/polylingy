@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://polylingy.app/schema/course-3.json",
-  "title": "Polylingy course, format 3",
+  "$id": "https://polylingy.app/schema/course-5.json",
+  "title": "Polylingy course, format 5",
   "description": "The shape of course.json. The app checks more than this schema can say (markup, blanks per item, links pointing at real sections, model answers passing their keys): run ./gradlew :app:checkCourse. See docs/content-format.md.",
   "$ref": "#/$defs/course",
   "$defs": {
@@ -16,9 +16,14 @@
       "format": "date-time"
     },
     "inline": {
-      "description": "Text with markup: **bold**, *italic*, line breaks \\n; in exercises blanks {{answer|other variant}}. \\\\ makes the next * { } | \\\\ literal. See content-format.md, section 3.",
+      "description": "Text with markup: **bold**, *italic*, line breaks \\n, annotated words [word](annotation) shown with the annotation over them; in exercises blanks {{answer|other variant}}. \\\\ makes the next * { } | [ ] \\\\ literal. See content-format.md, section 3.",
       "type": "string",
       "minLength": 1
+    },
+    "audio": {
+      "description": "A sound: an https:// URL or a path inside the course archive (audio/hello.mp3); .mp3 or .wav. It plays when its button is pressed.",
+      "type": "string",
+      "pattern": "[.](mp3|wav|MP3|WAV)$"
     },
     "image": {
       "description": "A picture: an https:// URL or a path inside the course archive (images/cat.png). alt describes it.",
@@ -49,8 +54,8 @@
       "type": "object",
       "properties": {
         "formatVersion": {
-          "description": "The format this file is written in. This schema describes 3.",
-          "const": 3
+          "description": "The format this file is written in. This schema describes 5.",
+          "const": 5
         },
         "id": {
           "$ref": "#/$defs/uuid"
@@ -223,6 +228,22 @@
               "$ref": "#/$defs/picker.alternate"
             }
           ]
+        },
+        "display": {
+          "$ref": "#/$defs/display"
+        }
+      },
+      "additionalProperties": false
+    },
+    "display": {
+      "description": "How exercises look: annotations over words shown (default true); avoid exercises that need typing when a topic has others (default false).",
+      "type": "object",
+      "properties": {
+        "annotations": {
+          "type": "boolean"
+        },
+        "avoidTyping": {
+          "type": "boolean"
         }
       },
       "additionalProperties": false
@@ -429,6 +450,15 @@
           "$ref": "#/$defs/block.table"
         },
         {
+          "$ref": "#/$defs/block.dialogue"
+        },
+        {
+          "$ref": "#/$defs/block.track"
+        },
+        {
+          "$ref": "#/$defs/block.video"
+        },
+        {
           "$ref": "#/$defs/block.quote"
         },
         {
@@ -446,7 +476,7 @@
       ]
     },
     "block.section": {
-      "description": "A lettered part of a page. id is set only on sections a seeAlso link points at.",
+      "description": "A part of a page: with a label (a letter) it is lettered in the margin; without one its title is a heading. id is set only on sections a seeAlso link points at.",
       "type": "object",
       "properties": {
         "type": {
@@ -473,7 +503,6 @@
       },
       "required": [
         "type",
-        "label",
         "blocks"
       ],
       "additionalProperties": false
@@ -548,13 +577,13 @@
       "additionalProperties": false
     },
     "cell": {
-      "description": "A theory table cell: a text, or {text, rowSpan}.",
+      "description": "A theory table cell: a text, or {text, rowSpan, audio}; a cell with audio shows a play button and may leave text out.",
       "oneOf": [
         {
           "type": "string"
         },
         {
-          "description": "A cell spanning rows.",
+          "description": "A cell spanning rows, or with a sound.",
           "type": "object",
           "properties": {
             "text": {
@@ -563,12 +592,24 @@
             "rowSpan": {
               "type": "integer",
               "minimum": 1
+            },
+            "audio": {
+              "$ref": "#/$defs/audio"
             }
           },
-          "required": [
-            "text"
-          ],
-          "additionalProperties": false
+          "additionalProperties": false,
+          "anyOf": [
+            {
+              "required": [
+                "text"
+              ]
+            },
+            {
+              "required": [
+                "audio"
+              ]
+            }
+          ]
         }
       ]
     },
@@ -602,6 +643,95 @@
       ],
       "additionalProperties": false
     },
+    "line": {
+      "description": "One remark of a dialogue: who says it, what, its sound, and its translation (small and grey under it; the course decides where one helps).",
+      "type": "object",
+      "properties": {
+        "who": {
+          "$ref": "#/$defs/inline"
+        },
+        "text": {
+          "$ref": "#/$defs/inline"
+        },
+        "audio": {
+          "$ref": "#/$defs/audio"
+        },
+        "translation": {
+          "$ref": "#/$defs/inline"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    "block.track": {
+      "description": "A recording of its own, as a book prints it beside a section: one sound with a title. A long one plays in the player docked at the bottom of the window, where it can be paused and rewound.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "track"
+        },
+        "title": {
+          "$ref": "#/$defs/inline"
+        },
+        "audio": {
+          "$ref": "#/$defs/audio"
+        }
+      },
+      "required": [
+        "type",
+        "title",
+        "audio"
+      ],
+      "additionalProperties": false
+    },
+    "block.video": {
+      "description": "A video on the web, which the app opens in the browser: the course points to it, it does not carry it.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "video"
+        },
+        "title": {
+          "$ref": "#/$defs/inline"
+        },
+        "url": {
+          "type": "string",
+          "pattern": "^https://[^\\s]+$"
+        },
+        "note": {
+          "$ref": "#/$defs/inline"
+        }
+      },
+      "required": [
+        "type",
+        "title",
+        "url"
+      ],
+      "additionalProperties": false
+    },
+    "block.dialogue": {
+      "description": "A conversation, one line per remark with the speaker's name on the left and an optional sound.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "dialogue"
+        },
+        "lines": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/line"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "type",
+        "lines"
+      ],
+      "additionalProperties": false
+    },
     "block.quote": {
       "description": "A line of speech in a bubble.",
       "type": "object",
@@ -628,7 +758,7 @@
       "additionalProperties": false
     },
     "example": {
-      "description": "One example; not is the wrong form to contrast with.",
+      "description": "One example; not is the wrong form to contrast with; translation shows small and grey under it; audio gives it a play button.",
       "type": "object",
       "properties": {
         "text": {
@@ -636,6 +766,12 @@
         },
         "not": {
           "$ref": "#/$defs/inline"
+        },
+        "translation": {
+          "$ref": "#/$defs/inline"
+        },
+        "audio": {
+          "$ref": "#/$defs/audio"
         }
       },
       "required": [
@@ -761,7 +897,7 @@
       "additionalProperties": false
     },
     "exercise": {
-      "description": "An exercise, told apart by \"type\". Every type has the same layers: instruction, wordBank (some types), look, aside, the body (the type's own fields), explanation. See content-format.md, section 5.",
+      "description": "An exercise, told apart by \"type\". Every type has the same layers: instruction, wordBank (some types), audio, look, aside, the body (the type's own fields), explanation. See content-format.md, section 5.",
       "oneOf": [
         {
           "$ref": "#/$defs/exercise.gaps"
@@ -797,6 +933,9 @@
         },
         {
           "$ref": "#/$defs/look.article"
+        },
+        {
+          "$ref": "#/$defs/look.newspaper"
         }
       ]
     },
@@ -850,6 +989,28 @@
       ],
       "additionalProperties": false
     },
+    "look.newspaper": {
+      "description": "A newspaper clipping: the headline, big and bold in a dotted frame, with a small source line (the paper, the day) over it.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "newspaper"
+        },
+        "headline": {
+          "$ref": "#/$defs/inline"
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        }
+      },
+      "required": [
+        "type",
+        "headline"
+      ],
+      "additionalProperties": false
+    },
     "aside": {
       "description": "Layer 4: one picture next to the body, inside the frame when there is a look. side and size are words: left/right take ¼, ⅓, ½ of the width (small, medium, large), top/bottom ⅓, ½, all of it; the picture keeps its proportions.",
       "type": "object",
@@ -880,6 +1041,27 @@
       ],
       "additionalProperties": false
     },
+    "video": {
+      "description": "Layer 3b: a video on the web, shown as a card over the exercise; the app opens its address in the browser. Same fields as the video block of a theory page, without type.",
+      "type": "object",
+      "properties": {
+        "title": {
+          "$ref": "#/$defs/inline"
+        },
+        "url": {
+          "type": "string",
+          "pattern": "^https://[^\\s]+$"
+        },
+        "note": {
+          "$ref": "#/$defs/inline"
+        }
+      },
+      "required": [
+        "title",
+        "url"
+      ],
+      "additionalProperties": false
+    },
     "exercise.gaps": {
       "description": "Sentences with blanks to type into. Each blank is one item; one item may hold a whole text with many blanks.",
       "type": "object",
@@ -901,6 +1083,12 @@
         },
         "aside": {
           "$ref": "#/$defs/aside"
+        },
+        "audio": {
+          "$ref": "#/$defs/audio"
+        },
+        "video": {
+          "$ref": "#/$defs/video"
         },
         "wordBank": {
           "type": "array",
@@ -970,6 +1158,12 @@
         "aside": {
           "$ref": "#/$defs/aside"
         },
+        "audio": {
+          "$ref": "#/$defs/audio"
+        },
+        "video": {
+          "$ref": "#/$defs/video"
+        },
         "items": {
           "type": "array",
           "items": {
@@ -1030,6 +1224,12 @@
         },
         "aside": {
           "$ref": "#/$defs/aside"
+        },
+        "audio": {
+          "$ref": "#/$defs/audio"
+        },
+        "video": {
+          "$ref": "#/$defs/video"
         },
         "wordBank": {
           "type": "array",
@@ -1094,6 +1294,12 @@
         },
         "aside": {
           "$ref": "#/$defs/aside"
+        },
+        "audio": {
+          "$ref": "#/$defs/audio"
+        },
+        "video": {
+          "$ref": "#/$defs/video"
         },
         "head": {
           "type": "array",
@@ -1162,6 +1368,12 @@
         "aside": {
           "$ref": "#/$defs/aside"
         },
+        "audio": {
+          "$ref": "#/$defs/audio"
+        },
+        "video": {
+          "$ref": "#/$defs/video"
+        },
         "pairs": {
           "type": "array",
           "items": {
@@ -1209,6 +1421,12 @@
         "aside": {
           "$ref": "#/$defs/aside"
         },
+        "audio": {
+          "$ref": "#/$defs/audio"
+        },
+        "video": {
+          "$ref": "#/$defs/video"
+        },
         "items": {
           "type": "array",
           "items": {
@@ -1224,13 +1442,22 @@
       "additionalProperties": false
     },
     "orderItem": {
-      "description": "answer is the sentence; accept lists other right orders of the same words.",
+      "description": "Either answer — a sentence built from its words (accept lists other right orders of the same words) — or parts — whole phrases, given in the right order, to put in order.",
       "type": "object",
       "properties": {
         "answer": {
           "type": "string",
           "minLength": 1,
           "pattern": "\\S"
+        },
+        "parts": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "minItems": 2
         },
         "accept": {
           "type": "array",
@@ -1244,10 +1471,19 @@
           "$ref": "#/$defs/inline"
         }
       },
-      "required": [
-        "answer"
-      ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "required": [
+            "answer"
+          ]
+        },
+        {
+          "required": [
+            "parts"
+          ]
+        }
+      ]
     },
     "exercise.expand": {
       "description": "Replies to write from notes (the word bank). An answer is right when it has the key words of one of the orders, in that order, with any words between them.",
@@ -1270,6 +1506,12 @@
         },
         "aside": {
           "$ref": "#/$defs/aside"
+        },
+        "audio": {
+          "$ref": "#/$defs/audio"
+        },
+        "video": {
+          "$ref": "#/$defs/video"
         },
         "wordBank": {
           "type": "array",
@@ -1347,6 +1589,12 @@
         },
         "aside": {
           "$ref": "#/$defs/aside"
+        },
+        "audio": {
+          "$ref": "#/$defs/audio"
+        },
+        "video": {
+          "$ref": "#/$defs/video"
         },
         "items": {
           "type": "array",

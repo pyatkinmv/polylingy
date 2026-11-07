@@ -14,16 +14,18 @@ import kotlin.uuid.Uuid
  *
  * 1. [instruction] — the task;
  * 2. [wordBank] — words to use, a read-only reference; only gaps, pictures and expand have one;
- * 3. [look] — a frame with a header (an email, an article) around 4 and 5; no look, no frame;
- * 4. [aside] — one picture next to the body: inside the frame when there is a look;
- * 5. the body — the type's own items: the only layer a type draws;
- * 6. [explanation] — after the exercise is checked.
+ * 3. [audio] — a sound to listen to, its play button above the frame;
+ * 4. [video] — a video to watch, its card above the frame;
+ * 5. [look] — a frame with a header (an email, an article, a newspaper clipping) around 6 and 7; no look, no frame;
+ * 6. [aside] — one picture next to the body: inside the frame when there is a look;
+ * 7. the body — the type's own items: the only layer a type draws;
+ * 8. [explanation] — after the exercise is checked.
  *
- * Layers 1–4 and 6 are fields of every type and know nothing of each other or of the body, so any type combines with
- * any look and any aside. A type's own fields only shape its body.
+ * Layers 1–6 and 8 are fields of every type and know nothing of each other or of the body, so any type combines with
+ * any sound, look and aside. A type's own fields only shape its body.
  *
- * Adding a type touches exactly: a class here with validate(), its body view, its checker, a sample in tests and its
- * definition in docs/course.schema.json.
+ * Adding a type touches exactly: a class here with validate() and [needsKeyboard], its body view, its checker, a sample
+ * in tests and its definition in docs/course.schema.json.
  */
 @Serializable
 sealed interface Exercise {
@@ -41,6 +43,18 @@ sealed interface Exercise {
 
     /** Words to use, shown above the frame; empty for types that have no word bank. */
     val wordBank: List<String>
+
+    /** A sound to listen to before answering (an `https://` URL or a path in the archive); null — none. */
+    val audio: String?
+
+    /** A video to watch before answering, a card above the frame that opens it in the browser; null — none. */
+    val video: Block.Video?
+
+    /**
+     * Whether answering means typing on a keyboard. Every type says it itself, so a new type can't be left out: the
+     * course setting "avoid typing" prefers the exercises of a topic where this is false.
+     */
+    val needsKeyboard: Boolean
     val itemCount: Int
 
     fun validate(at: Path): List<Problem>
@@ -54,11 +68,14 @@ sealed interface Exercise {
         override val explanation: Content? = null,
         override val look: Look? = null,
         override val aside: Aside? = null,
+        override val audio: String? = null,
+        override val video: Block.Video? = null,
         /** A solved sentence shown first, as "0" in a textbook. */
         val example: Inline? = null,
         override val wordBank: List<String> = emptyList(),
         val items: List<GapItem>,
     ) : Exercise {
+        override val needsKeyboard get() = true
         override val itemCount get() = items.sumOf { it.text.blanks.size }
 
         override fun validate(at: Path) = checks {
@@ -92,8 +109,11 @@ sealed interface Exercise {
         override val explanation: Content? = null,
         override val look: Look? = null,
         override val aside: Aside? = null,
+        override val audio: String? = null,
+        override val video: Block.Video? = null,
         val items: List<ChoiceItem>,
     ) : Exercise {
+        override val needsKeyboard get() = false
         override val wordBank: List<String> get() = emptyList()
         override val itemCount get() = places.size
 
@@ -148,9 +168,12 @@ sealed interface Exercise {
         override val explanation: Content? = null,
         override val look: Look? = null,
         override val aside: Aside? = null,
+        override val audio: String? = null,
+        override val video: Block.Video? = null,
         override val wordBank: List<String> = emptyList(),
         val items: List<PictureItem>,
     ) : Exercise {
+        override val needsKeyboard get() = true
         override val itemCount get() = items.sumOf { it.text.blanks.size }
 
         override fun validate(at: Path) = checks {
@@ -177,9 +200,12 @@ sealed interface Exercise {
         override val explanation: Content? = null,
         override val look: Look? = null,
         override val aside: Aside? = null,
+        override val audio: String? = null,
+        override val video: Block.Video? = null,
         val head: List<Inline> = emptyList(),
         val rows: List<List<Inline>>,
     ) : Exercise {
+        override val needsKeyboard get() = true
         override val wordBank: List<String> get() = emptyList()
         override val itemCount get() = rows.sumOf { row -> row.sumOf { it.blanks.size } }
 
@@ -205,10 +231,13 @@ sealed interface Exercise {
         override val explanation: Content? = null,
         override val look: Look? = null,
         override val aside: Aside? = null,
+        override val audio: String? = null,
+        override val video: Block.Video? = null,
         /** Each pair is `[left, right]`. */
         val pairs: List<List<Side>>,
         val extra: List<Side> = emptyList(),
     ) : Exercise {
+        override val needsKeyboard get() = false
         override val wordBank: List<String> get() = emptyList()
         override val itemCount get() = pairs.size
 
@@ -239,8 +268,11 @@ sealed interface Exercise {
         override val explanation: Content? = null,
         override val look: Look? = null,
         override val aside: Aside? = null,
+        override val audio: String? = null,
+        override val video: Block.Video? = null,
         val items: List<OrderItem>,
     ) : Exercise {
+        override val needsKeyboard get() = false
         override val wordBank: List<String> get() = emptyList()
         override val itemCount get() = items.size
 
@@ -249,8 +281,15 @@ sealed interface Exercise {
             require(items.isNotEmpty(), at / "items", "needs at least one item")
             items.forEachIndexed { i, item ->
                 val itemAt = (at / "items")[i]
-                require(item.words.size >= 2, itemAt / "answer", "needs at least 2 words")
-                item.accept.forEachIndexed { a, other ->
+                if (item.parts.isNotEmpty()) {
+                    require(item.answer.isEmpty(), itemAt, "has both \"answer\" and \"parts\"; give one of them")
+                    require(item.parts.size >= 2, itemAt / "parts", "needs at least 2 parts")
+                    item.parts.forEachIndexed { k, part -> notBlank(part, (itemAt / "parts")[k]) }
+                    require(item.accept.isEmpty(), itemAt / "accept", "works only with \"answer\"")
+                } else {
+                    require(item.words.size >= 2, itemAt / "answer", "needs at least 2 words")
+                }
+                if (item.parts.isEmpty()) item.accept.forEachIndexed { a, other ->
                     val same = OrderItem(other)
                     require(same.words.sorted() == item.words.sorted() && same.ending == item.ending,
                         (itemAt / "accept")[a], "must use the same words and ending as the answer")
@@ -261,16 +300,26 @@ sealed interface Exercise {
     }
 
     /**
-     * [accept] lists other right word orders. The sentence's closing punctuation is not a tile: it stays fixed
-     * at the end, so "Is it raining now?" and "Is it now raining?" are built from the same tiles.
+     * A sentence to build from its words ([answer]), or anything to put in order from its [parts] — whole phrases, the
+     * lines of a dialogue — given in the right order. [accept] lists other right word orders of an [answer]. The
+     * sentence's closing punctuation is not a tile: it stays fixed at the end, so "Is it raining now?" and "Is it now
+     * raining?" are built from the same tiles; parts have no fixed end.
      */
     @Serializable
-    data class OrderItem(val answer: String, val accept: List<String> = emptyList(), val note: Inline? = null) {
-        /** The words shown as tiles: `["Is", "it", "raining", "now"]`. */
-        val words: List<String> get() = words(answer.trimEnd().dropLastWhile { it in ENDING })
+    data class OrderItem(
+        val answer: String = "",
+        val parts: List<String> = emptyList(),
+        val accept: List<String> = emptyList(),
+        val note: Inline? = null,
+    ) {
+        /** The tiles: the words of the answer, `["Is", "it", "raining", "now"]`, or the parts. */
+        val words: List<String> get() = parts.ifEmpty { words(answer.trimEnd().dropLastWhile { it in ENDING }) }
 
-        /** The fixed end of the sentence: `"?"`. */
-        val ending: String get() = answer.trimEnd().takeLastWhile { it in ENDING }
+        /** The fixed end of the sentence: `"?"`; none for parts. */
+        val ending: String get() = if (parts.isNotEmpty()) "" else answer.trimEnd().takeLastWhile { it in ENDING }
+
+        /** The right order as shown after a mistake: the answer, or the parts one under another. */
+        val shown: String get() = if (parts.isNotEmpty()) parts.joinToString("\n") else answer
     }
 
     /**
@@ -286,11 +335,14 @@ sealed interface Exercise {
         override val explanation: Content? = null,
         override val look: Look? = null,
         override val aside: Aside? = null,
+        override val audio: String? = null,
+        override val video: Block.Video? = null,
         override val wordBank: List<String> = emptyList(),
         /** A solved item shown first, as "0" in a textbook. */
         val example: Inline? = null,
         val items: List<ExpandItem>,
     ) : Exercise {
+        override val needsKeyboard get() = true
         override val itemCount get() = items.size
 
         override fun validate(at: Path) = checks {
@@ -329,8 +381,11 @@ sealed interface Exercise {
         override val explanation: Content? = null,
         override val look: Look? = null,
         override val aside: Aside? = null,
+        override val audio: String? = null,
+        override val video: Block.Video? = null,
         val items: List<FixItem>,
     ) : Exercise {
+        override val needsKeyboard get() = true
         override val wordBank: List<String> get() = emptyList()
         override val itemCount get() = marks.size
 
@@ -388,6 +443,9 @@ sealed interface Exercise {
         override val look: Look? get() = null
         override val aside: Aside? get() = null
         override val wordBank: List<String> get() = emptyList()
+        override val audio: String? get() = null
+        override val video: Block.Video? get() = null
+        override val needsKeyboard get() = false
         override val id: Uuid
             get() = (raw["id"] as? JsonPrimitive)?.content?.let { runCatching { Uuid.parse(it) }.getOrNull() } ?: Uuid.NIL
         override val instruction: Inline? get() = null
@@ -397,7 +455,7 @@ sealed interface Exercise {
     }
 }
 
-private const val ENDING = ".?!…"
+private const val ENDING = ".?!…。？！"
 
 internal fun words(sentence: String): List<String> = sentence.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }
 
@@ -407,5 +465,7 @@ private fun Checks.common(exercise: Exercise, at: Path) {
     exercise.wordBank.forEachIndexed { i, word -> notBlank(word, (at / "wordBank")[i]) }
     exercise.look?.let { nested(it.validate(at / "look")) }
     exercise.aside?.let { nested(it.validate(at / "aside")) }
+    audio(exercise.audio, at / "audio")
+    exercise.video?.let { nested(it.validate(at / "video")) }
     exercise.explanation?.let { nested(it.validate(at / "explanation")) }
 }

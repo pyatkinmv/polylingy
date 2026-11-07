@@ -30,6 +30,7 @@ kotlin {
         getByName("desktopMain").dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.logback.classic)
+            implementation(libs.jlayer)
         }
         getByName("desktopTest").languageSettings.optIn("androidx.compose.ui.test.ExperimentalTestApi")
         getByName("desktopTest").dependencies {

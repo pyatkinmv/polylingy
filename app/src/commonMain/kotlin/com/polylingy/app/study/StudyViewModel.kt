@@ -5,6 +5,7 @@ import com.polylingy.content.ItemCheck
 import com.polylingy.content.ItemResult
 import com.polylingy.content.Response
 import com.polylingy.content.emptyResponse
+import com.polylingy.content.isComplete
 import com.polylingy.core.content.Course
 import com.polylingy.core.learning.TopicStatus
 import com.polylingy.core.study.AnswerOutcome
@@ -68,6 +69,7 @@ class StudyViewModel(
         val current = _state.value as? StudyState.Exercise ?: return
         if (current.outcome != null) return
         val next = current.next
+        if (!next.exercise.isComplete(current.response)) return
         log.info { "User checks exercise ${next.exercise.id} of topic ${next.topic.id}" }
         _state.value = current.copy(outcome = study.answer(courseId, next.topic.id, next.exercise.id, current.response))
     }

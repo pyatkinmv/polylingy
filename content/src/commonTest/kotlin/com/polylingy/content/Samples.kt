@@ -102,9 +102,42 @@ object Samples {
           "items": [ { "text": "I {{have worked}} here since May and {{have been finishing => have finished}} two projects." } ] }
     """.trimIndent()
 
+    /** A newspaper clipping with a headline to look at, and questions about it. */
+    val newspaper = """
+        { "id": "$ID", "type": "choice", "instruction": "How many times does each letter appear in the headline?",
+          "look": { "type": "newspaper", "headline": "افتتاح المستشفى الجديد\nفي بيروت", "source": "Daily News · Tuesday" },
+          "items": [ { "text": "ب = {{3|2|4}}" }, { "text": "ت = {{3|2|4}}" } ] }
+    """.trimIndent()
+
+    /** A video to watch first: its card over an order of whole phrases. */
+    val watch = """
+        { "id": "$ID", "type": "order", "instruction": "Put the greetings in the order you hear them.",
+          "video": { "title": "Video: Greetings", "url": "https://www.youtube.com/watch?v=abc123", "note": "Watch it first." },
+          "items": [ { "parts": ["Good morning.", "Hello.", "Goodbye."] } ] }
+    """.trimIndent()
+
+    /** A listening exercise: a sound over a choice whose options are characters. */
+    val listen = """
+        { "id": "$ID", "type": "choice", "instruction": "Послушайте и выберите слово.", "audio": "audio/u1-xuesheng.mp3",
+          "items": [ { "text": "{{学生|老师|谢谢}}" } ] }
+    """.trimIndent()
+
+    /** Annotated words in an exercise: tiles of characters with how to read them. */
+    val annotatedOrder = """
+        { "id": "$ID", "type": "order", "instruction": "Сделайте предложение отрицательным.",
+          "items": [ { "answer": "[我](wǒ) [不](bú) [是](shì) [老师](lǎoshī)。" } ] }
+    """.trimIndent()
+
+    /** Order of whole phrases: the lines of a dialogue. */
+    val orderParts = """
+        { "id": "$ID", "type": "order", "instruction": "Расставьте реплики по порядку.",
+          "items": [ { "parts": ["[你好](Nǐ hǎo)！", "[你好](Nǐ hǎo)！[你是老师吗](Nǐ shì lǎoshī ma)？", "[不是](Bú shì)。"] } ] }
+    """.trimIndent()
+
     val exercises = mapOf(
         "gaps" to gaps, "choice" to choice, "pictures" to pictures, "table" to table, "match" to match, "order" to order,
         "choiceInText" to choiceInText, "expand" to expand, "fix" to fix, "layers" to layers, "article" to article,
+        "listen" to listen, "annotatedOrder" to annotatedOrder, "orderParts" to orderParts, "newspaper" to newspaper, "watch" to watch,
     )
 
     /** One sample of each type, to put any look or aside on. */
@@ -125,7 +158,7 @@ object Samples {
                   ["we/you/they", "**are**", "(= we’re etc.)"] ] } ] } ] },
           { "type": "section", "label": "B", "blocks": [
             { "type": "examples", "items": [
-              { "text": "Turn the music down. I**’m trying** to sleep.", "not": "I try" },
+              { "text": "Turn the music down. I**’m trying** to sleep.", "not": "I try", "translation": "Сделай тише, я пытаюсь уснуть.", "audio": "audio/ex-1.mp3" },
               { "text": "What **are** you **reading**?" } ] },
             { "type": "quote", "text": "I’m writing a short story this month.", "who": "Maria",
               "aside": { "type": "image", "src": "images/maria.png", "alt": "Maria on the phone" } } ] },
@@ -133,6 +166,18 @@ object Samples {
             { "type": "words", "words": ["getting", "becoming", "changing"] },
             { "type": "table", "head": ["", "positive"], "rows": [["I", "I’m getting"]] },
             { "type": "tip", "blocks": [ { "type": "text", "text": "Use the present continuous for changes." } ] },
-            { "type": "seeAlso", "links": [ { "section": "$SECTION_A" }, { "unit": "$ID" } ] } ] } ] }
+            { "type": "seeAlso", "links": [ { "section": "$SECTION_A" }, { "unit": "$ID" } ] } ] },
+          { "type": "section", "label": "D", "title": "[对话](duìhuà) · Dialogue", "blocks": [
+            { "type": "dialogue", "lines": [
+              { "who": "[安娜](Ānnà)", "text": "[你好](Nǐ hǎo)！", "audio": "audio/d1-1.mp3", "translation": "Здравствуйте!" },
+              { "who": "[王老师](Wáng lǎoshī)", "text": "[你](Nǐ) [是](shì) [学生](xuésheng) [吗](ma)？", "audio": "https://audio.polylingy.app/zh/d1-2.mp3" },
+              { "text": "A line nobody signs." } ] },
+            { "type": "table", "rows": [
+              [{ "audio": "audio/w-laoshi.mp3" }, "[老师](lǎoshī)", "учитель"],
+              [{ "text": "学生", "audio": "audio/w-xuesheng.wav" }, "xuésheng", "студент"] ] } ] },
+          { "type": "section", "title": "Track 1:03 and a video", "blocks": [
+            { "type": "track", "title": "Track 1:03", "audio": "audio/t1-03.mp3" },
+            { "type": "video", "title": "Video: Greetings", "url": "https://www.youtube.com/watch?v=abc123",
+              "note": "Watch it, then match the greetings." } ] } ] }
     """.trimIndent()
 }

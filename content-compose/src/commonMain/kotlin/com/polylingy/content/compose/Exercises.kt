@@ -49,7 +49,7 @@ import com.polylingy.content.MAX_BLANK_LENGTH
 import com.polylingy.content.Response
 
 /**
- * One exercise, any type, drawn as its layers (see [Exercise]): the instruction, the word bank, the look's frame with
+ * One exercise, any type, drawn as its layers (see [Exercise]): the instruction, the word bank, the sound, the look's frame with
  * the aside picture and the body inside, and once checked the explanation. Only the body depends on the type. Before checking, [response] is what the learner
  * has entered and [onChange] reports edits; after checking, [checks] (one per item) shows what was right, and the
  * explanation follows. The view never decides what is right: it only shows [checks].
@@ -70,6 +70,8 @@ fun ExerciseView(
     Column(modifier, verticalArrangement = Arrangement.spacedBy(18.dp)) {
         exercise.instruction?.let { InlineText(it, style = MaterialTheme.typography.titleMedium) }
         WordBank(exercise.wordBank)
+        exercise.audio?.let { Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { PlayButton(it, large = true) } }
+        exercise.video?.let { VideoView(it) }
         Framed(exercise.look, exercise.aside) {
             when (exercise) {
                 is Exercise.Gaps -> GapsView(exercise, response as Response.Blanks, checks, onChange, onSubmit)

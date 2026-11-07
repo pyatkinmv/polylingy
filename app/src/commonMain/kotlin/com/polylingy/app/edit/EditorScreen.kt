@@ -48,6 +48,7 @@ import com.polylingy.app.ui.Page
 import com.polylingy.app.ui.QuietButton
 import com.polylingy.app.ui.TopBar
 import com.polylingy.content.Exercise
+import com.polylingy.content.isComplete
 import com.polylingy.content.ItemResult
 import com.polylingy.content.compose.ContentColors
 import com.polylingy.content.compose.ContentTheme
@@ -301,7 +302,7 @@ private fun PreviewCard(
                     seed = preview.exercise,
                 )
                 val colors = ButtonDefaults.buttonColors(containerColor = Look.Green)
-                if (preview.checks == null) Button(onClick = viewModel::checkAnswer, colors = colors, shape = RoundedCornerShape(8.dp)) { Text("Check") }
+                if (preview.checks == null) Button(onClick = viewModel::checkAnswer, enabled = exercise.isComplete(response), colors = colors, shape = RoundedCornerShape(8.dp)) { Text("Check") }
                 else Button(onClick = viewModel::tryAgain, colors = colors, shape = RoundedCornerShape(8.dp)) { Text("Try again") }
             }
         }

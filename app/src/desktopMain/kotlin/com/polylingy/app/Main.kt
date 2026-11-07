@@ -60,7 +60,8 @@ fun main() {
                 log.info { "Window minimum size $MIN_WIDTH×$MIN_HEIGHT at scale $scale" }
             }
             val container = remember {
-                AppContainer(storage, DesktopCourseFiles(window), images, fetcher, CourseArchive, SkiaImageDecoder).also {
+                DesktopSound.warmUp()
+                AppContainer(storage, DesktopCourseFiles(window), images, fetcher, CourseArchive, SkiaImageDecoder, sound = DesktopSound).also {
                     it.library.seedSample(sampleCourse())
                 }
             }

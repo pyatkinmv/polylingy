@@ -6,7 +6,7 @@ import com.polylingy.core.content.Course
 import com.polylingy.core.content.CourseFormatException
 import com.polylingy.core.content.CourseJson
 import com.polylingy.core.content.CourseService
-import com.polylingy.core.content.images
+import com.polylingy.core.content.media
 import com.polylingy.core.ports.Clock
 import com.polylingy.core.ports.CourseRepository
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -47,17 +47,17 @@ class CourseSource(val fileName: String, val json: String, val files: Map<String
  */
 fun CourseSource.check(now: kotlin.time.Instant): ImportResult {
     val read = CourseJson.read(json, now)
-    val missing = read.course.images().filter { (_, image) -> !image.isUrl && image.src !in files }.map { (at, image) ->
-        Problem(at, if (files.isEmpty()) "\"${image.src}\" needs a zip archive with that file, or an https:// URL" else "the archive has no file \"${image.src}\"")
+    val missing = read.course.media().filter { (_, src) -> !src.isUrl && src !in files }.map { (at, src) ->
+        Problem(at, if (files.isEmpty()) "\"$src\" needs a zip archive with that file, or an https:// URL" else "the archive has no file \"$src\"")
     }
     if (missing.isNotEmpty()) throw CourseFormatException(missing)
     return ImportResult(read.course, read.warnings)
 }
 
-/** A course written for the user to save: a `.json`, or a `.zip` when it has pictures of its own. */
+/** A course written for the user to save: a `.json`, or a `.zip` when it has pictures or sounds of its own. */
 class CourseExport(val fileName: String, val bytes: ByteArray)
 
-/** Courses as files: import (JSON or zip, with their pictures), export, and removal with their pictures. */
+/** Courses as files: import (JSON or zip, with their pictures and sounds), export, and removal with their files. */
 class CourseLibrary(
     private val courses: CourseRepository,
     private val service: CourseService,
@@ -82,21 +82,21 @@ class CourseLibrary(
         log.info { "Importing ${source.fileName} (${source.files.size} files besides course.json)" }
         try {
             val read = source.check(clock.now().instant)
-            val pictures = read.course.images()
+            val media = read.course.media()
 
             val course = service.import(read.course)
             val warnings = read.warnings.toMutableList()
             try {
-                for ((at, image) in pictures.distinctBy { it.second.src }) {
-                    if (image.isUrl) download(course.id, image.src)?.let { warnings += Problem(at, it) }
-                    else images.put(course.id, image.src, source.files.getValue(image.src))
+                for ((at, src) in media.distinctBy { it.second }) {
+                    if (src.isUrl) download(course.id, src)?.let { warnings += Problem(at, it) }
+                    else images.put(course.id, src, source.files.getValue(src))
                 }
             } catch (e: Exception) {
                 service.delete(course.id)
                 images.deleteCourse(course.id)
                 throw e
             }
-            log.info { "Imported ${source.fileName} as course ${course.id} \"${course.name}\": ${course.units.size} units, ${course.allTopics.size} topics, ${pictures.size} pictures, ${warnings.size} warnings" }
+            log.info { "Imported ${source.fileName} as course ${course.id} \"${course.name}\": ${course.units.size} units, ${course.allTopics.size} topics, ${media.size} pictures and sounds, ${warnings.size} warnings" }
             warnings.forEach { log.warn { "Import of ${source.fileName}: $it" } }
             return ImportResult(course, warnings)
         } catch (e: CourseFormatException) {
@@ -106,12 +106,12 @@ class CourseLibrary(
         }
     }
 
-    /** The course as a file: a zip when it has pictures of its own, otherwise plain JSON. A study-only course can't be exported. */
+    /** The course as a file: a zip when it has pictures or sounds of its own, otherwise plain JSON. A study-only course can't be exported. */
     fun export(courseId: Uuid): CourseExport {
         val course = requireNotNull(courses.get(courseId)) { "No course $courseId" }
         require(!course.studyOnly) { "This course was made with a newer version of Polylingy; update the app to export it" }
         val json = CourseJson.write(service.forExport(course))
-        val own = course.images().map { it.second }.filterNot { it.isUrl }.map { it.src }.distinct()
+        val own = course.media().map { it.second }.filterNot { it.isUrl }.distinct()
         val export = if (own.isEmpty()) {
             CourseExport("${slug(course.name)}.json", json.toByteArray())
         } else {
@@ -137,7 +137,8 @@ class CourseLibrary(
         null
     } catch (e: Exception) {
         log.warn(e) { "Couldn't download $url for course $courseId" }
-        "couldn't download the picture (${e.message ?: e::class.simpleName}); its description is shown instead"
+        val why = e.message ?: e::class.simpleName
+        if (url.isSound) "couldn't download the sound ($why); it stays silent" else "couldn't download the picture ($why); its description is shown instead"
     }
 
     private fun slug(name: String) = name.lowercase().replace(Regex("[^\\p{L}\\p{N}]+"), "_").trim('_').ifEmpty { "course" }
@@ -150,4 +151,5 @@ class CourseLibrary(
     }
 }
 
-private val Image.isUrl get() = src.startsWith("https://")
+private val String.isUrl get() = startsWith("https://")
+private val String.isSound get() = substringAfterLast('.').lowercase() in setOf("mp3", "wav")

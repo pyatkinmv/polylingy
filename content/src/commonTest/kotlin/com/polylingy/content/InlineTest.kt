@@ -1,5 +1,6 @@
 package com.polylingy.content
 
+import com.polylingy.content.InlineNode.Annotated
 import com.polylingy.content.InlineNode.Blank
 import com.polylingy.content.InlineNode.Bold
 import com.polylingy.content.InlineNode.Italic
@@ -26,6 +27,24 @@ class InlineTest {
         listOf(Bold(listOf(Text("a "), Italic(listOf(Text("b"))), Text(" c")))),
         nodes("**a *b* c**"),
     )
+
+    @Test fun annotatedWords() {
+        assertEquals(listOf(Annotated("你好", "nǐ hǎo"), Text("！"), Bold(listOf(Annotated("老师", "lǎoshī")))), nodes("[你好](nǐ hǎo)！**[老师](lǎoshī)**"))
+        val inline = Inline("[我](wǒ) [是](shì) [学生](xuésheng)。")
+        assertTrue(inline.hasAnnotations)
+        assertEquals("我 是 学生。", inline.plainText())
+        assertTrue(inline.blanks.isEmpty())
+    }
+
+    @Test fun aBracketWithoutAnAnnotationIsPlainText() {
+        for (text in listOf("[sic]", "a [b] (c)", "[](x)", "[a]()", "[a](b", "\\[a](b)")) {
+            val inline = Inline(text)
+            assertEquals(emptyList(), inline.problems, text)
+            assertTrue(!inline.hasAnnotations, text)
+        }
+        assertEquals("[a](b)", Inline("\\[a](b)").plainText())
+        assertEquals(listOf(Text("x "), Annotated("a", "b")), nodes("x [a](b)"))
+    }
 
     @Test fun blanksWithVariantsAreTrimmedAndNumbered() {
         val inline = Inline("I {{ ’m working | am working }} and {{sing}}.")

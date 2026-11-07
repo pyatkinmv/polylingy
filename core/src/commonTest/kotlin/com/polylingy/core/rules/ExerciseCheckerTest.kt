@@ -122,6 +122,13 @@ class ExerciseCheckerTest {
         )
     }
 
+    @Test fun orderOfPartsComparesWholePhrases() {
+        val order = exercise("order", """"items": [ { "parts": ["Hi!", "Are you a teacher?", "No, a student."] } ]""")
+        assertEquals(listOf(ItemCheck(CORRECT, "Hi!\nAre you a teacher?\nNo, a student.")),
+            Checking.check(order, Response.Order(listOf(listOf("Hi!", "Are you a teacher?", "No, a student.")))))
+        assertEquals(WRONG, Checking.check(order, Response.Order(listOf(listOf("Are you a teacher?", "Hi!", "No, a student."))))[0].result)
+    }
+
     @Test fun anEmptyResponseIsAllWrong() {
         for (exercise in listOf(gaps, expand, exercise("choice", """"items": [ { "text": "{{a}}", "options": ["a", "b"] } ]"""))) {
             assertEquals(List(exercise.itemCount) { WRONG }, Checking.check(exercise, exercise.emptyResponse()).map { it.result })

@@ -10,7 +10,7 @@ import kotlin.time.Instant
 import kotlin.uuid.Uuid
 
 /** The course file format this app reads and writes; see docs/content-format.md, section 9. */
-const val FORMAT_VERSION = 3
+const val FORMAT_VERSION = 5
 
 /**
  * A course is a versioned document: it is always saved and synced as a whole, in the same JSON as the course file.

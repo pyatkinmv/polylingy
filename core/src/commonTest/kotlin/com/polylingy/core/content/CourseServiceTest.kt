@@ -94,7 +94,7 @@ class CourseServiceTest {
     }
 
     @Test fun aCourseFromANewerFormatCantBeEdited() {
-        val newer = CourseJson.read(CourseSamples.flat.replace("\"formatVersion\": 1", "\"formatVersion\": 4"), clock.now().instant).course
+        val newer = CourseJson.read(CourseSamples.flat.replace("\"formatVersion\": 1", "\"formatVersion\": 6"), clock.now().instant).course
         val course = service.import(newer)
         assertFailsWith<IllegalArgumentException> { service.editDetails(course.id, "Other", "") }
     }

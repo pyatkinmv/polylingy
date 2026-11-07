@@ -20,8 +20,9 @@ class CourseLinks(private val course: Course) {
             val theory = unit.theory as? Content.Blocks ?: return@forEachIndexed
             for ((_, block) in theory.walk(Path.ROOT)) {
                 if (block !is Block.Section || block.id == null) continue
-                val title = block.title?.plainText()?.let { " · $it" }.orEmpty()
-                put(block.id!!, Found(unit.id, block.label + title))
+                val title = block.title?.plainText()
+                val name = listOfNotNull(block.label, title).joinToString(" · ").ifEmpty { "Theory" }
+                put(block.id!!, Found(unit.id, name))
             }
         }
     }

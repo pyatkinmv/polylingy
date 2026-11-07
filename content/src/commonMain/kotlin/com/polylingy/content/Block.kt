@@ -40,12 +40,13 @@ sealed interface Block {
     fun validate(at: Path): List<Problem>
 
     /**
-     * A lettered part of a page: the letter in the margin, the content beside it.
+     * A part of a page. With a [label] (a letter, "A") it is lettered: the letter in the margin, the content beside it,
+     * as in many grammar books; without one, its [title] is a heading over the content, and the content takes the width.
      * [id] is set only on sections a `seeAlso` link points at; it is unique within the course.
      */
     @Serializable
     @SerialName("section")
-    data class Section(val id: Uuid? = null, val label: String, val title: Inline? = null, val blocks: List<Block>) : Block {
+    data class Section(val id: Uuid? = null, val label: String? = null, val title: Inline? = null, val blocks: List<Block>) : Block {
         override fun validate(at: Path) = checks {
             notBlank(label, at / "label")
             text(title, at / "title")
@@ -94,6 +95,7 @@ sealed interface Block {
                 row.forEachIndexed { c, cell ->
                     while (column in covered) column++
                     text(cell.text, rowAt[c], mayBeEmpty = true)
+                    audio(cell.audio, rowAt[c] / "audio")
                     require(cell.rowSpan >= 1, rowAt[c] / "rowSpan", "must be at least 1")
                     require(r + cell.rowSpan <= rows.size, rowAt[c] / "rowSpan", "goes past the last row")
                     if (cell.rowSpan > 1) next[column] = cell.rowSpan - 1
@@ -104,6 +106,59 @@ sealed interface Block {
                 require(rowWidth == width, rowAt, "has $rowWidth columns, expected $width")
                 spans = next
             }
+        }
+    }
+
+    /** A conversation: one line per remark, the speaker's name on the left, each line with its own optional sound. */
+    @Serializable
+    @SerialName("dialogue")
+    data class Dialogue(val lines: List<Line>) : Block {
+        override fun validate(at: Path) = checks {
+            require(lines.isNotEmpty(), at / "lines", "needs at least one line")
+            lines.forEachIndexed { i, line ->
+                val lineAt = (at / "lines")[i]
+                text(line.who, lineAt / "who")
+                text(line.text, lineAt / "text")
+                text(line.translation, lineAt / "translation")
+                audio(line.audio, lineAt / "audio")
+            }
+        }
+    }
+
+    /**
+     * One remark of a [Dialogue]: who says it, what, its sound, and its [translation] — shown small and grey under it.
+     * The course decides where a translation helps; there is no setting to hide it.
+     */
+    @Serializable
+    data class Line(val who: Inline? = null, val text: Inline, val audio: String? = null, val translation: Inline? = null)
+
+    /**
+     * A recording of its own, as a book prints it beside a section: one [audio] file with a [title] ("Track 1:03").
+     * Long recordings play in the player docked at the bottom of the window, where they can be paused and rewound.
+     */
+    @Serializable
+    @SerialName("track")
+    data class Track(val title: Inline, val audio: String) : Block {
+        override fun validate(at: Path) = checks {
+            text(title, at / "title")
+            audio(audio, at / "audio")
+        }
+    }
+
+    /**
+     * A video somewhere on the web, which the app opens in the browser: the course points to it, it does not carry it.
+     * [url] is an `https://` address; [note] says what to do there.
+     */
+    @Serializable
+    @SerialName("video")
+    data class Video(val title: Inline, val url: String, val note: Inline? = null) : Block {
+        override fun validate(at: Path) = checks {
+            text(title, at / "title")
+            text(note, at / "note")
+            require(
+                url.startsWith("https://") && url.length > "https://".length && url.none { it.isWhitespace() },
+                at / "url", "must be an https:// address without spaces",
+            )
         }
     }
 
@@ -126,13 +181,18 @@ sealed interface Block {
             items.forEachIndexed { i, item ->
                 text(item.text, (at / "items")[i] / "text")
                 text(item.not, (at / "items")[i] / "not")
+                text(item.translation, (at / "items")[i] / "translation")
+                audio(item.audio, (at / "items")[i] / "audio")
             }
         }
     }
 
-    /** One example; [not] is the wrong form to contrast with, shown as "(not …)". */
+    /**
+     * One example; [not] is the wrong form to contrast with, shown as "(not …)"; [translation] is shown small and grey
+     * under it; [audio] gives it a play button.
+     */
     @Serializable
-    data class Example(val text: Inline, val not: Inline? = null)
+    data class Example(val text: Inline, val not: Inline? = null, val translation: Inline? = null, val audio: String? = null)
 
     @Serializable
     @SerialName("words")

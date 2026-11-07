@@ -76,6 +76,7 @@ class SchemaTest {
             "aside" to Aside.serializer().descriptor,
             "look.email" to Look.Email.serializer().descriptor,
             "look.article" to Look.Article.serializer().descriptor,
+            "look.newspaper" to Look.Newspaper.serializer().descriptor,
             "exercise.gaps" to Exercise.Gaps.serializer().descriptor,
             "gapItem" to Exercise.GapItem.serializer().descriptor,
             "exercise.choice" to Exercise.Choice.serializer().descriptor,
@@ -102,6 +103,10 @@ class SchemaTest {
             "block.words" to Block.Words.serializer().descriptor,
             "block.tip" to Block.Tip.serializer().descriptor,
             "block.seeAlso" to Block.SeeAlso.serializer().descriptor,
+            "block.dialogue" to Block.Dialogue.serializer().descriptor,
+            "block.track" to Block.Track.serializer().descriptor,
+            "block.video" to Block.Video.serializer().descriptor,
+            "line" to Block.Line.serializer().descriptor,
         )
         for ((def, descriptor) in classes) {
             assertEquals(descriptor.elementNames.toSet(), properties(def) - "type" - "format", def)

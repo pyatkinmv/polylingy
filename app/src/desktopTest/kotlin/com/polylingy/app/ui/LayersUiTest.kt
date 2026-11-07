@@ -55,7 +55,10 @@ class LayersUiTest {
 
     private fun exercise(json: String) = ContentJson.decode(Exercise.serializer(), json)
 
-    private fun showcase(exercise: Exercise, width: Int = 832, checked: (List<ItemCheck>) -> Unit = {}, block: ComposeUiTest.() -> Unit) =
+    private fun showcase(
+        exercise: Exercise, width: Int = 832, checked: (List<ItemCheck>) -> Unit = {},
+        uri: androidx.compose.ui.platform.UriHandler? = null, block: ComposeUiTest.() -> Unit,
+    ) =
         runDesktopComposeUiTest(width = width, height = 900) {
             setContent {
                 var response by remember { mutableStateOf(exercise.emptyResponse()) }
@@ -63,12 +66,16 @@ class LayersUiTest {
                 val check = { checks = Checking.check(exercise, response).also(checked) }
                 MaterialTheme {
                     ContentTheme(ContentColors.forAccent(null), images) {
-                        Column(
-                            Modifier.fillMaxSize().background(Color(0xFFFAF6EC)).verticalScroll(rememberScrollState()).padding(24.dp).widthIn(max = 760.dp),
-                            verticalArrangement = Arrangement.spacedBy(20.dp),
+                        androidx.compose.runtime.CompositionLocalProvider(
+                            *listOfNotNull(uri?.let { androidx.compose.ui.platform.LocalUriHandler provides it }).toTypedArray(),
                         ) {
-                            ExerciseView(exercise, response, checks, { response = it }, onSubmit = check, seed = 3)
-                            if (checks == null) Button(onClick = check) { Text("Check") }
+                            Column(
+                                Modifier.fillMaxSize().background(Color(0xFFFAF6EC)).verticalScroll(rememberScrollState()).padding(24.dp).widthIn(max = 760.dp),
+                                verticalArrangement = Arrangement.spacedBy(20.dp),
+                            ) {
+                                ExerciseView(exercise, response, checks, { response = it }, onSubmit = check, seed = 3)
+                                if (checks == null) Button(onClick = check) { Text("Check") }
+                            }
                         }
                     }
                 }
@@ -118,6 +125,33 @@ class LayersUiTest {
         onNodeWithContentDescription("Aside").assertIsDisplayed()
         type("Blank 1", "arrived")
         screenshot("layers-article")
+    }
+
+    private val clipping = exercise("""
+        { "id": "6f1c2b8e-3d4a-4f5b-9c6d-7e8f9a0b1c2d", "type": "choice",
+          "instruction": "How many times does each letter appear in the headline?",
+          "look": { "type": "newspaper", "source": "Daily News · Tuesday", "headline": "افتتاح المستشفى الجديد\nفي بيروت يوم الثلاثاء" },
+          "items": [ { "text": "ب = {{3|2|4}}" }, { "text": "ي = {{5|4|6}}" } ] }
+    """)
+
+    @Test fun aVideoLayerShowsItsCardAboveTheExercise() {
+        val opened = mutableListOf<String>()
+        val exercise = exercise("""
+            { "id": "6f1c2b8e-3d4a-4f5b-9c6d-7e8f9a0b1c2d", "type": "order", "instruction": "Put the greetings in the order you hear them.",
+              "video": { "title": "Video: Greetings", "url": "https://www.youtube.com/watch?v=abc123", "note": "Watch it first." },
+              "items": [ { "parts": ["Good morning.", "Hello.", "Goodbye."] } ] }
+        """)
+        showcase(exercise, uri = object : androidx.compose.ui.platform.UriHandler { override fun openUri(uri: String) { opened += uri } }) {
+            onNodeWithContentDescription("Video").assertIsDisplayed()
+            screenshot("layers-video")
+            onNodeWithText("Video: Greetings").performClick()
+            assertEquals(listOf("https://www.youtube.com/watch?v=abc123"), opened)
+        }
+    }
+
+    @Test fun newspaperLookFramesAHeadline() = showcase(clipping) {
+        onNodeWithContentDescription("Newspaper").assertIsDisplayed()
+        screenshot("layers-newspaper")
     }
 
     @Test fun onANarrowWindowThePictureGoesOnTop() = showcase(blog, width = 480) {

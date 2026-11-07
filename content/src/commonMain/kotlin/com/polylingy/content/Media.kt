@@ -76,9 +76,29 @@ object SideSerializer : KSerializer<Side> {
     }
 }
 
-/** A theory table cell: a text (JSON string) or `{"text": "…", "rowSpan": 3}`. */
+/**
+ * A theory table cell: a text (JSON string) or `{"text": "…", "rowSpan": 3, "audio": "audio/w.mp3"}`; a cell with
+ * [audio] shows a play button before its text, which may then be left out.
+ */
 @Serializable(with = CellSerializer::class)
-data class Cell(val text: Inline, val rowSpan: Int = 1)
+data class Cell(val text: Inline, val rowSpan: Int = 1, val audio: String? = null)
+
+/**
+ * A sound: an `https://` URL or a path inside the course archive (`audio/u1-hello.mp3`), an .mp3 or .wav file.
+ * It plays when the learner presses its button.
+ */
+internal fun Checks.audio(src: String?, at: Path) {
+    if (src == null) return
+    when {
+        src.isBlank() -> error(at, "must not be empty")
+        "://" in src -> require(src.startsWith("https://"), at, "a URL must start with https://")
+        else -> require(
+            !src.startsWith("/") && '\\' !in src && ':' !in src && src.split('/').none { it == ".." || it.isEmpty() },
+            at, "must be an https:// URL or a relative path inside the course archive, like audio/hello.mp3",
+        )
+    }
+    require(src.isBlank() || src.substringAfterLast('.').lowercase() in setOf("mp3", "wav"), at, "must be an .mp3 or .wav file")
+}
 
 object CellSerializer : KSerializer<Cell> {
     override val descriptor: SerialDescriptor = buildClassSerialDescriptor("com.polylingy.content.Cell")
@@ -88,20 +108,22 @@ object CellSerializer : KSerializer<Cell> {
         if (element is JsonPrimitive && element.isString) return Cell(Inline(element.content))
         val obj = element as? JsonObject
             ?: throw SerializationException("a table cell must be a text or {\"text\": …, \"rowSpan\": …}, got $element")
-        val unknown = obj.keys - setOf("text", "rowSpan")
+        val unknown = obj.keys - setOf("text", "rowSpan", "audio")
         if (unknown.isNotEmpty()) throw SerializationException("a table cell has unknown keys $unknown")
+        val audio = obj["audio"]?.let { (it as? JsonPrimitive)?.takeIf { p -> p.isString }?.content ?: throw SerializationException("audio must be a text") }
         val text = (obj["text"] as? JsonPrimitive)?.takeIf { it.isString }?.contentOrNull
-            ?: throw SerializationException("a table cell needs \"text\"")
+            ?: if (audio != null) "" else throw SerializationException("a table cell needs \"text\"")
         val rowSpan = obj["rowSpan"]?.let { it.jsonPrimitive.intOrNull ?: throw SerializationException("rowSpan must be a number") } ?: 1
-        return Cell(Inline(text), rowSpan)
+        return Cell(Inline(text), rowSpan, audio)
     }
 
     override fun serialize(encoder: Encoder, value: Cell) {
         val output = encoder as JsonEncoder
-        if (value.rowSpan == 1) output.encodeString(value.text.text)
+        if (value.rowSpan == 1 && value.audio == null) output.encodeString(value.text.text)
         else output.encodeJsonElement(buildJsonObject {
-            put("text", JsonPrimitive(value.text.text))
-            put("rowSpan", JsonPrimitive(value.rowSpan))
+            if (value.audio == null || value.text.text.isNotEmpty()) put("text", JsonPrimitive(value.text.text))
+            if (value.rowSpan != 1) put("rowSpan", JsonPrimitive(value.rowSpan))
+            value.audio?.let { put("audio", JsonPrimitive(it)) }
         })
     }
 }

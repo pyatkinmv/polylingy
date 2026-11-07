@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
@@ -53,6 +54,17 @@ internal fun Framed(look: Look?, aside: Aside?, body: @Composable () -> Unit) {
             }
             FrameBody(aside, body)
         }
+        is Look.Newspaper -> Frame("Newspaper") {
+            Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                look.source?.let { Text(it.uppercase(), color = colors.muted, style = MaterialTheme.typography.labelSmall, letterSpacing = 1.sp) }
+                Direction(look.headline.runsRightToLeft()) {
+                    Box(Modifier.fillMaxWidth().background(NewsPaper).dottedEdge(colors.muted).padding(horizontal = 18.dp, vertical = 14.dp)) {
+                        InlineText(look.headline, style = MaterialTheme.typography.headlineSmall.copy(fontFamily = FontFamily.Serif, fontWeight = FontWeight.Black, lineHeight = 36.sp))
+                    }
+                }
+            }
+            FrameBody(aside, body)
+        }
         is Look.Article -> Frame("Article") {
             Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 look.source?.let { Text(it.uppercase(), color = colors.muted, style = MaterialTheme.typography.labelSmall, letterSpacing = 1.sp) }
@@ -61,6 +73,19 @@ internal fun Framed(look: Look?, aside: Aside?, body: @Composable () -> Unit) {
             FrameBody(aside, body)
         }
     }
+}
+
+/** The paper of a clipping: a little greyer than the page. */
+private val NewsPaper = androidx.compose.ui.graphics.Color(0xFFF1EDE2)
+
+/** A dotted line around the clipping, as if it were cut out. */
+private fun Modifier.dottedEdge(colour: androidx.compose.ui.graphics.Color) = drawBehind {
+    drawRect(
+        colour, style = androidx.compose.ui.graphics.drawscope.Stroke(
+            width = 1.5.dp.toPx(),
+            pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(2.dp.toPx(), 4.dp.toPx())),
+        ),
+    )
 }
 
 /** A white card with a thin edge: the header goes first, then a line, then the body. */

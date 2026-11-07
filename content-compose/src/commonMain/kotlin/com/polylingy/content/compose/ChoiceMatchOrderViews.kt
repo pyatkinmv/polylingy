@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,6 +39,7 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.polylingy.content.Exercise
+import com.polylingy.content.Inline
 import com.polylingy.content.ItemCheck
 import com.polylingy.content.ItemResult
 import com.polylingy.content.Response
@@ -51,24 +53,28 @@ private fun resultColors(result: ItemResult?, colors: ContentColors): Pair<Color
     null -> colors.ink to colors.card
 }
 
-/** A rounded option to click: filled when [selected], coloured by [result] once checked. */
+/**
+ * A rounded option to click: filled when [selected], coloured by [result] once checked. After the check the [right] option
+ * is outlined in green with a tick, picked or not, so the right answer is shown where it already stands and is never written twice.
+ */
 @Composable
-private fun Option(text: String, selected: Boolean, result: ItemResult?, enabled: Boolean, onClick: () -> Unit) {
+private fun Option(text: String, selected: Boolean, result: ItemResult?, enabled: Boolean, right: Boolean = false, onClick: () -> Unit) {
     val (fg, bg) = when {
         result != null && selected -> resultColors(result, colors)
+        right -> colors.correct to colors.correctBg
         selected -> colors.onAccent to colors.accent
         else -> colors.ink to colors.card
     }
-    Text(
-        text,
+    InlineText(
+        Inline(if (right && !selected) "✓ $text" else text),
         Modifier
             .clip(RoundedCornerShape(50))
             .background(bg, RoundedCornerShape(50))
-            .border(1.5.dp, if (selected) bg else colors.line, RoundedCornerShape(50))
+            .border(if (right) 2.dp else 1.5.dp, if (right) colors.correct else if (selected) bg else colors.line, RoundedCornerShape(50))
             .semantics { this.selected = selected }
             .clickable(enabled = enabled, role = Role.RadioButton, onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 4.dp),
-        color = fg,
+        style = LocalTextStyle.current.copy(color = fg),
     )
 }
 
@@ -86,11 +92,10 @@ internal fun ChoiceView(exercise: Exercise.Choice, response: Response.Choice, ch
                     val check = checks?.get(p)
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                         for (option in shuffled[p]) {
-                            Option(option, response.picked[p] == option, check?.result, enabled = checks == null) {
+                            Option(option, response.picked[p] == option, check?.result, enabled = checks == null, right = check != null && check.rightAnswer == option) {
                                 onChange(Response.Choice(response.picked.toMutableList().also { it[p] = option }))
                             }
                         }
-                        if (check != null && check.result != ItemResult.CORRECT) Text("→ ${check.rightAnswer}", color = colors.correct, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -187,16 +192,15 @@ private fun Tile(word: String, result: ItemResult?, enabled: Boolean, faded: Boo
         else -> colors.ink to colors.card
     }
     val shape = RoundedCornerShape(10.dp)
-    Text(
-        word,
+    InlineText(
+        Inline(word),
         Modifier
             .then(if (faded) Modifier.clearAndSetSemantics {} else Modifier)
             .clip(shape).background(bg, shape)
             .then(if (faded) Modifier.dashedBorder(colors.line, 10.dp) else Modifier.border(1.dp, if (result != null) bg else WordEdge, shape))
             .clickable(enabled = enabled && !faded, onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 6.dp),
-        color = fg,
-        fontWeight = FontWeight.Medium,
+        style = LocalTextStyle.current.copy(color = fg, fontWeight = FontWeight.Medium),
     )
 }
 
@@ -240,8 +244,42 @@ internal fun OrderView(exercise: Exercise.Order, response: Response.Order, check
             val check = checks?.get(i)
             fun update(words: List<String>) = onChange(Response.Order(response.sentences.toMutableList().also { it[i] = words }))
             Item(numberOf(i, exercise.items.size), item.note, showNote = check != null) {
+              Direction(item.words.joinToString(" ").runsRightToLeft()) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    FlowRow(
+                    // Whole phrases (the lines of a dialogue) go one under another, with one place for the next.
+                    if (item.parts.isNotEmpty()) Column(
+                        Modifier.fillMaxWidth().semantics { contentDescription = "Sentence ${i + 1}" },
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        placed.forEachIndexed { w, word ->
+                            val right = item.parts.getOrNull(w)
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text("${w + 1}", Modifier.width(18.dp), color = colors.muted, style = MaterialTheme.typography.bodySmall)
+                                // Checked: each place shows what was put there, green or red, and for a wrong one what belongs there, on the same row.
+                                if (check != null && right != null) FlowRow(
+                                    Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp),
+                                    itemVerticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Tile(word, result = if (word == right) ItemResult.CORRECT else ItemResult.WRONG, enabled = false) {}
+                                    if (word != right) {
+                                        Text("→", color = colors.correct, fontWeight = FontWeight.SemiBold)
+                                        Tile(right, result = ItemResult.CORRECT, enabled = false) {}
+                                    }
+                                } else Tile(word, result = check?.result, enabled = checks == null) { update(placed.toMutableList().also { it.removeAt(w) }) }
+                            }
+                        }
+                        if (checks == null && placed.size < item.words.size) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("${placed.size + 1}", Modifier.width(18.dp), color = colors.muted, style = MaterialTheme.typography.bodySmall)
+                            Slot(next = true)
+                            if (placed.isNotEmpty()) Text(
+                                "Clear",
+                                Modifier.padding(start = 10.dp).clip(RoundedCornerShape(4.dp)).clickable { update(emptyList()) }.padding(horizontal = 4.dp),
+                                color = colors.accent,
+                                fontWeight = FontWeight.SemiBold,
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
+                    } else FlowRow(
                         Modifier.fillMaxWidth().heightIn(min = 40.dp).semantics { contentDescription = "Sentence ${i + 1}" },
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -269,11 +307,14 @@ internal fun OrderView(exercise: Exercise.Order, response: Response.Order, check
                                 Tile(word, result = null, enabled = true, faded = used) { update(placed + word) }
                             }
                         }
-                        if (placed.isEmpty()) Text("Click the words in order. Click a placed word to put it back.", color = colors.muted, style = MaterialTheme.typography.bodySmall)
-                    } else if (check != null && check.result != ItemResult.CORRECT) {
-                        Text("→ ${check.rightAnswer}", color = colors.correct, fontWeight = FontWeight.SemiBold)
+                        if (placed.isEmpty()) Direction(false) {
+                            Text("Click the words in order. Click a placed word to put it back.", color = colors.muted, style = MaterialTheme.typography.bodySmall)
+                        }
+                    } else if (check != null && check.result != ItemResult.CORRECT && item.parts.isEmpty()) {
+                        InlineText(Inline("→ ${check.rightAnswer}"), style = LocalTextStyle.current.copy(color = colors.correct, fontWeight = FontWeight.SemiBold))
                     }
                 }
+              }
             }
         }
     }

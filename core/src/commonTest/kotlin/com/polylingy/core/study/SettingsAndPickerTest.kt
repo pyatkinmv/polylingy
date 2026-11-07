@@ -8,6 +8,7 @@ import com.polylingy.core.InMemoryCourseRepository
 import com.polylingy.core.InMemoryCourseSettings
 import com.polylingy.core.InMemoryEventLog
 import com.polylingy.core.at
+import com.polylingy.core.content.DisplaySpec
 import com.polylingy.core.content.Course
 import com.polylingy.core.content.CourseJson
 import com.polylingy.core.content.CourseService
@@ -107,10 +108,30 @@ class SettingsAndPickerTest {
         assertNotEquals(shown[1].second, shown[3].second)
     }
 
+    @Test fun avoidingTypingPrefersExercisesWithoutAKeyboard() {
+        val choice = """{ "type": "choice", "items": [ { "text": "{{a|b}}" } ] }"""
+        val course = courseService.import(
+            CourseJson.read(
+                """{ "formatVersion": 5, "name": "Typing", "rules": { "display": { "avoidTyping": true } },
+                    "topics": [ { "title": "Both", "exercises": [ ${gaps("x")}, $choice, ${gaps("y")} ] },
+                                { "title": "Typing only", "exercises": [ ${gaps("z")} ] } ] }""",
+                clock.now().instant,
+            ).course,
+        )
+        assertEquals(DisplaySpec(avoidTyping = true), study.settings(course.id)!!.display)
+        val both = course.topics[0].id
+        repeat(5) { assertEquals(false, study.practise(course.id, both)!!.exercise.needsKeyboard, "only the choice is offered") }
+        assertEquals(true, study.practise(course.id, course.topics[1].id)!!.exercise.needsKeyboard, "a topic with only typing keeps it")
+
+        study.saveSettings(course.id, study.settings(course.id)!!.copy(display = DisplaySpec(avoidTyping = false)))
+        val shown = (1..20).map { study.practise(course.id, both)!!.exercise.needsKeyboard }.toSet()
+        assertEquals(setOf(true, false), shown, "without the setting every exercise comes up")
+    }
+
     @Test fun importStartsTheSettingsFromTheFileAndExportWritesThemBack() {
         val course = import("""{ "preset": "quick", "picker": { "type": "alternate", "newPerDay": 4 } }""")
         val stored = settings.get(course.id)!!
-        assertEquals(RulesSpec(Preset.QUICK, GradingSpec.AllCorrect(), MasterySpec.Consecutive(1, 1), SchedulerSpec.Once, PickerSpec.Alternate(4)), stored)
+        assertEquals(RulesSpec(Preset.QUICK, GradingSpec.AllCorrect(), MasterySpec.Consecutive(1, 1), SchedulerSpec.Once, PickerSpec.Alternate(4), DisplaySpec()), stored)
         assertEquals(stored, study.settings(course.id))
 
         val changed = stored.copy(picker = PickerSpec.Conveyor(newPerDay = 1))
@@ -189,7 +210,7 @@ class SettingsAndPickerTest {
         assertFailsWith<IllegalArgumentException> { study.saveSettings(course.id, RulesSpec(picker = PickerSpec.Conveyor(newPerDay = 0))) }
         assertFailsWith<IllegalArgumentException> { study.saveSettings(Uuid.random(), RulesSpec()) }
         val newer = CourseJson.read(
-            """{ "formatVersion": 4, "name": "N", "topics": [ { "title": "A", "exercises": [ ${gaps("a")} ] } ] }""",
+            """{ "formatVersion": 6, "name": "N", "topics": [ { "title": "A", "exercises": [ ${gaps("a")} ] } ] }""",
             clock.now().instant,
         ).course.also(courses::save)
         assertFailsWith<IllegalArgumentException> { study.saveSettings(newer.id, RulesSpec()) }

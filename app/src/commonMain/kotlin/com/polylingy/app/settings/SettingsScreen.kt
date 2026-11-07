@@ -48,6 +48,7 @@ import com.polylingy.app.ui.MessageDialog
 import com.polylingy.app.ui.Page
 import com.polylingy.app.ui.QuietButton
 import com.polylingy.app.ui.TopBar
+import com.polylingy.core.content.DisplaySpec
 import com.polylingy.core.content.GradingSpec
 import com.polylingy.core.content.MasterySpec
 import com.polylingy.core.content.PickerSpec
@@ -120,6 +121,7 @@ fun SettingsScreen(viewModel: SettingsViewModel, today: LocalDate, go: Navigator
             ComesBack(draft.scheduler!!, viewModel.plan(if (draft.scheduler is SchedulerSpec.Sm2) 4 else 6), today, viewModel)
             HorizontalDivider(color = Look.Line)
             WhatComesNext(draft.picker!!, viewModel)
+            HowItLooks(draft.display ?: DisplaySpec(), viewModel.typing, viewModel)
             Recount(viewModel.recounts, viewModel.before, after)
         }
     }
@@ -255,6 +257,27 @@ private fun Check(text: String, checked: Boolean, onChange: (Boolean) -> Unit) {
     ) {
         Checkbox(checked, onCheckedChange = null, Modifier.padding(6.dp), colors = CheckboxDefaults.colors(checkedColor = Look.Green))
         Text(text, fontSize = 15.sp)
+    }
+}
+
+/** How exercises look: annotations over words, and whether to avoid typing; not one of the four questions. */
+@Composable
+private fun HowItLooks(display: DisplaySpec, typing: Pair<Int, Int>, viewModel: SettingsViewModel) {
+    val shape = RoundedCornerShape(14.dp)
+    val (typingOnly, topics) = typing
+    Column(
+        Modifier.fillMaxWidth().background(Look.Card, shape).border(1.dp, Look.Line, shape).padding(horizontal = 22.dp, vertical = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text("How exercises look", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+        Check("Show annotations over text", display.annotations, viewModel::annotations)
+        Text("Small text a course puts over words — how to read them, say. Off, only the words show.", Modifier.padding(start = 42.dp), color = Look.Muted, fontSize = 13.sp)
+        Check("Avoid typing when a topic has other exercises", display.avoidTyping, viewModel::avoidTyping)
+        Text("Exercises with choices, tiles and pairs come first. A topic that has only typing exercises keeps them.", Modifier.padding(start = 42.dp), color = Look.Muted, fontSize = 13.sp)
+        Example(
+            if (typingOnly == 0) "Every topic of this course has exercises without typing."
+            else "In this course $typingOnly of $topics topics have only typing exercises — there you still type.",
+        )
     }
 }
 

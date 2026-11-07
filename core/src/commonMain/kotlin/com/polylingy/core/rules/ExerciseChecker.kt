@@ -96,7 +96,7 @@ object OrderChecker : ExerciseChecker<Exercise.Order, Response.Order> {
         require(response.sentences.size == exercise.items.size) { "expected ${exercise.items.size} sentences, got ${response.sentences.size}" }
         return exercise.items.zip(response.sentences) { item, words ->
             val right = listOf(item.words) + item.accept.map { Exercise.OrderItem(it).words }
-            ItemCheck(if (words in right) ItemResult.CORRECT else ItemResult.WRONG, item.answer)
+            ItemCheck(if (words in right) ItemResult.CORRECT else ItemResult.WRONG, item.shown)
         }
     }
 }

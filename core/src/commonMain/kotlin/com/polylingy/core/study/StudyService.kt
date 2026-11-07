@@ -5,6 +5,7 @@ import com.polylingy.content.ItemCheck
 import com.polylingy.content.Response
 import com.polylingy.core.content.Course
 import com.polylingy.core.content.CourseUnit
+import com.polylingy.core.content.DisplaySpec
 import com.polylingy.core.content.Topic
 import com.polylingy.core.journal.AnswerSubmitted
 import com.polylingy.core.journal.EventEnvelope
@@ -225,14 +226,14 @@ class StudyService(
         val picked = rules.picker.focus.pick(queue, current) ?: return null.also { log.debug { "Nothing left today in course ${course.id}" } }
         log.debug { "Picked topic $picked from a queue of ${queue.size}" }
         val topic = topics.first { it.id == picked }
-        return NextExercise(topic, unitOf(course, topic), rules.picker.exercise.choose(topic.playable(), lastAnswered(course, topic) ?: lastExercise))
+        return NextExercise(topic, unitOf(course, topic), rules.picker.exercise.choose(topic.offered(course.display()), lastAnswered(course, topic) ?: lastExercise))
     }
 
     /** An exercise of a topic the learner chose, whatever its status: practising early counts as a round. */
     fun practise(courseId: Uuid, topicId: Uuid, lastExercise: Uuid? = null): NextExercise? {
         val course = courses.get(courseId) ?: return null
         val topic = course.allTopics.firstOrNull { it.id == topicId }?.takeIf { it.playable().isNotEmpty() } ?: return null
-        val exercise = course.rules().picker.exercise.choose(topic.playable(), lastExercise ?: lastAnswered(course, topic))
+        val exercise = course.rules().picker.exercise.choose(topic.offered(course.display()), lastExercise ?: lastAnswered(course, topic))
         return NextExercise(topic, unitOf(course, topic), exercise)
     }
 
@@ -273,6 +274,8 @@ class StudyService(
 
     private fun Course.rules(): CourseRules<*, *> = settings.of(this).toRules(random)
 
+    private fun Course.display(): DisplaySpec = settings.of(this).resolved().display ?: DisplaySpec()
+
     private fun forgivesTypos(course: Course): Boolean = settings.of(course).resolved().grading?.typos ?: true
 
     private fun statuses(course: Course): Map<Uuid, TopicStatus> = topicProgress(course, settings.of(course)).mapValues { it.value.status }
@@ -296,4 +299,10 @@ class StudyService(
 
     /** Exercises this version can show: not of a type from a newer format. */
     private fun Topic.playable() = exercises.filterNot { it is Exercise.Unknown }
+
+    /** The exercises to choose from: with "avoid typing", those without a keyboard if the topic has any. */
+    private fun Topic.offered(display: DisplaySpec): List<Exercise> {
+        val all = playable()
+        return if (display.avoidTyping) all.filterNot { it.needsKeyboard }.ifEmpty { all } else all
+    }
 }

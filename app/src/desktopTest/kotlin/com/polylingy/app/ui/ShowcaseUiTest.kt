@@ -243,7 +243,7 @@ class ShowcaseUiTest {
     @Test fun theoryPageOnANarrowWindow() = theory(480, "theory-narrow")
 
     @Test fun unknownContentShowsANotice() = runDesktopComposeUiTest {
-        val unknown = com.polylingy.content.ContentJson.decode(Content.serializer(), """{ "format": "blocks", "blocks": [ { "type": "video" } ] }""")
+        val unknown = com.polylingy.content.ContentJson.decode(Content.serializer(), """{ "format": "blocks", "blocks": [ { "type": "hologram" } ] }""")
         setContent { MaterialTheme { ContentView(unknown) } }
         onNodeWithText("This part needs a newer version of Polylingy.").assertIsDisplayed()
     }

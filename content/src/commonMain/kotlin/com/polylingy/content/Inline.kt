@@ -8,8 +8,9 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
 /**
- * A text with a little markup: `**bold**`, `*italic*`, blanks `{{answer|other variant}}` and line breaks.
- * `\` makes the next `*`, `{`, `}`, `|` or `\` literal. Malformed markup doesn't throw: it is shown as plain
+ * A text with a little markup: `**bold**`, `*italic*`, blanks `{{answer|other variant}}`, annotations
+ * `[base](annotation)` — small text over a word, like how to read it — and line breaks.
+ * `\` makes the next `*`, `{`, `}`, `|`, `[`, `]` or `\` literal; a `[` not followed by `…](…)` is plain text. Malformed markup doesn't throw: it is shown as plain
  * text and reported in [problems], so import can list every mistake at once.
  */
 @Serializable(with = InlineSerializer::class)
@@ -19,6 +20,16 @@ class Inline(val text: String) {
 
     /** All blanks in reading order; [InlineNode.Blank.index] is the position in this list. */
     val blanks: List<InlineNode.Blank>
+
+    /** Whether some word has an annotation over it. */
+    val hasAnnotations: Boolean get() = text.contains("](") && nodes.any(::annotated)
+
+    private fun annotated(node: InlineNode): Boolean = when (node) {
+        is InlineNode.Annotated -> true
+        is InlineNode.Bold -> node.children.any(::annotated)
+        is InlineNode.Italic -> node.children.any(::annotated)
+        is InlineNode.Text, is InlineNode.Blank, InlineNode.LineBreak -> false
+    }
 
     init {
         val parsed = InlineParser(text).parse()
@@ -32,11 +43,11 @@ class Inline(val text: String) {
             is InlineNode.Blank -> add(node)
             is InlineNode.Bold -> collectBlanks(node.children)
             is InlineNode.Italic -> collectBlanks(node.children)
-            is InlineNode.Text, InlineNode.LineBreak -> {}
+            is InlineNode.Text, is InlineNode.Annotated, InlineNode.LineBreak -> {}
         }
     }
 
-    /** The text without markup; a blank shows as its answer. For places that can't show formatting. */
+    /** The text without markup; a blank shows as its answer, an annotated word as the word. For places that can't show formatting. */
     fun plainText(): String = buildString { plain(nodes) }
 
     private fun StringBuilder.plain(nodes: List<InlineNode>) {
@@ -45,6 +56,7 @@ class Inline(val text: String) {
             is InlineNode.Bold -> plain(node.children)
             is InlineNode.Italic -> plain(node.children)
             is InlineNode.Blank -> append(node.answer)
+            is InlineNode.Annotated -> append(node.base)
             InlineNode.LineBreak -> append('\n')
         }
     }
@@ -63,6 +75,9 @@ sealed interface InlineNode {
     data class Blank(val index: Int, val variants: List<String>) : InlineNode {
         val answer: String get() = variants.first()
     }
+
+    /** A word with small text over it: `[老师](lǎoshī)`. */
+    data class Annotated(val base: String, val annotation: String) : InlineNode
 
     data object LineBreak : InlineNode
 }
@@ -92,6 +107,7 @@ private class InlineParser(private val s: String) {
             when {
                 c == '\\' && i + 1 < s.length && s[i + 1] in ESCAPABLE -> { text.append(s[i + 1]); i += 2 }
                 s.startsWith("{{", i) -> i = blank(i)
+                c == '[' -> i = annotated(i)
                 s.startsWith("}}", i) -> { problems += "}} without {{ at ${i + 1}"; text.append("}}"); i += 2 }
                 s.startsWith("**", i) -> { toggle("**", i); i += 2 }
                 c == '*' -> { toggle("*", i); i += 1 }
@@ -136,6 +152,21 @@ private class InlineParser(private val s: String) {
         }
     }
 
+    /** Reads `[base](annotation)` starting at [at]; anything else is a plain `[`. Returns the index after what it read. */
+    private fun annotated(at: Int): Int {
+        val close = s.indexOf("](", at + 1)
+        val end = if (close < 0) -1 else s.indexOf(')', close + 2)
+        val base = if (end < 0) "" else s.substring(at + 1, close)
+        val annotation = if (end < 0) "" else s.substring(close + 2, end)
+        if (end < 0 || base.isBlank() || annotation.isBlank() || base.any { it in "[]{}\n" } || annotation.any { it in "[](\n" }) {
+            text.append('[')
+            return at + 1
+        }
+        flush()
+        stack.last().children += InlineNode.Annotated(base.trim(), annotation.trim())
+        return end + 1
+    }
+
     /** Reads `{{…}}` starting at [at]; returns the index after it. */
     private fun blank(at: Int): Int {
         val end = s.indexOf("}}", at + 2)
@@ -154,6 +185,6 @@ private class InlineParser(private val s: String) {
     }
 
     private companion object {
-        const val ESCAPABLE = "\\*{}|"
+        const val ESCAPABLE = "\\*{}|[]"
     }
 }

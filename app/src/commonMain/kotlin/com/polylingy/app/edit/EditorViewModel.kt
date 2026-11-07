@@ -6,6 +6,7 @@ import com.polylingy.content.Exercise
 import com.polylingy.content.ItemCheck
 import com.polylingy.content.Response
 import com.polylingy.content.emptyResponse
+import com.polylingy.content.isComplete
 import com.polylingy.core.content.Course
 import com.polylingy.core.content.CoursePart
 import com.polylingy.core.content.CourseParts
@@ -126,7 +127,7 @@ class EditorViewModel(
         val p = _preview.value
         val exercise = p.shown ?: return
         val response = p.response ?: return
-        if (p.checks != null) return
+        if (p.checks != null || !exercise.isComplete(response)) return
         _preview.value = p.copy(checks = study.preview(courseId, exercise, response))
     }
 

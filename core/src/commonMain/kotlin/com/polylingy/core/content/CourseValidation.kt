@@ -5,6 +5,7 @@ import com.polylingy.content.Content
 import com.polylingy.content.Exercise
 import com.polylingy.content.ItemResult
 import com.polylingy.content.Image
+import com.polylingy.content.audios
 import com.polylingy.content.images
 import com.polylingy.content.Path
 import com.polylingy.content.Problem
@@ -109,3 +110,20 @@ fun Course.images(): List<Pair<Path, Image>> = buildList {
     }
     topics.forEachIndexed { t, it -> topic(it, (Path.ROOT / "topics")[t]) }
 }
+
+/** Every sound of the course — theory, explanations, exercises — with its path. */
+fun Course.audios(): List<Pair<Path, String>> = buildList {
+    fun topic(topic: Topic, at: Path) {
+        topic.explanation?.let { addAll(it.audios(at / "explanation")) }
+        topic.exercises.forEachIndexed { e, exercise -> addAll(exercise.audios((at / "exercises")[e])) }
+    }
+    units.forEachIndexed { u, unit ->
+        val at = (Path.ROOT / "units")[u]
+        unit.theory?.let { addAll(it.audios(at / "theory")) }
+        unit.topics.forEachIndexed { t, it -> topic(it, (at / "topics")[t]) }
+    }
+    topics.forEachIndexed { t, it -> topic(it, (Path.ROOT / "topics")[t]) }
+}
+
+/** Every file the course refers to — pictures and sounds — with the path of its `src`: what import stores and export packs. */
+fun Course.media(): List<Pair<Path, String>> = images().map { (at, image) -> at to image.src } + audios()

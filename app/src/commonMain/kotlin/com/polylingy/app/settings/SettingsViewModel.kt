@@ -1,6 +1,8 @@
 package com.polylingy.app.settings
 
 import androidx.lifecycle.ViewModel
+import com.polylingy.content.Exercise
+import com.polylingy.core.content.DisplaySpec
 import com.polylingy.core.content.Course
 import com.polylingy.core.content.GradingSpec
 import com.polylingy.core.content.MasterySpec
@@ -144,6 +146,21 @@ class SettingsViewModel(private val study: StudyService, private val clock: Cloc
     fun plan(count: Int = 5): ReviewPlan = plan(_draft.value.toRules(Random(0)), clock.now(), count)
 
     /** Saves the settings; an error message, or null when saved. */
+    // How exercises look — not one of the four questions; changes nothing in progress.
+
+    private val display get() = _draft.value.display ?: DisplaySpec()
+
+    fun annotations(show: Boolean) = update { it.copy(display = display.copy(annotations = show)) }
+
+    fun avoidTyping(avoid: Boolean) = update { it.copy(display = display.copy(avoidTyping = avoid)) }
+
+    /** The course's topics that have exercises, and those whose every exercise needs typing: avoiding typing keeps them. */
+    val typing: Pair<Int, Int>
+        get() {
+            val topics = course?.allTopics.orEmpty().map { topic -> topic.exercises.filterNot { it is Exercise.Unknown } }.filter { it.isNotEmpty() }
+            return topics.count { exercises -> exercises.all { it.needsKeyboard } } to topics.size
+        }
+
     fun save(): String? = try {
         study.saveSettings(courseId, _draft.value)
         null

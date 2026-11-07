@@ -39,6 +39,11 @@ class CourseSchemaTest {
         val files = File("../examples").listFiles { f -> f.extension == "json" }!!
         assertTrue(files.isNotEmpty())
         for (file in files) assertEquals(emptyList(), errors(file.readText()), file.name)
+        // Archives of the current format; english-grammar.zip stays in format 1 on purpose.
+        for (zip in File("../examples").listFiles { f -> f.extension == "zip" }!!) {
+            val json = java.util.zip.ZipFile(zip).use { z -> z.getInputStream(z.getEntry("course.json")).readBytes().decodeToString() }
+            if ("\"formatVersion\": $FORMAT_VERSION" in json) assertEquals(emptyList(), errors(json), zip.name)
+        }
     }
 
     @Test fun everyCourseTheAppWritesPassesTheSchema() {
@@ -52,11 +57,11 @@ class CourseSchemaTest {
         val gaps = """{ "type": "gaps", "items": [ { "text": "{{a}}" } ] }"""
         val broken = listOf(
             """{ "formatVersion": 2, "name": "X", "topics": [ { "title": "T", "exercises": [ $gaps ] } ] }""",
-            """{ "formatVersion": 3, "name": "X", "level": "B1", "topics": [ { "title": "T", "exercises": [ $gaps ] } ] }""",
-            """{ "formatVersion": 3, "name": "X", "topics": [ { "title": "T", "exercises": [] } ] }""",
-            """{ "formatVersion": 3, "name": "X", "units": [ { "title": "U" } ] }""",
-            """{ "formatVersion": 3, "name": "X", "rules": { "picker": { "type": "random" } }, "topics": [] }""",
-            """{ "formatVersion": 3, "name": "X", "theme": { "accent": "green" }, "topics": [] }""",
+            """{ "formatVersion": 5, "name": "X", "level": "B1", "topics": [ { "title": "T", "exercises": [ $gaps ] } ] }""",
+            """{ "formatVersion": 5, "name": "X", "topics": [ { "title": "T", "exercises": [] } ] }""",
+            """{ "formatVersion": 5, "name": "X", "units": [ { "title": "U" } ] }""",
+            """{ "formatVersion": 5, "name": "X", "rules": { "picker": { "type": "random" } }, "topics": [] }""",
+            """{ "formatVersion": 5, "name": "X", "theme": { "accent": "green" }, "topics": [] }""",
         )
         for (json in broken) assertTrue(errors(json).isNotEmpty(), json)
     }
@@ -77,6 +82,7 @@ class CourseSchemaTest {
             "topic" to Topic.serializer().descriptor,
             "theme" to Theme.serializer().descriptor,
             "rules" to RulesSpec.serializer().descriptor,
+            "display" to DisplaySpec.serializer().descriptor,
             "grading.all-correct" to GradingSpec.AllCorrect.serializer().descriptor,
             "grading.threshold" to GradingSpec.Threshold.serializer().descriptor,
             "mastery.consecutive" to MasterySpec.Consecutive.serializer().descriptor,

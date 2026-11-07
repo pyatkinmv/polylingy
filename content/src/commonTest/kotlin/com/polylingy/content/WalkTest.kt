@@ -27,6 +27,12 @@ class WalkTest {
                 "theory.blocks[2].blocks[2] Tip",
                 "theory.blocks[2].blocks[2].blocks[0] Text",
                 "theory.blocks[2].blocks[3] SeeAlso",
+                "theory.blocks[3] Section",
+                "theory.blocks[3].blocks[0] Dialogue",
+                "theory.blocks[3].blocks[1] Table",
+                "theory.blocks[4] Section",
+                "theory.blocks[4].blocks[0] Track",
+                "theory.blocks[4].blocks[1] Video",
             ),
             types,
         )

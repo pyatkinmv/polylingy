@@ -1,6 +1,9 @@
 package com.polylingy.app.ui
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onAllNodesWithText
@@ -98,6 +101,21 @@ class StudyUiTest {
         text("Done for now").assertIsDisplayed()
         text("It comes back for review tomorrow.").assertIsDisplayed()
         screenshot("topic-resting")
+    }
+
+    @Test fun checkWaitsUntilEveryItemIsAnswered() = appTest(seed, height = 900) {
+        click("Grammar in Use")
+        click("Present continuous")
+        click("Continue →")
+        click("Start exercises →")
+        test.onNodeWithText("Check").assertIsNotEnabled()
+        text("Answer every item to check").assertIsDisplayed()
+        fill(1, "is singing")
+        test.onNodeWithText("Check").assertIsNotEnabled()
+        fill(2, "don’t read")
+        test.onNodeWithText("Check").assertIsEnabled()
+        click("Check")
+        text("1 mistake").assertIsDisplayed()
     }
 
     @Test fun theNextDayTheCourseShowsWhatIsDue() = appTest(seed, height = 800) {

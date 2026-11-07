@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
 
 /**
- * The frame around an exercise's body, with a header that says what the text is: an email, an article. A look draws
+ * The frame around an exercise's body, with a header that says what the text is: an email, an article, a newspaper clipping. A look draws
  * only the frame and its header, never items, so it fits every exercise type. A look of a newer format is [Unknown]
  * and shown as no frame.
  */
@@ -30,6 +30,16 @@ sealed interface Look {
     data class Article(val title: Inline, val source: String? = null) : Look {
         override fun validate(at: Path) = checks {
             text(title, at / "title")
+            notBlank(source, at / "source")
+        }
+    }
+
+    /** A newspaper clipping: the [headline], big and bold in a dotted frame, with the [source] (the paper, the day) small over it. */
+    @Serializable
+    @SerialName("newspaper")
+    data class Newspaper(val headline: Inline, val source: String? = null) : Look {
+        override fun validate(at: Path) = checks {
+            text(headline, at / "headline")
             notBlank(source, at / "source")
         }
     }

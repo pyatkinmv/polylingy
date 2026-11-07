@@ -38,6 +38,7 @@ import com.polylingy.app.ui.TopBar
 import com.polylingy.app.ui.dayPhrase
 import com.polylingy.content.Block
 import com.polylingy.content.Exercise
+import com.polylingy.content.isComplete
 import com.polylingy.content.compose.ContentColors
 import com.polylingy.content.compose.ContentTheme
 import com.polylingy.content.compose.ExerciseView
@@ -127,8 +128,10 @@ private fun ExerciseBody(
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             val colors = ButtonDefaults.buttonColors(containerColor = accent)
             if (state.outcome == null) {
-                Button(onClick = viewModel::check, colors = colors, shape = RoundedCornerShape(8.dp)) { Text("Check") }
-                if (state.next.exercise.hasBlanks()) Text("Tab — next blank · Enter — check", color = Look.Faint, fontSize = 13.sp)
+                val complete = state.next.exercise.isComplete(state.response)
+                Button(onClick = viewModel::check, enabled = complete, colors = colors, shape = RoundedCornerShape(8.dp)) { Text("Check") }
+                if (!complete) Text("Answer every item to check", color = Look.Faint, fontSize = 13.sp)
+                else if (state.next.exercise.hasBlanks()) Text("Tab — next blank · Enter — check", color = Look.Faint, fontSize = 13.sp)
             } else {
                 Button(onClick = viewModel::next, colors = colors, shape = RoundedCornerShape(8.dp)) { Text("Next →") }
             }

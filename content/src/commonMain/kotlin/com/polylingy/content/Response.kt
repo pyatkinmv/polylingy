@@ -59,3 +59,20 @@ val Exercise.blanks: List<InlineNode.Blank>
         is Exercise.Fix -> items.flatMap { it.text.blanks }
         is Exercise.Choice, is Exercise.Match, is Exercise.Order, is Exercise.Unknown -> emptyList()
     }
+
+/**
+ * Whether [response] has an answer for every item, so that "Check" makes sense: every blank typed, every place picked,
+ * every pair matched (sides that fit nothing stay free), every sentence put together. A fix keeps a mark as it is with an
+ * empty answer, so it is always complete.
+ */
+fun Exercise.isComplete(response: Response): Boolean = when (this) {
+    is Exercise.Fix -> true
+    is Exercise.Gaps, is Exercise.Pictures, is Exercise.Table, is Exercise.Expand ->
+        (response as? Response.Blanks)?.values?.all { it.isNotBlank() } == true
+    is Exercise.Choice -> (response as? Response.Choice)?.picked?.all { it != null } == true
+    is Exercise.Match -> (response as? Response.Match)?.matched?.all { it != null } == true
+    is Exercise.Order -> (response as? Response.Order)?.sentences?.let { placed ->
+        placed.size == items.size && items.indices.all { placed[it].size == items[it].words.size }
+    } == true
+    is Exercise.Unknown -> false
+}

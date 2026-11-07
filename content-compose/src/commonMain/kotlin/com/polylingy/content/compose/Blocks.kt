@@ -14,7 +14,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -24,6 +29,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -106,14 +113,22 @@ private fun Blocks(blocks: List<Block>, modifier: Modifier = Modifier, onLink: (
 @Composable
 fun BlockView(block: Block, onLink: (Block.Link) -> Unit = {}) {
     when (block) {
-        is Block.Section -> Row(Modifier.highlightedSection(block.id), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text(block.label, Modifier.width(32.dp), style = MaterialTheme.typography.headlineMedium, color = colors.accent)
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                block.title?.let { InlineText(it, style = MaterialTheme.typography.titleMedium) }
+        is Block.Section -> {
+            val label = block.label
+            if (label != null) Row(Modifier.highlightedSection(block.id), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                Text(label, Modifier.width(32.dp), style = MaterialTheme.typography.headlineMedium, color = colors.accent)
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    block.title?.let { InlineText(it, style = MaterialTheme.typography.titleMedium) }
+                    Blocks(block.blocks, onLink = onLink, spacing = 10)
+                }
+            } else Column(Modifier.highlightedSection(block.id).padding(top = 6.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                block.title?.let { InlineText(it, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold, color = colors.accent)) }
                 Blocks(block.blocks, onLink = onLink, spacing = 10)
             }
         }
         is Block.Text -> InlineText(block.text)
+        is Block.Track -> TrackView(block)
+        is Block.Video -> VideoView(block)
         is Block.Situation -> Box(
             Modifier.fillMaxWidth().border(1.dp, colors.line, RoundedCornerShape(10.dp)).padding(16.dp),
         ) {
@@ -121,6 +136,23 @@ fun BlockView(block: Block, onLink: (Block.Link) -> Unit = {}) {
         }
         is Block.Picture -> Picture(block.image, Modifier.fillMaxWidth())
         is Block.Table -> CellTable(block.head, block.rows)
+        is Block.Dialogue -> Column(
+            Modifier.fillMaxWidth().background(colors.card, RoundedCornerShape(10.dp)).border(1.dp, colors.line, RoundedCornerShape(10.dp))
+                .padding(horizontal = 16.dp, vertical = 10.dp).semantics { contentDescription = "Dialogue" },
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            val names = block.lines.any { it.who != null }
+            for (line in block.lines) Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Bottom) {
+                line.audio?.let { PlayButton(it) }
+                if (names) Box(Modifier.width(DialogueNameWidth)) {
+                    line.who?.let { InlineText(it, style = MaterialTheme.typography.bodyMedium.copy(color = colors.muted, fontWeight = FontWeight.SemiBold)) }
+                }
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    InlineText(line.text, style = MaterialTheme.typography.bodyLarge)
+                    line.translation?.let { Translation(it) }
+                }
+            }
+        }
         is Block.Quote -> WithAside(block.aside, asideFirst = true, onLink = onLink) {
             Column(
                 Modifier.background(colors.panel, RoundedCornerShape(14.dp)).padding(horizontal = 16.dp, vertical = 12.dp),
@@ -131,22 +163,26 @@ fun BlockView(block: Block, onLink: (Block.Link) -> Unit = {}) {
             }
         }
         is Block.Examples -> Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            for (example in block.items) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("•", color = colors.muted)
-                val muted = colors.muted
-                Text(
-                    buildAnnotatedString {
-                        append(example.text.annotated())
-                        example.not?.let { not ->
-                            withStyle(SpanStyle(color = muted)) {
-                                append("  (")
-                                withStyle(SpanStyle(fontStyle = FontStyle.Italic)) { append("not ") }
-                                append(not.annotated())
-                                append(")")
+            for (example in block.items) Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
+                example.audio?.let { PlayButton(it) } ?: Text("•", color = colors.muted)
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    val muted = colors.muted
+                    if (example.text.hasAnnotations && example.not == null) InlineText(example.text)
+                    else Text(
+                        buildAnnotatedString {
+                            append(example.text.annotated())
+                            example.not?.let { not ->
+                                withStyle(SpanStyle(color = muted)) {
+                                    append("  (")
+                                    withStyle(SpanStyle(fontStyle = FontStyle.Italic)) { append("not ") }
+                                    append(not.annotated())
+                                    append(")")
+                                }
                             }
-                        }
-                    },
-                )
+                        },
+                    )
+                    example.translation?.let { Translation(it) }
+                }
             }
         }
         is Block.Words -> FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -170,6 +206,72 @@ fun BlockView(block: Block, onLink: (Block.Link) -> Unit = {}) {
             )
         }
         is Block.Unknown -> NewerVersion()
+    }
+}
+
+/** A translation under a dialogue line or an example: small and grey, so the original stays first. */
+@Composable
+private fun Translation(text: Inline) =
+    InlineText(text, style = MaterialTheme.typography.bodySmall.copy(color = colors.muted))
+
+/** The names' column of a dialogue. */
+private val DialogueNameWidth = 96.dp
+
+/**
+ * A round button that plays a course's sound by its `src` ([AudioPlayer]); [large] for the sound an exercise is about.
+ * A long recording (see [Playback.docked]) is controlled in the docked player, and its button follows it: it shows
+ * a pause sign while the recording plays and pauses it when pressed. [title] is what the docked player calls the recording.
+ */
+@Composable
+fun PlayButton(src: String, large: Boolean = false, title: String? = null) {
+    val player = LocalAudioPlayer.current
+    val playback by player.playback.collectAsState()
+    val dock = LocalDockTitle.current
+    val loaded = playback.src == src && playback.docked
+    TransportButton(playing = loaded && playback.playing, size = if (large) 64.dp else 28.dp, ring = if (large) 2.dp else 1.5.dp) {
+        when {
+            loaded && playback.playing -> player.pause()
+            loaded -> player.resume()
+            else -> {
+                dock.text = title
+                player.play(src)
+            }
+        }
+    }
+}
+
+/** A recording of its own: its button and title in a card; the docked player takes over when it plays. */
+@Composable
+private fun TrackView(track: Block.Track) {
+    val title = track.title.text
+    Row(
+        Modifier.fillMaxWidth().background(colors.card, RoundedCornerShape(10.dp)).border(1.dp, colors.line, RoundedCornerShape(10.dp))
+            .padding(horizontal = 16.dp, vertical = 10.dp).semantics { contentDescription = "Track" },
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        PlayButton(track.audio, large = false, title = title)
+        InlineText(track.title, style = MaterialTheme.typography.bodyLarge)
+    }
+}
+
+/** A video on the web: a card that opens its address in the browser; the video itself is not carried by the course. */
+@Composable
+internal fun VideoView(video: Block.Video) {
+    val uri = LocalUriHandler.current
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).border(1.dp, colors.line, RoundedCornerShape(10.dp))
+            .clickable(role = Role.Button) { runCatching { uri.openUri(video.url) } }
+            .background(colors.card).padding(horizontal = 16.dp, vertical = 12.dp)
+            .semantics { contentDescription = "Video" },
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("▶", color = colors.accent, fontSize = 16.sp)
+            InlineText(video.title, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold))
+        }
+        video.note?.let { InlineText(it, style = MaterialTheme.typography.bodyMedium.copy(color = colors.muted)) }
+        Text("Opens in the browser · ${video.url.removePrefix("https://").substringBefore('/')}", style = MaterialTheme.typography.bodySmall, color = colors.muted)
     }
 }
 
@@ -261,15 +363,21 @@ private fun CellTable(head: List<Inline>, rows: List<List<Cell>>) {
         val offset = if (head.isEmpty()) 0 else 1
         rows.forEachIndexed { r, row -> row.forEachIndexed { c, cell -> add(Triple(places[r][c].copy(row = places[r][c].row + offset), cell.text, false)) } }
     }
+    val sounds = buildList {
+        head.forEach { _ -> add(null) }
+        rows.forEach { row -> row.forEach { add(it.audio) } }
+    }
     Box(Modifier.horizontalScroll(rememberScrollState()).border(1.dp, colors.line, RoundedCornerShape(8.dp))) {
         Layout(
             content = {
-                for ((_, text, isHead) in all) {
-                    InlineText(
-                        text,
-                        Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
-                        style = if (isHead) MaterialTheme.typography.labelLarge.copy(color = colors.muted) else MaterialTheme.typography.bodyMedium,
-                    )
+                all.forEachIndexed { i, (_, text, isHead) ->
+                    val style = if (isHead) MaterialTheme.typography.labelLarge.copy(color = colors.muted) else MaterialTheme.typography.bodyMedium
+                    val sound = sounds[i]
+                    if (sound == null) InlineText(text, Modifier.padding(horizontal = 12.dp, vertical = 7.dp), style = style)
+                    else Row(Modifier.padding(horizontal = 12.dp, vertical = 7.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        PlayButton(sound)
+                        if (text.text.isNotEmpty()) InlineText(text, style = style)
+                    }
                 }
             },
         ) { measurables, _ ->

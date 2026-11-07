@@ -6,6 +6,16 @@ import com.polylingy.client.CourseLibrary
 import com.polylingy.client.ImageFetcher
 import com.polylingy.client.ImageStore
 import com.polylingy.client.LocalStorage
+import com.polylingy.content.compose.AudioPlayer
+import com.polylingy.content.compose.Playback
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import com.polylingy.content.compose.ImageLoader
 import com.polylingy.core.content.CourseService
 import com.polylingy.core.journal.ZonedInstant
@@ -30,6 +40,30 @@ interface CourseFiles {
     fun save(suggestedName: String, bytes: ByteArray): Boolean
 }
 
+/** What a [SoundPlayer] is doing: the [key] of the sound it was given, whether it plays, and where it is, in seconds. */
+data class SoundState(val key: String? = null, val playing: Boolean = false, val position: Float = 0f, val duration: Float = 0f) {
+    companion object {
+        val Silent: StateFlow<SoundState> = MutableStateFlow(SoundState())
+    }
+}
+
+/**
+ * Plays a stored sound (.mp3 or .wav bytes); each platform plays its own way. A new sound stops the one playing.
+ * Only [play] is needed to hear sounds; [state] and the controls drive the docked player of long recordings.
+ */
+fun interface SoundPlayer {
+    fun play(bytes: ByteArray)
+
+    /** Plays [bytes], which [state] then reports under [key]. */
+    fun play(key: String, bytes: ByteArray) = play(bytes)
+
+    val state: StateFlow<SoundState> get() = SoundState.Silent
+    fun pause() {}
+    fun resume() {}
+    fun seekTo(seconds: Float) {}
+    fun stop() {}
+}
+
 /** Turns stored picture bytes into an image; each platform decodes its own way. Null when the bytes aren't a picture. */
 fun interface ImageDecoder {
     fun decode(bytes: ByteArray): ImageBitmap?
@@ -48,10 +82,40 @@ class AppContainer(
     val clock: Clock = SystemClock,
     /** Picks topics and exercises; fixed in tests for repeatable runs. */
     val random: Random = Random.Default,
+    private val sound: SoundPlayer = SoundPlayer {},
 ) {
     val courseService = CourseService(storage.courses, storage.courseSettings, clock)
     val library = CourseLibrary(storage.courses, courseService, images, fetcher, archives, clock)
     val study = StudyService(storage.courses, storage.courseSettings, storage.journal, clock, storage.deviceId, random)
+
+    private val players = mutableMapOf<Uuid, AudioPlayer>()
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
+
+    /** Sounds of one course for the content views; a missing one is logged and stays silent. One player per course. */
+    fun audio(courseId: Uuid): AudioPlayer = players.getOrPut(courseId) {
+        val prefix = "$courseId|"
+        // What the content sees is only the sounds of its own course: a recording left playing in another one is not its.
+        val flow = sound.state.map { s ->
+            val src = s.key?.takeIf { it.startsWith(prefix) }?.removePrefix(prefix)
+            if (src == null) Playback.Idle else Playback(src, s.playing, s.position, s.duration)
+        }.stateIn(scope, SharingStarted.Eagerly, Playback.Idle)
+        object : AudioPlayer {
+            override fun play(src: String) {
+                val bytes = library.image(courseId, src)
+                if (bytes == null) log.warn { "Sound $src of course $courseId is missing" }
+                else runCatching { sound.play(prefix + src, bytes) }.onFailure { log.warn(it) { "Sound $src of course $courseId can't be played" } }
+            }
+
+            override val playback get() = flow
+            override fun pause() = sound.pause()
+            override fun resume() = sound.resume()
+            override fun seekTo(seconds: Float) = sound.seekTo(seconds)
+            override fun stop() = sound.stop()
+        }
+    }
+
+    /** Whether the course's annotations over words show: its "Show annotations over text" setting. */
+    fun annotations(courseId: Uuid): Boolean = study.settings(courseId)?.resolved()?.display?.annotations ?: true
 
     private val decoded = mutableMapOf<Pair<Uuid, String>, ImageBitmap?>()
 

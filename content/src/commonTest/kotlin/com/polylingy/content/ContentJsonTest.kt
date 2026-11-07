@@ -75,14 +75,14 @@ class ContentJsonTest {
         assertEquals(null, unknown.explanation)
         assertEquals(0, unknown.itemCount)
         assertEquals(Uuid.NIL, assertIs<Exercise.Unknown>(exercise("""{ "type": "dictation", "id": "nope" }""")).id)
-        val block = assertIs<Block.Unknown>(ContentJson.decode(Block.serializer(), """{ "type": "video", "src": "x" }"""))
-        assertEquals("video", block.type)
+        val block = assertIs<Block.Unknown>(ContentJson.decode(Block.serializer(), """{ "type": "hologram", "src": "x" }"""))
+        assertEquals("hologram", block.type)
         val content = assertIs<Content.Unknown>(ContentJson.decode(Content.serializer(), """{ "format": "markdown", "text": "# A" }"""))
         assertEquals("markdown", content.format)
     }
 
     @Test fun unknownContentIsNeverWritten() {
-        val block = ContentJson.decode(Block.serializer(), """{ "type": "video", "src": "x" }""")
+        val block = ContentJson.decode(Block.serializer(), """{ "type": "hologram", "src": "x" }""")
         assertFailsWith<SerializationException> { ContentJson.encode(Block.serializer(), block) }
         val exercise = exercise("""{ "id": "${Samples.ID}", "type": "dictation" }""")
         assertFailsWith<SerializationException> { ContentJson.encode(Exercise.serializer(), exercise) }

@@ -17,6 +17,7 @@ import com.polylingy.core.content.PickerSpec
 import com.polylingy.core.content.Preset
 import com.polylingy.core.content.RulesSpec
 import com.polylingy.core.content.SchedulerSpec
+import com.polylingy.core.content.DisplaySpec
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -63,6 +64,17 @@ class SettingsUiTest {
 
     private fun AppHarness.see(text: String, substring: Boolean = false) =
         test.onNodeWithText(text, substring = substring).performScrollTo().assertIsDisplayed()
+
+    @Test fun howExercisesLookIsSavedWithTheSettings() = appTest(seed, height = 1400) {
+        open()
+        tap("Show annotations over text")
+        tap("Avoid typing when a topic has other exercises")
+        test.onNodeWithText("In this course 3 of 3 topics have only typing exercises — there you still type.").performScrollTo().assertIsDisplayed()
+        screenshot("settings-display")
+        tap("Save")
+        assertEquals(DisplaySpec(annotations = false, avoidTyping = true), settings().display)
+        assertEquals(false, container.annotations(stored().id))
+    }
 
     @Test fun theSettingsOpenFromTheCourseAndFromItsMenu() = appTest(seed) {
         openMenu(0)
@@ -173,7 +185,7 @@ class SettingsUiTest {
         assertEquals(listOf(com.polylingy.content.ItemResult.TYPO), journal.results)
     }
 
-    @Test fun aCourseFromANewerVersionHasNoSettings() = appTest({ it.seedCourse(course.replace("\"formatVersion\": 2", "\"formatVersion\": 4")) }) {
+    @Test fun aCourseFromANewerVersionHasNoSettings() = appTest({ it.seedCourse(course.replace("\"formatVersion\": 2", "\"formatVersion\": 6")) }) {
         click("Irregular verbs")
         assertTrue(test.onAllNodesWithText("Study settings").fetchSemanticsNodes().isEmpty())
         click("Courses")

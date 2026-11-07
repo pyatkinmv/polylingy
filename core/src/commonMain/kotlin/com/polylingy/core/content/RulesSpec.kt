@@ -20,6 +20,8 @@ data class RulesSpec(
     val mastery: MasterySpec? = null,
     val scheduler: SchedulerSpec? = null,
     val picker: PickerSpec? = null,
+    /** How exercises look; not one of the four policies, and not part of a preset. */
+    val display: DisplaySpec? = null,
 ) {
     /** Every part written out: the ones given, the rest from the [preset]. */
     fun resolved(): RulesSpec {
@@ -29,6 +31,7 @@ data class RulesSpec(
             mastery = mastery ?: base.mastery,
             scheduler = scheduler ?: base.scheduler,
             picker = picker ?: base.picker,
+            display = display ?: DisplaySpec(),
         )
     }
 
@@ -56,6 +59,14 @@ data class RulesSpec(
         picker?.newPerDay?.let { if (it < 1) add(Problem(at / "picker" / "newPerDay", "must be at least 1, or left out for no limit")) }
     }
 }
+
+/**
+ * How a course's exercises look to the learner. [annotations]: show the small text a course puts over words
+ * (`[老师](lǎoshī)`); off, only the words show. [avoidTyping]: of a topic's exercises, prefer those answered without a
+ * keyboard ([com.polylingy.content.Exercise.needsKeyboard]); a topic that has only typing ones keeps them.
+ */
+@Serializable
+data class DisplaySpec(val annotations: Boolean = true, val avoidTyping: Boolean = false)
 
 /** Ready sets of grading, mastery and scheduler (docs/learning-model.md, section 4); each comes with the conveyor picker. */
 @Serializable
