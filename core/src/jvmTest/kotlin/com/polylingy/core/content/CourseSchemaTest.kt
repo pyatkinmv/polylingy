@@ -57,11 +57,11 @@ class CourseSchemaTest {
         val gaps = """{ "type": "gaps", "items": [ { "text": "{{a}}" } ] }"""
         val broken = listOf(
             """{ "formatVersion": 2, "name": "X", "topics": [ { "title": "T", "exercises": [ $gaps ] } ] }""",
-            """{ "formatVersion": 5, "name": "X", "level": "B1", "topics": [ { "title": "T", "exercises": [ $gaps ] } ] }""",
-            """{ "formatVersion": 5, "name": "X", "topics": [ { "title": "T", "exercises": [] } ] }""",
-            """{ "formatVersion": 5, "name": "X", "units": [ { "title": "U" } ] }""",
-            """{ "formatVersion": 5, "name": "X", "rules": { "picker": { "type": "random" } }, "topics": [] }""",
-            """{ "formatVersion": 5, "name": "X", "theme": { "accent": "green" }, "topics": [] }""",
+            """{ "formatVersion": 6, "name": "X", "level": "B1", "topics": [ { "title": "T", "exercises": [ $gaps ] } ] }""",
+            """{ "formatVersion": 6, "name": "X", "topics": [ { "title": "T", "exercises": [] } ] }""",
+            """{ "formatVersion": 6, "name": "X", "units": [ { "title": "U" } ] }""",
+            """{ "formatVersion": 6, "name": "X", "rules": { "picker": { "type": "random" } }, "topics": [] }""",
+            """{ "formatVersion": 6, "name": "X", "theme": { "accent": "green" }, "topics": [] }""",
         )
         for (json in broken) assertTrue(errors(json).isNotEmpty(), json)
     }

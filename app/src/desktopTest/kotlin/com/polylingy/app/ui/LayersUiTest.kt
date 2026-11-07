@@ -23,6 +23,9 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.click
+import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performMouseInput
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.v2.runDesktopComposeUiTest
@@ -131,7 +134,7 @@ class LayersUiTest {
         { "id": "6f1c2b8e-3d4a-4f5b-9c6d-7e8f9a0b1c2d", "type": "choice",
           "instruction": "How many times does each letter appear in the headline?",
           "look": { "type": "newspaper", "source": "Daily News · Tuesday", "headline": "افتتاح المستشفى الجديد\nفي بيروت يوم الثلاثاء" },
-          "items": [ { "text": "ب = {{3|2|4}}" }, { "text": "ي = {{5|4|6}}" } ] }
+          "items": [ { "text": "ب = {{3|2|4}}", "mark": "ب" }, { "text": "ي = {{5|4|6}}", "mark": "ي" } ] }
     """)
 
     @Test fun aVideoLayerShowsItsCardAboveTheExercise() {
@@ -152,6 +155,25 @@ class LayersUiTest {
     @Test fun newspaperLookFramesAHeadline() = showcase(clipping) {
         onNodeWithContentDescription("Newspaper").assertIsDisplayed()
         screenshot("layers-newspaper")
+    }
+
+    private val marks = exercise("""
+        { "id": "6f1c2b8e-3d4a-4f5b-9c6d-7e8f9a0b1c2d", "type": "choice",
+          "instruction": "How many times does each letter appear in the headline?",
+          "look": { "type": "newspaper", "headline": "افتتاح المستشفى الجديد\nفي بيروت يوم الثلاثاء" },
+          "items": [ { "text": "ب = {{13|12|14}}", "mark": "ب" }, { "text": "ي = {{25|24|26}}", "mark": "ي" } ] }
+    """)
+
+    @Test fun aCheckedItemMarksItsPieceInTheFramesText() = showcase(marks) {
+        onNodeWithText("12").performClick()
+        onNodeWithText("24").performClick()
+        click("Check")
+        // The first item with a mark is chosen at once.
+        screenshot("layers-newspaper-marked")
+        // Each item is a button now; choosing the second one moves the marks to its piece.
+        onRoot().performMouseInput { click(androidx.compose.ui.geometry.Offset(50f, 308f)) }
+        waitForIdle()
+        screenshot("layers-newspaper-marked-2")
     }
 
     @Test fun onANarrowWindowThePictureGoesOnTop() = showcase(blog, width = 480) {

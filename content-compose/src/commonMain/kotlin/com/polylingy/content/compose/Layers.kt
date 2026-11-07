@@ -26,6 +26,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.polylingy.content.Aside
 import com.polylingy.content.Look
@@ -41,7 +42,7 @@ internal fun Framed(look: Look?, aside: Aside?, body: @Composable () -> Unit) {
         null, is Look.Unknown -> WithAside(aside, body)
         is Look.Email -> Frame("Email") {
             Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                InlineText(look.subject, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
+                MarkedText(look.subject, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.size(36.dp).background(colors.accent, CircleShape), contentAlignment = Alignment.Center) {
                         Text(look.from.trim().take(1).uppercase(), color = colors.onAccent, fontWeight = FontWeight.Bold)
@@ -59,7 +60,16 @@ internal fun Framed(look: Look?, aside: Aside?, body: @Composable () -> Unit) {
                 look.source?.let { Text(it.uppercase(), color = colors.muted, style = MaterialTheme.typography.labelSmall, letterSpacing = 1.sp) }
                 Direction(look.headline.runsRightToLeft()) {
                     Box(Modifier.fillMaxWidth().background(NewsPaper).dottedEdge(colors.muted).padding(horizontal = 18.dp, vertical = 14.dp)) {
-                        InlineText(look.headline, style = MaterialTheme.typography.headlineSmall.copy(fontFamily = FontFamily.Serif, fontWeight = FontWeight.Black, lineHeight = 36.sp))
+                        // One weight for every script: a heavy cut turns scripts with joined letters and dots (Arabic) into a smear, so the
+                        // headline gets its weight from size and the serif face, and its line height follows the text.
+                        MarkedText(
+                            look.headline,
+                            style = MaterialTheme.typography.headlineMedium.copy(
+                                fontFamily = FontFamily.Serif,
+                                fontWeight = FontWeight.Medium,
+                                lineHeight = 1.4.em,
+                            ),
+                        )
                     }
                 }
             }
@@ -68,7 +78,7 @@ internal fun Framed(look: Look?, aside: Aside?, body: @Composable () -> Unit) {
         is Look.Article -> Frame("Article") {
             Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 look.source?.let { Text(it.uppercase(), color = colors.muted, style = MaterialTheme.typography.labelSmall, letterSpacing = 1.sp) }
-                InlineText(look.title, style = MaterialTheme.typography.headlineSmall.copy(fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold))
+                MarkedText(look.title, style = MaterialTheme.typography.headlineSmall.copy(fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold))
             }
             FrameBody(aside, body)
         }

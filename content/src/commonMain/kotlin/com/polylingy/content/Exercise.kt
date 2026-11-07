@@ -126,6 +126,7 @@ sealed interface Exercise {
             items.forEachIndexed { i, item ->
                 val itemAt = (at / "items")[i]
                 text(item.note, itemAt / "note")
+                notBlank(item.mark, itemAt / "mark")
                 if (item.options.isNotEmpty()) {
                     text(item.text, itemAt / "text", BlankRule.EXACTLY_ONE)
                     val options = itemAt / "options"
@@ -148,9 +149,13 @@ sealed interface Exercise {
         }
     }
 
-    /** [options] are given for an item with one place; empty when each place lists its options in the text. */
+    /**
+     * [options] are given for an item with one place; empty when each place lists its options in the text. [mark] is a piece
+     * of text the item is about ("ب" in "how many times does ب appear"): once the exercise is checked, choosing the item shows
+     * every place of it in the text of the exercise's frame (a headline, a letter), so the learner sees what was meant.
+     */
     @Serializable
-    data class ChoiceItem(val text: Inline, val options: List<String> = emptyList(), val note: Inline? = null) {
+    data class ChoiceItem(val text: Inline, val options: List<String> = emptyList(), val note: Inline? = null, val mark: String? = null) {
         val places: List<ChoicePlace>
             get() = if (options.isNotEmpty()) text.blanks.map { ChoicePlace(options, it.answer) }
             else text.blanks.map { ChoicePlace(it.variants, it.answer) }

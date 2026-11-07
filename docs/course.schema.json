@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://polylingy.app/schema/course-5.json",
-  "title": "Polylingy course, format 5",
+  "title": "Polylingy course, format 6",
   "description": "The shape of course.json. The app checks more than this schema can say (markup, blanks per item, links pointing at real sections, model answers passing their keys): run ./gradlew :app:checkCourse. See docs/content-format.md.",
   "$ref": "#/$defs/course",
   "$defs": {
@@ -54,8 +54,8 @@
       "type": "object",
       "properties": {
         "formatVersion": {
-          "description": "The format this file is written in. This schema describes 5.",
-          "const": 5
+          "description": "The format this file is written in. This schema describes 6.",
+          "const": 6
         },
         "id": {
           "$ref": "#/$defs/uuid"
@@ -508,7 +508,7 @@
       "additionalProperties": false
     },
     "block.text": {
-      "description": "A paragraph.",
+      "description": "A paragraph. A role says what it is for: a lead is the introduction of the part it opens.",
       "type": "object",
       "properties": {
         "type": {
@@ -516,6 +516,12 @@
         },
         "text": {
           "$ref": "#/$defs/inline"
+        },
+        "role": {
+          "description": "What the paragraph is for; the app decides how it looks.",
+          "enum": [
+            "lead"
+          ]
         }
       },
       "required": [
@@ -792,6 +798,10 @@
             "$ref": "#/$defs/example"
           },
           "minItems": 1
+        },
+        "numbered": {
+          "description": "Number the examples 1, 2, 3 …; default false.",
+          "type": "boolean"
         }
       },
       "required": [
@@ -824,7 +834,7 @@
       "additionalProperties": false
     },
     "block.tip": {
-      "description": "A highlighted tip.",
+      "description": "A remark set apart from the text; kind says what sort of remark it is.",
       "type": "object",
       "properties": {
         "type": {
@@ -836,6 +846,15 @@
             "$ref": "#/$defs/block"
           },
           "minItems": 1
+        },
+        "kind": {
+          "description": "The sort of remark; default tip.",
+          "enum": [
+            "tip",
+            "note",
+            "rule",
+            "warning"
+          ]
         }
       },
       "required": [
@@ -1196,6 +1215,12 @@
         },
         "note": {
           "$ref": "#/$defs/inline"
+        },
+        "mark": {
+          "description": "A piece of text this item is about; once the exercise is checked, choosing the item marks it in the text of the frame (look).",
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
         }
       },
       "required": [

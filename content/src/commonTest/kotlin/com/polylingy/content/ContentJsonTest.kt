@@ -24,6 +24,22 @@ class ContentJsonTest {
         assertEquals(theory, ContentJson.decode(Content.serializer(), ContentJson.encode(Content.serializer(), theory)))
     }
 
+    @Test fun remarkLeadAndNumberingAreReadAndOmittedWhenDefault() {
+        fun blocks(json: String) = ContentJson.decode(ListSerializer(Block.serializer()), json)
+        val read = blocks("""[ { "type": "tip", "kind": "warning", "blocks": [ { "type": "text", "text": "x" } ] },
+            { "type": "tip", "blocks": [ { "type": "text", "text": "x" } ] },
+            { "type": "text", "role": "lead", "text": "x" }, { "type": "text", "text": "x" },
+            { "type": "examples", "numbered": true, "items": [ { "text": "x" } ] }, { "type": "examples", "items": [ { "text": "x" } ] } ]""")
+        assertEquals(listOf(Block.Tip.Kind.WARNING, Block.Tip.Kind.TIP), read.filterIsInstance<Block.Tip>().map { it.kind })
+        assertEquals(listOf(Block.Text.Role.LEAD, null), read.filterIsInstance<Block.Text>().map { it.role })
+        assertEquals(listOf(true, false), read.filterIsInstance<Block.Examples>().map { it.numbered })
+        val written = ContentJson.encode(ListSerializer(Block.serializer()), read)
+        assertEquals(1, Regex("\"kind\"").findAll(written).count(), "the default kind is not written")
+        assertEquals(1, Regex("\"role\"").findAll(written).count())
+        assertEquals(1, Regex("\"numbered\"").findAll(written).count())
+        assertFailsWith<ContentFormatException> { blocks("""[ { "type": "tip", "kind": "loud", "blocks": [ { "type": "text", "text": "x" } ] } ]""") }
+    }
+
     @Test fun typeDecidesTheClass() {
         assertIs<Exercise.Gaps>(exercise(Samples.gaps))
         assertIs<Exercise.Choice>(exercise(Samples.choice))

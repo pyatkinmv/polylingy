@@ -147,7 +147,7 @@ object Samples {
     val theory = """
         { "format": "blocks", "blocks": [
           { "type": "section", "id": "$SECTION_A", "label": "A", "title": "Happening now", "blocks": [
-            { "type": "text", "text": "Look at this situation:" },
+            { "type": "text", "role": "lead", "text": "Look at this situation:" },
             { "type": "situation",
               "aside": { "type": "image", "src": "images/u1-cycling.png", "alt": "A man cycling to work", "caption": "Tom on his way to work" },
               "blocks": [
@@ -157,7 +157,7 @@ object Samples {
                   ["he/she/it", "**is**", "(= he’s etc.)"],
                   ["we/you/they", "**are**", "(= we’re etc.)"] ] } ] } ] },
           { "type": "section", "label": "B", "blocks": [
-            { "type": "examples", "items": [
+            { "type": "examples", "numbered": true, "items": [
               { "text": "Turn the music down. I**’m trying** to sleep.", "not": "I try", "translation": "Сделай тише, я пытаюсь уснуть.", "audio": "audio/ex-1.mp3" },
               { "text": "What **are** you **reading**?" } ] },
             { "type": "quote", "text": "I’m writing a short story this month.", "who": "Maria",
@@ -165,7 +165,7 @@ object Samples {
           { "type": "section", "label": "C", "title": "Things that are changing", "blocks": [
             { "type": "words", "words": ["getting", "becoming", "changing"] },
             { "type": "table", "head": ["", "positive"], "rows": [["I", "I’m getting"]] },
-            { "type": "tip", "blocks": [ { "type": "text", "text": "Use the present continuous for changes." } ] },
+            { "type": "tip", "kind": "rule", "blocks": [ { "type": "text", "text": "Use the present continuous for changes." } ] },
             { "type": "seeAlso", "links": [ { "section": "$SECTION_A" }, { "unit": "$ID" } ] } ] },
           { "type": "section", "label": "D", "title": "[对话](duìhuà) · Dialogue", "blocks": [
             { "type": "dialogue", "lines": [

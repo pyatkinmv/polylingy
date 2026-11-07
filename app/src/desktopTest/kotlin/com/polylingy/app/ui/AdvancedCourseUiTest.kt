@@ -8,7 +8,7 @@ import kotlin.test.Test
 class AdvancedCourseUiTest {
     private val json = File("../examples/advanced-grammar.json").readText()
 
-    @Test fun eachUnitShowsItsTheoryAndThenItsExercises() = appTest({ it.seedCourse(json) }, height = 1400) {
+    @Test fun eachUnitShowsItsTheoryAndThenItsExercises() = appTest({ it.seedCourse(json) }, height = 1700) {
         click("Advanced Grammar: Units 1–3")
         text("Units").assertIsDisplayed()
         screenshot("advanced-course")

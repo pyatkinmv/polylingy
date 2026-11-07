@@ -44,6 +44,9 @@ import com.polylingy.content.ItemCheck
 import com.polylingy.content.ItemResult
 import com.polylingy.content.Response
 import com.polylingy.content.Side
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import kotlin.random.Random
 
 private fun resultColors(result: ItemResult?, colors: ContentColors): Pair<Color, Color> = when (result) {
@@ -78,22 +81,46 @@ private fun Option(text: String, selected: Boolean, result: ItemResult?, enabled
     )
 }
 
+/**
+ * The options of a place in the order they are shown: shuffled, so the right one is not always first; but options that are
+ * all numbers ("0", "1", "2" …) go in ascending order — shuffled numbers only make the eye search.
+ */
+internal fun optionsInOrder(options: List<String>, random: Random): List<String> {
+    val numbers = options.map { it.trim().toDoubleOrNull() }
+    return if (numbers.all { it != null }) options.sortedBy { it.trim().toDouble() } else options.shuffled(random)
+}
+
 /** Each place of a choice shows its options, shuffled, as pills in the sentence; each place is picked on its own. */
 @Composable
-internal fun ChoiceView(exercise: Exercise.Choice, response: Response.Choice, checks: List<ItemCheck>?, onChange: (Response) -> Unit, seed: Int) {
+internal fun ChoiceView(
+    exercise: Exercise.Choice, response: Response.Choice, checks: List<ItemCheck>?, onChange: (Response) -> Unit, seed: Int,
+    marked: String? = null, onMark: (String?) -> Unit = {},
+) {
     val places = exercise.places
-    val shuffled = remember(exercise.id, seed) { places.mapIndexed { p, place -> place.options.shuffled(Random(seed + p)) } }
+    val shuffled = remember(exercise.id, seed) { places.mapIndexed { p, place -> optionsInOrder(place.options, Random(seed + p)) } }
     val offsets = offsets(exercise.items.map { it.text })
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         exercise.items.forEachIndexed { i, item ->
-            Item(numberOf(i, exercise.items.size), item.note, showNote = checks != null) {
+            // Once checked, an item that has a mark can be chosen to see its mark in the text of the frame.
+            val choosable = checks != null && item.mark != null
+            val chosen = choosable && item.mark == marked
+            Item(
+                numberOf(i, exercise.items.size), item.note, showNote = checks != null,
+                Modifier.then(if (chosen) Modifier.background(colors.accentSoft, RoundedCornerShape(8.dp)) else Modifier)
+                    .then(if (choosable) Modifier.clickable(remember { MutableInteractionSource() }, indication = null, role = androidx.compose.ui.semantics.Role.Button) { onMark(item.mark) } else Modifier)
+                    .padding(4.dp),
+            ) {
                 InlineFlow(item.text) { blank ->
                     val p = offsets[i] + blank.index
                     val check = checks?.get(p)
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        for (option in shuffled[p]) {
-                            Option(option, response.picked[p] == option, check?.result, enabled = checks == null, right = check != null && check.rightAnswer == option) {
-                                onChange(Response.Choice(response.picked.toMutableList().also { it[p] = option }))
+                    // Numbers read 0, 1, 2 from the left even in a right-to-left line: a row of digits has no other order.
+                    val numbers = shuffled[p].all { it.trim().toDoubleOrNull() != null }
+                    CompositionLocalProvider(if (numbers) LocalLayoutDirection provides LayoutDirection.Ltr else LocalLayoutDirection provides LocalLayoutDirection.current) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                            for (option in shuffled[p]) {
+                                Option(option, response.picked[p] == option, check?.result, enabled = checks == null, right = check != null && check.rightAnswer == option) {
+                                    onChange(Response.Choice(response.picked.toMutableList().also { it[p] = option }))
+                                }
                             }
                         }
                     }

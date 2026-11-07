@@ -18,6 +18,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.rememberScrollState
@@ -126,7 +128,13 @@ fun BlockView(block: Block, onLink: (Block.Link) -> Unit = {}) {
                 Blocks(block.blocks, onLink = onLink, spacing = 10)
             }
         }
-        is Block.Text -> InlineText(block.text)
+        is Block.Text -> when (block.role) {
+            Block.Text.Role.LEAD -> InlineText(
+                block.text,
+                style = MaterialTheme.typography.bodyLarge.copy(fontStyle = FontStyle.Italic, fontSize = 20.sp, lineHeight = 30.sp, color = colors.muted),
+            )
+            null -> InlineText(block.text)
+        }
         is Block.Track -> TrackView(block)
         is Block.Video -> VideoView(block)
         is Block.Situation -> Box(
@@ -163,9 +171,10 @@ fun BlockView(block: Block, onLink: (Block.Link) -> Unit = {}) {
             }
         }
         is Block.Examples -> Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            for (example in block.items) Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
-                example.audio?.let { PlayButton(it) } ?: Text("•", color = colors.muted)
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            for ((i, example) in block.items.withIndex()) Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
+                if (block.numbered) Text("${i + 1}", Modifier.width(18.dp), color = colors.accent, fontWeight = FontWeight.Bold)
+                example.audio?.let { PlayButton(it) } ?: if (!block.numbered) Text("•", color = colors.muted) else Unit
+                val phrase: @Composable () -> Unit = {
                     val muted = colors.muted
                     if (example.text.hasAnnotations && example.not == null) InlineText(example.text)
                     else Text(
@@ -181,6 +190,13 @@ fun BlockView(block: Block, onLink: (Block.Link) -> Unit = {}) {
                             }
                         },
                     )
+                }
+                // Numbered examples read like a table: the phrase, and its translation opposite it in the same row.
+                if (block.numbered) {
+                    Box(Modifier.weight(1f)) { phrase() }
+                    Box(Modifier.weight(1f)) { example.translation?.let { Translation(it) } }
+                } else Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    phrase()
                     example.translation?.let { Translation(it) }
                 }
             }
@@ -192,14 +208,26 @@ fun BlockView(block: Block, onLink: (Block.Link) -> Unit = {}) {
                 fontWeight = FontWeight.Medium,
             )
         }
-        is Block.Tip -> Box(Modifier.fillMaxWidth().background(colors.accentSoft, RoundedCornerShape(10.dp)).padding(14.dp)) {
-            Blocks(block.blocks, onLink = onLink, spacing = 8)
+        is Block.Tip -> {
+            val warning = block.kind == Block.Tip.Kind.WARNING
+            val tone = if (warning) colors.typo else colors.accent
+            Column(
+                Modifier.fillMaxWidth().background(if (warning) colors.typoBg else colors.accentSoft, RoundedCornerShape(10.dp)).padding(14.dp)
+                    .semantics { contentDescription = block.kind.name.lowercase() },
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    TipIcon(block.kind, tone)
+                    Text(LocalContentStrings.current.remark(block.kind), color = tone, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge)
+                }
+                Blocks(block.blocks, onLink = onLink, spacing = 8)
+            }
         }
         is Block.SeeAlso -> FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("See also", color = colors.muted)
+            Text(LocalContentStrings.current.seeAlso, color = colors.muted)
             val names = LocalLinkNames.current
             for (link in block.links) Text(
-                names.name(link) ?: "Theory",
+                names.name(link) ?: LocalContentStrings.current.theory,
                 Modifier.clickable { onLink(link) },
                 color = colors.accent,
                 fontWeight = FontWeight.Medium,
@@ -267,11 +295,11 @@ internal fun VideoView(video: Block.Video) {
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("▶", color = colors.accent, fontSize = 16.sp)
+            VideoIcon(video.url)
             InlineText(video.title, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold))
         }
         video.note?.let { InlineText(it, style = MaterialTheme.typography.bodyMedium.copy(color = colors.muted)) }
-        Text("Opens in the browser · ${video.url.removePrefix("https://").substringBefore('/')}", style = MaterialTheme.typography.bodySmall, color = colors.muted)
+        Text(LocalContentStrings.current.opensInBrowser(video.url.removePrefix("https://").substringBefore('/')), style = MaterialTheme.typography.bodySmall, color = colors.muted)
     }
 }
 
@@ -367,16 +395,29 @@ private fun CellTable(head: List<Inline>, rows: List<List<Cell>>) {
         head.forEach { _ -> add(null) }
         rows.forEach { row -> row.forEach { add(it.audio) } }
     }
-    Box(Modifier.horizontalScroll(rememberScrollState()).border(1.dp, colors.line, RoundedCornerShape(8.dp))) {
+    val offset = if (head.isEmpty()) 0 else 1
+    // No fills and no frame: thin lines between the rows and a slightly stronger one under the header. Every cell fills its
+    // row, so the lines run from edge to edge.
+    val rowLine = colors.line
+    val headLine = colors.accent.copy(alpha = 0.45f)
+    Box(Modifier.horizontalScroll(rememberScrollState())) {
         Layout(
             content = {
-                all.forEachIndexed { i, (_, text, isHead) ->
-                    val style = if (isHead) MaterialTheme.typography.labelLarge.copy(color = colors.muted) else MaterialTheme.typography.bodyMedium
+                all.forEachIndexed { i, (place, text, isHead) ->
+                    val style = if (isHead) MaterialTheme.typography.labelLarge.copy(color = colors.accent, fontWeight = FontWeight.Bold)
+                    else MaterialTheme.typography.bodyMedium
                     val sound = sounds[i]
-                    if (sound == null) InlineText(text, Modifier.padding(horizontal = 12.dp, vertical = 7.dp), style = style)
-                    else Row(Modifier.padding(horizontal = 12.dp, vertical = 7.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        PlayButton(sound)
-                        if (text.text.isNotEmpty()) InlineText(text, style = style)
+                    val line = if (isHead) headLine else rowLine
+                    val width = if (isHead) 1.5.dp else 1.dp
+                    Box(
+                        Modifier.drawBehind { drawLine(line, Offset(0f, size.height - width.toPx() / 2), Offset(size.width, size.height - width.toPx() / 2), width.toPx()) },
+                        contentAlignment = Alignment.CenterStart,
+                    ) {
+                        if (sound == null) InlineText(text, Modifier.padding(horizontal = 12.dp, vertical = 9.dp), style = style)
+                        else Row(Modifier.padding(horizontal = 12.dp, vertical = 9.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            PlayButton(sound)
+                            if (text.text.isNotEmpty()) InlineText(text, style = style)
+                        }
                     }
                 }
             },
@@ -384,19 +425,24 @@ private fun CellTable(head: List<Inline>, rows: List<List<Cell>>) {
             val columns = (all.maxOfOrNull { it.first.column } ?: -1) + 1
             val widths = IntArray(columns)
             measurables.forEachIndexed { i, m -> val col = all[i].first.column; widths[col] = maxOf(widths[col], m.maxIntrinsicWidth(Constraints.Infinity)) }
-            val placeables = measurables.mapIndexed { i, m -> m.measure(Constraints.fixedWidth(widths[all[i].first.column])) }
+            // A measurable may be measured once, so the natural heights come from the intrinsics; the cells are then measured to their row.
+            val naturalHeights = measurables.mapIndexed { i, m -> m.minIntrinsicHeight(widths[all[i].first.column]) }
             val rowCount = (all.maxOfOrNull { it.first.row } ?: -1) + 1
             val heights = IntArray(rowCount)
-            all.forEachIndexed { i, (place) -> if (place.rowSpan == 1) heights[place.row] = maxOf(heights[place.row], placeables[i].height) }
+            all.forEachIndexed { i, (place) -> if (place.rowSpan == 1) heights[place.row] = maxOf(heights[place.row], naturalHeights[i]) }
             all.forEachIndexed { i, (place) ->
                 if (place.rowSpan > 1) {
                     val last = place.row + place.rowSpan - 1
                     val have = (place.row..last).sumOf { heights[it] }
-                    if (placeables[i].height > have) heights[last] += placeables[i].height - have
+                    if (naturalHeights[i] > have) heights[last] += naturalHeights[i] - have
                 }
             }
             val xs = widths.runningFold(0) { acc, w -> acc + w }
             val ys = heights.toList().runningFold(0) { acc, h -> acc + h }
+            val placeables = measurables.mapIndexed { i, m ->
+                val place = all[i].first
+                m.measure(Constraints.fixed(widths[place.column], ys[place.row + place.rowSpan] - ys[place.row]))
+            }
             layout(xs.last(), ys.last()) {
                 all.forEachIndexed { i, (place) -> placeables[i].place(xs[place.column], ys[place.row]) }
             }

@@ -65,17 +65,18 @@ object CourseJson {
      * so the number alone changes.
      * 3 → 4: only additions (sounds, dialogues, annotations `[word](note)`, display settings): the number alone changes.
      * 4 → 5: only additions (blocks `track` and `video`): the number alone changes.
+     * 5 → 6: only additions (`tip.kind`, `text.role`, `examples.numbered`): the number alone changes.
      */
     internal fun upgrade(root: JsonObject): JsonObject {
         val version = (root["formatVersion"] as? JsonPrimitive)?.takeUnless { it.isString }?.intOrNull ?: return root
         return when (version) {
             1 -> numbered(to2(root))
-            2, 3, 4 -> numbered(root)
+            2, 3, 4, 5 -> numbered(root)
             else -> root
         }
     }
 
-    /** Versions 2 → 3 → 4 → 5 only added things: a document of them reads as it is under the current number. */
+    /** Versions 2 → 3 → 4 → 5 → 6 only added things: a document of them reads as it is under the current number. */
     private fun numbered(root: JsonObject) = JsonObject(root + ("formatVersion" to JsonPrimitive(FORMAT_VERSION)))
 
     private fun to2(root: JsonObject): JsonObject {

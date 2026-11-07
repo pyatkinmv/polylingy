@@ -55,10 +55,16 @@ sealed interface Block {
         }
     }
 
+    /** A paragraph. A [role] says what it is for (not how it looks): a lead is the introduction of the part it opens. */
     @Serializable
     @SerialName("text")
-    data class Text(val text: Inline) : Block {
+    data class Text(val text: Inline, val role: Role? = null) : Block {
         override fun validate(at: Path) = checks { text(text, at / "text") }
+
+        @Serializable
+        enum class Role {
+            @SerialName("lead") LEAD,
+        }
     }
 
     /** A framed example situation, with an optional [aside] (usually a picture) next to it. */
@@ -175,7 +181,7 @@ sealed interface Block {
 
     @Serializable
     @SerialName("examples")
-    data class Examples(val items: List<Example>) : Block {
+    data class Examples(val items: List<Example>, val numbered: Boolean = false) : Block {
         override fun validate(at: Path) = checks {
             require(items.isNotEmpty(), at / "items", "needs at least one example")
             items.forEachIndexed { i, item ->
@@ -203,9 +209,18 @@ sealed interface Block {
         }
     }
 
+    /** A remark set apart from the text. [kind] says what sort of remark it is; the app gives each its icon and caption. */
     @Serializable
     @SerialName("tip")
-    data class Tip(val blocks: List<Block>) : Block {
+    data class Tip(val blocks: List<Block>, val kind: Kind = Kind.TIP) : Block {
+        @Serializable
+        enum class Kind {
+            @SerialName("tip") TIP,
+            @SerialName("note") NOTE,
+            @SerialName("rule") RULE,
+            @SerialName("warning") WARNING,
+        }
+
         override fun validate(at: Path) = checks {
             require(blocks.isNotEmpty(), at / "blocks", "needs at least one block")
             blocks(blocks, at / "blocks")

@@ -50,7 +50,7 @@ Rules that catch most mistakes:
 - every `{{…}}` variant ≤ 60 characters (expand answers ≤ 150); `choice` with `options` has exactly one blank;
 - an `expand` model answer must itself contain its `keys` in order;
 - pictures: `src` is `https://…` or `images/…` inside the zip; `alt` is required;
-- ids may be left out (import adds them); `formatVersion` is `5`.
+- ids may be left out (import adds them); `formatVersion` is `6`.
 - **Critical: no meta-comments in the course.** Theory, instructions, tips, notes, descriptions and titles never mention
   the source: no "the book says", "as in the book", "the textbook suggests", "not carried over", "on the book's website",
   "the Activity Book", unit or page numbers of the source, and nothing about what the course copies, adapts or leaves out

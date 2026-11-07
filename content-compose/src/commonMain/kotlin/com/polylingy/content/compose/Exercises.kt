@@ -15,6 +15,7 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -67,6 +68,13 @@ fun ExerciseView(
     onLink: (Block.Link) -> Unit = {},
     seed: Int = 0,
 ) {
+    // The piece the learner has chosen to see in the text of the frame; the first one when the exercise is checked.
+    var marked by remember(exercise.id, checks == null) { mutableStateOf<String?>(null) }
+    if (checks != null && marked == null) {
+        val first = (exercise as? Exercise.Choice)?.items?.firstNotNullOfOrNull { it.mark }
+        if (first != null) marked = first
+    }
+    CompositionLocalProvider(LocalMarked provides marked) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(18.dp)) {
         exercise.instruction?.let { InlineText(it, style = MaterialTheme.typography.titleMedium) }
         WordBank(exercise.wordBank)
@@ -77,7 +85,7 @@ fun ExerciseView(
                 is Exercise.Gaps -> GapsView(exercise, response as Response.Blanks, checks, onChange, onSubmit)
                 is Exercise.Pictures -> PicturesView(exercise, response as Response.Blanks, checks, onChange, onSubmit)
                 is Exercise.Table -> TableView(exercise, response as Response.Blanks, checks, onChange, onSubmit)
-                is Exercise.Choice -> ChoiceView(exercise, response as Response.Choice, checks, onChange, seed)
+                is Exercise.Choice -> ChoiceView(exercise, response as Response.Choice, checks, onChange, seed, marked) { marked = it }
                 is Exercise.Match -> MatchView(exercise, response as Response.Match, checks, onChange, seed)
                 is Exercise.Order -> OrderView(exercise, response as Response.Order, checks, onChange, seed)
                 is Exercise.Expand -> ExpandView(exercise, response as Response.Blanks, checks, onChange, onSubmit)
@@ -86,6 +94,7 @@ fun ExerciseView(
             }
         }
         if (checks != null) exercise.explanation?.let { ExplanationView(it, onLink) }
+    }
     }
 }
 
@@ -106,8 +115,8 @@ internal fun numberOf(index: Int, count: Int): Int? = if (count == 1) null else 
 
 /** A numbered item with an optional note under it, shown once the exercise is checked. */
 @Composable
-internal fun Item(number: Int?, note: com.polylingy.content.Inline?, showNote: Boolean, content: @Composable () -> Unit) {
-    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+internal fun Item(number: Int?, note: com.polylingy.content.Inline?, showNote: Boolean, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    Row(modifier, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         if (number != null) Text("$number", Modifier.width(20.dp), color = colors.muted, fontWeight = FontWeight.SemiBold)
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             content()

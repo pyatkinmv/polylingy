@@ -44,7 +44,9 @@ object DesktopSound : SoundPlayer {
 
     private val decoded = LinkedHashMap<Int, Pcm>(64, 0.75f, true)
     private var decodedBytes = 0L
-    private val lines = mutableMapOf<AudioFormat, SourceDataLine>()
+    /** Kept by what a format says: [AudioFormat] has no equals, so as a key it never found the line it had opened. */
+    private data class LineKey(val rate: Float, val bits: Int, val channels: Int)
+    private val lines = mutableMapOf<LineKey, SourceDataLine>()
     private val stateFlow = MutableStateFlow(SoundState())
     override val state: StateFlow<SoundState> get() = stateFlow
 
@@ -157,10 +159,38 @@ object DesktopSound : SoundPlayer {
         stateFlow.value = SoundState(track.key, playing, at / track.pcm.bytesPerSecond, track.pcm.seconds)
     }
 
-    private fun line(format: AudioFormat): SourceDataLine = lines.getOrPut(format) {
-        // A short buffer: a new sound replaces the old one without the old one's tail.
-        val bufferBytes = (format.sampleRate * format.frameSize * BUFFER_SECONDS).toInt()
-        AudioSystem.getSourceDataLine(format).apply { open(format, bufferBytes); start() }
+    private fun line(format: AudioFormat): SourceDataLine =
+        lines.getOrPut(LineKey(format.sampleRate, format.sampleSizeInBits, format.channels)) { open(format) }
+
+    /**
+     * Opens the sound output for [format]. The default output with a short buffer first (a new sound replaces the old one
+     * without the old one's tail); when the system refuses, the default buffer, then every other output in turn: a busy
+     * or just-changed device (headphones plugged in, another program holding it) must not leave the app silent for good.
+     */
+    private fun open(format: AudioFormat): SourceDataLine {
+        val bufferBytes = (format.sampleRate * format.frameSize * BUFFER_SECONDS).toInt() / format.frameSize * format.frameSize
+        val attempts = buildList<() -> SourceDataLine> {
+            add { AudioSystem.getSourceDataLine(format).apply { open(format, bufferBytes) } }
+            add { AudioSystem.getSourceDataLine(format).apply { open(format) } }
+            for (info in AudioSystem.getMixerInfo()) add {
+                AudioSystem.getMixer(info).let { mixer ->
+                    (mixer.getLine(javax.sound.sampled.DataLine.Info(SourceDataLine::class.java, format)) as SourceDataLine).apply { open(format) }
+                }
+            }
+        }
+        var first: Exception? = null
+        for ((i, attempt) in attempts.withIndex()) {
+            try {
+                return attempt().also {
+                    it.start()
+                    if (i > 0) log.warn { "The default sound output refused $format; playing through attempt $i instead: ${first?.message}" }
+                }
+            } catch (e: Exception) {
+                if (first == null) first = e
+            }
+        }
+        log.warn { "Sound outputs: ${AudioSystem.getMixerInfo().joinToString { it.name }}" }
+        throw first ?: IllegalStateException("no sound output")
     }
 
     /** The decoded sound of [bytes]; the least recently played are forgotten when the kept samples pass [MAX_KEPT_BYTES]. */

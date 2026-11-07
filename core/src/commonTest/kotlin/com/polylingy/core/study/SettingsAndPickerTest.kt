@@ -112,7 +112,7 @@ class SettingsAndPickerTest {
         val choice = """{ "type": "choice", "items": [ { "text": "{{a|b}}" } ] }"""
         val course = courseService.import(
             CourseJson.read(
-                """{ "formatVersion": 5, "name": "Typing", "rules": { "display": { "avoidTyping": true } },
+                """{ "formatVersion": 6, "name": "Typing", "rules": { "display": { "avoidTyping": true } },
                     "topics": [ { "title": "Both", "exercises": [ ${gaps("x")}, $choice, ${gaps("y")} ] },
                                 { "title": "Typing only", "exercises": [ ${gaps("z")} ] } ] }""",
                 clock.now().instant,
@@ -210,7 +210,7 @@ class SettingsAndPickerTest {
         assertFailsWith<IllegalArgumentException> { study.saveSettings(course.id, RulesSpec(picker = PickerSpec.Conveyor(newPerDay = 0))) }
         assertFailsWith<IllegalArgumentException> { study.saveSettings(Uuid.random(), RulesSpec()) }
         val newer = CourseJson.read(
-            """{ "formatVersion": 6, "name": "N", "topics": [ { "title": "A", "exercises": [ ${gaps("a")} ] } ] }""",
+            """{ "formatVersion": 7, "name": "N", "topics": [ { "title": "A", "exercises": [ ${gaps("a")} ] } ] }""",
             clock.now().instant,
         ).course.also(courses::save)
         assertFailsWith<IllegalArgumentException> { study.saveSettings(newer.id, RulesSpec()) }
