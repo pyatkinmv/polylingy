@@ -40,11 +40,10 @@ import androidx.compose.ui.unit.sp
  * pressing one never needs a player of its own inside the content. Sounds of a word or a phrase don't show it.
  */
 @Composable
-internal fun PlayerDock(modifier: Modifier = Modifier) {
-    val player = LocalAudioPlayer.current
+fun PlayerDock(player: AudioPlayer, dockTitle: DockTitle, modifier: Modifier = Modifier) {
     val playback by player.playback.collectAsState()
     if (!playback.docked) return
-    val title = LocalDockTitle.current.text
+    val title = dockTitle.text
     val length = playback.durationSeconds
     var dragged by remember { mutableStateOf<Float?>(null) }
     val fraction = dragged ?: (playback.positionSeconds / length).coerceIn(0f, 1f)

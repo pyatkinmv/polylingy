@@ -1126,6 +1126,10 @@
             "$ref": "#/$defs/gapItem"
           },
           "minItems": 1
+        },
+        "generated": {
+          "description": "True when the exercise was generated, not written by the course's author; default false.",
+          "type": "boolean"
         }
       },
       "required": [
@@ -1189,6 +1193,10 @@
             "$ref": "#/$defs/choiceItem"
           },
           "minItems": 1
+        },
+        "generated": {
+          "description": "True when the exercise was generated, not written by the course's author; default false.",
+          "type": "boolean"
         }
       },
       "required": [
@@ -1270,6 +1278,10 @@
             "$ref": "#/$defs/pictureItem"
           },
           "minItems": 1
+        },
+        "generated": {
+          "description": "True when the exercise was generated, not written by the course's author; default false.",
+          "type": "boolean"
         }
       },
       "required": [
@@ -1341,6 +1353,10 @@
             }
           },
           "minItems": 1
+        },
+        "generated": {
+          "description": "True when the exercise was generated, not written by the course's author; default false.",
+          "type": "boolean"
         }
       },
       "required": [
@@ -1416,6 +1432,10 @@
           "items": {
             "$ref": "#/$defs/side"
           }
+        },
+        "generated": {
+          "description": "True when the exercise was generated, not written by the course's author; default false.",
+          "type": "boolean"
         }
       },
       "required": [
@@ -1458,6 +1478,10 @@
             "$ref": "#/$defs/orderItem"
           },
           "minItems": 1
+        },
+        "generated": {
+          "description": "True when the exercise was generated, not written by the course's author; default false.",
+          "type": "boolean"
         }
       },
       "required": [
@@ -1555,6 +1579,10 @@
             "$ref": "#/$defs/expandItem"
           },
           "minItems": 1
+        },
+        "generated": {
+          "description": "True when the exercise was generated, not written by the course's author; default false.",
+          "type": "boolean"
         }
       },
       "required": [
@@ -1627,6 +1655,10 @@
             "$ref": "#/$defs/fixItem"
           },
           "minItems": 1
+        },
+        "generated": {
+          "description": "True when the exercise was generated, not written by the course's author; default false.",
+          "type": "boolean"
         }
       },
       "required": [

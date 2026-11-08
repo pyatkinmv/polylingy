@@ -152,19 +152,23 @@ fun TopBar(crumbs: List<Pair<String, (() -> Unit)?>>, actions: @Composable RowSc
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            crumbs.forEachIndexed { i, (text, onClick) ->
-                if (i > 0) Text("/", color = Look.Rule)
-                val last = i == crumbs.lastIndex
-                Text(
-                    text,
-                    Modifier.widthIn(max = 260.dp).then(if (onClick != null) Modifier.clip(RoundedCornerShape(4.dp)).clickable(role = Role.Button, onClick = onClick) else Modifier),
-                    color = if (last) Look.Ink else Look.Muted,
-                    fontWeight = if (last) FontWeight.SemiBold else FontWeight.Medium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+            // The crumbs share the space the actions leave them and are cut with an ellipsis, so a button at the right
+            // keeps its own width however long the titles are (a Row gives the leftover to its last child).
+            Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                crumbs.forEachIndexed { i, (text, onClick) ->
+                    if (i > 0) Text("/", color = Look.Rule)
+                    val last = i == crumbs.lastIndex
+                    Text(
+                        text,
+                        Modifier.weight(1f, fill = false).widthIn(max = 260.dp)
+                            .then(if (onClick != null) Modifier.clip(RoundedCornerShape(4.dp)).clickable(role = Role.Button, onClick = onClick) else Modifier),
+                        color = if (last) Look.Ink else Look.Muted,
+                        fontWeight = if (last) FontWeight.SemiBold else FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
-            Spacer(Modifier.weight(1f))
             actions()
         }
         HorizontalDivider(color = Look.Line)

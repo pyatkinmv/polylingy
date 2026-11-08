@@ -2,6 +2,7 @@ package com.polylingy.app.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -25,6 +26,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -40,6 +42,8 @@ import com.polylingy.content.compose.ContentColors
 import com.polylingy.content.compose.ContentTheme
 import com.polylingy.content.compose.ContentView
 import com.polylingy.content.compose.CourseContent
+import com.polylingy.content.compose.DockTitle
+import com.polylingy.content.compose.PlayerDock
 import com.polylingy.content.compose.ExerciseView
 import com.polylingy.content.compose.Playback
 import com.polylingy.content.emptyResponse
@@ -82,14 +86,20 @@ class PlayerAndArabicUiTest {
         runDesktopComposeUiTest(width = 832, height = 700) {
             setContent {
                 MaterialTheme {
-                    CourseContent(player, annotations = true) {
-                        ContentTheme(ContentColors.forAccent(accent)) {
-                            CompositionLocalProvider(LocalUriHandler provides uri) {
-                                Column(Modifier.fillMaxSize().background(Color(0xFFFAF6EC)).verticalScroll(rememberScrollState()).padding(24.dp).widthIn(max = 760.dp)) {
-                                    ContentView(theory)
+                    val dockTitle = remember { DockTitle() }
+                    Column(Modifier.fillMaxSize()) {
+                        Box(Modifier.weight(1f)) {
+                            CourseContent(player, annotations = true, dockTitle = dockTitle) {
+                                ContentTheme(ContentColors.forAccent(accent)) {
+                                    CompositionLocalProvider(LocalUriHandler provides uri) {
+                                        Column(Modifier.fillMaxSize().background(Color(0xFFFAF6EC)).verticalScroll(rememberScrollState()).padding(24.dp).widthIn(max = 760.dp)) {
+                                            ContentView(theory)
+                                        }
+                                    }
                                 }
                             }
                         }
+                        PlayerDock(player, dockTitle)
                     }
                 }
             }
@@ -217,4 +227,28 @@ class PlayerAndArabicUiTest {
     @Test fun arabicGaps() = lookAt("arabic-gaps", exercise = exercise("""
         { "id": "6f1c2b8e-3d4a-4f5b-9c6d-7e8f9a0b1c2d", "type": "gaps", "instruction": "Type the missing word.",
           "items": [ { "text": "أنا {{دينا}} وأنتِ؟" }, { "text": "ahlan = {{أهلاً}}" } ] }"""))
+
+    @Test fun theDockStaysWhenTheScreenChanges() = runDesktopComposeUiTest(width = 832, height = 700) {
+        // A recording started on one screen goes on when the learner leaves it, and its player stays on every screen.
+        val state = MutableStateFlow(com.polylingy.app.SoundState("course|audio/t.mp3", true, 3f, 29f))
+        val sound = object : com.polylingy.app.SoundPlayer {
+            override fun play(bytes: ByteArray) {}
+            override val state: StateFlow<com.polylingy.app.SoundState> get() = state
+            override fun stop() { state.value = com.polylingy.app.SoundState() }
+        }
+        val container = com.polylingy.app.AppContainer(
+            com.polylingy.client.DesktopStorage.inMemory(), FakeFiles(), com.polylingy.app.MemoryImageStore(), { error("offline") },
+            com.polylingy.client.CourseArchive, com.polylingy.app.SkiaImageDecoder, com.polylingy.app.MovableClock(), kotlin.random.Random(7), sound,
+        )
+        container.seedSample()
+        setContent { com.polylingy.app.App(container, com.polylingy.app.DesktopText) }
+        waitForIdle()
+        onNodeWithContentDescription("Player").assertIsDisplayed()
+        onAllNodesWithText("English Grammar Sampler").onFirst().performClick()
+        waitForIdle()
+        onNodeWithContentDescription("Player").assertIsDisplayed()
+        onNodeWithContentDescription("Close player").performClick()
+        waitForIdle()
+        assertTrue(onAllNodesDescribed("Player").isEmpty(), "closing stops the sound and takes the dock away")
+    }
 }

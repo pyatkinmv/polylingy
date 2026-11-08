@@ -100,8 +100,8 @@ fun interface AudioPlayer {
 
 private val IdlePlayback: StateFlow<Playback> = MutableStateFlow(Playback.Idle)
 
-/** The title the docked player shows: set by the button that started the sound. */
-internal class DockTitle {
+/** The title the docked player shows: set by the button that started the sound. One per app, so it outlives the screen. */
+class DockTitle {
     var text: String? by mutableStateOf(null)
 }
 
@@ -137,16 +137,12 @@ fun ContentTheme(
 
 /**
  * Sounds and annotations for the content inside, for one course; [ContentTheme] inside keeps them unless it is given its own.
- * The docked player of a long recording sits under the content, so it stays in view while the page scrolls.
+ * The docked player of a long recording is not here: it belongs to the app (see [PlayerDock]), so it stays when the screen changes.
  */
 @Composable
-fun CourseContent(audio: AudioPlayer, annotations: Boolean, content: @Composable () -> Unit) {
-    val title = remember { DockTitle() }
-    CompositionLocalProvider(LocalAudioPlayer provides audio, LocalShowAnnotations provides annotations, LocalDockTitle provides title) {
-        Column(Modifier.fillMaxSize()) {
-            Box(Modifier.weight(1f)) { content() }
-            PlayerDock()
-        }
+fun CourseContent(audio: AudioPlayer, annotations: Boolean, dockTitle: DockTitle = remember { DockTitle() }, content: @Composable () -> Unit) {
+    CompositionLocalProvider(LocalAudioPlayer provides audio, LocalShowAnnotations provides annotations, LocalDockTitle provides dockTitle) {
+        content()
     }
 }
 

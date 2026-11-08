@@ -7,6 +7,7 @@ import com.polylingy.client.ImageFetcher
 import com.polylingy.client.ImageStore
 import com.polylingy.client.LocalStorage
 import com.polylingy.content.compose.AudioPlayer
+import com.polylingy.content.compose.DockTitle
 import com.polylingy.content.compose.Playback
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -112,6 +113,25 @@ class AppContainer(
             override fun seekTo(seconds: Float) = sound.seekTo(seconds)
             override fun stop() = sound.stop()
         }
+    }
+
+    /** The title of the sound the docked player shows; the buttons that start a sound set it. One for the whole app. */
+    val dockTitle = DockTitle()
+
+    /**
+     * The sound that is playing now, whichever course started it, for the docked player that stays on every screen:
+     * a recording goes on when the learner leaves the page that started it, and its player must go on too.
+     */
+    val nowPlaying: AudioPlayer = object : AudioPlayer {
+        private val flow = sound.state.map { s -> if (s.key == null) Playback.Idle else Playback(s.key, s.playing, s.position, s.duration) }
+            .stateIn(scope, SharingStarted.Eagerly, Playback.Idle)
+
+        override fun play(src: String) {}
+        override val playback get() = flow
+        override fun pause() = sound.pause()
+        override fun resume() = sound.resume()
+        override fun seekTo(seconds: Float) = sound.seekTo(seconds)
+        override fun stop() = sound.stop()
     }
 
     /** Whether the course's annotations over words show: its "Show annotations over text" setting. */

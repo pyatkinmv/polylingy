@@ -40,6 +40,16 @@ class ContentJsonTest {
         assertFailsWith<ContentFormatException> { blocks("""[ { "type": "tip", "kind": "loud", "blocks": [ { "type": "text", "text": "x" } ] } ]""") }
     }
 
+    @Test fun aGeneratedExerciseIsMarkedAndTheDefaultIsNotWritten() {
+        val json = """{ "id": "${Samples.ID}", "type": "choice", "generated": true, "items": [ { "text": "a = {{x|y}}" } ] }"""
+        val generated = exercise(json)
+        assertEquals(true, generated.generated)
+        assertEquals(true, exercise(ContentJson.encode(Exercise.serializer(), generated)).generated)
+        val written = ContentJson.encode(Exercise.serializer(), exercise(json.replace(""" "generated": true,""", "")))
+        assertEquals(false, exercise(written).generated)
+        assertEquals(false, "generated" in written, "false is the default and is left out")
+    }
+
     @Test fun typeDecidesTheClass() {
         assertIs<Exercise.Gaps>(exercise(Samples.gaps))
         assertIs<Exercise.Choice>(exercise(Samples.choice))

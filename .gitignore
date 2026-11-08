@@ -19,5 +19,5 @@ Thumbs.db
 .claude/settings.local.json
 
 # The full Arabic course carries the publisher's audio, and these are scratch reports: neither goes to git
-examples/arabic-mastering-1-unit1.zip
+examples/arabic-mastering-1.zip
 build-notes/

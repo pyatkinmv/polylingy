@@ -8,10 +8,27 @@ description: Write or extend a Polylingy course file (course.json or a zip with 
 A course is one JSON document, `course.json` (alone, or in a zip with an `images/` folder). Its format is fixed;
 anything outside it is an import error. Do not invent fields, types or values.
 
+## 0. Which file to read
+
+| Situation | Read |
+|---|---|
+| Any course | this file |
+| Made from a book, workbook or other material | `transfer.md` (nothing lost, `generated`, topics, annotations, review file) |
+| The source has pictures, or the course needs some | `pictures.md` |
+| A course was generated or changed | `sanity-check.md`, then `handover.md` |
+
+## Working with the user
+
+- Understand a remark before acting on it: find what is actually wrong, then fix the cause, not only the example.
+- Ask before mass changes (many exercises, a new section, a new rule) and before arguable choices such as where
+  readings go; do not decide them alone.
+- Never add what the user did not ask for (links, extra sections, extra pictures); never remove what they asked for.
+- Say plainly what was not verified. The user may not read the language of the course.
+
 ## 1. Read the format first
 
 - `docs/course.schema.json` — the formal JSON Schema (format 3): every object, field and allowed value. It is the
-  authority on *shape*.
+  authority on *shape* (format 6).
 - `docs/content-format.md` — what each part means and how it looks: sections 2 (the course), 3 (text markup),
   4 (theory blocks), 5 (exercise layers and types), 6 (explanations and links), 7 (pictures).
 - `examples/advanced-grammar.json` and `examples/irregular-verbs.json` — complete, valid courses to copy from.
@@ -58,6 +75,13 @@ Rules that catch most mistakes:
   What the app does by itself (flashcards, repeating, scheduling) or cannot do (handwriting, the book's photos) is left
   out silently, or becomes a plain hint ("say each word aloud"). Notes on what was carried over go in the chat or in a
   report file, never in `course.json`.
+- **Never add resources of the source to the course**: no links to its website, presentations, transcripts, worksheets,
+  flashcards (Memrise etc.), a grammar book or other books of the series, no handwriting practice or videos about
+  writing by hand, no "materials" section. Files the user asks to look at (a presentation) are read and only what the
+  lesson needs is used (words become an exercise); no link stays. A `video` block is named by its content
+  ("Видео: приветствия"), never by its origin or page. Pictures are drawn only where they carry the lesson.
+- After generating a course run `python .claude/skills/make-course/lint.py <course.json|zip>`: it must report 0
+  suspicious texts (source names, pages, "сайт", "материалы", "прописи" and the like).
 - Never copy copyrighted text verbatim from a book: write your own sentences after its structure.
 - Reading aids over words: `[老师](lǎoshī)`; write annotated words of Chinese/Japanese without spaces between them
   (except in `order` answers, where spaces separate the tiles). Dialogues: the `dialogue` block, a sound per line.
@@ -81,6 +105,8 @@ Rules that catch most mistakes:
   "avoid typing"; a topic with only typing exercises still works.
 
 ## 3. Check before handing over
+
+A valid file is not yet a good course: follow `sanity-check.md` and `handover.md` too.
 
 ```bash
 ./gradlew :client:checkCourse -Pcourse=path/to/course.json

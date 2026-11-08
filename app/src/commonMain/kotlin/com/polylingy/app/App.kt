@@ -23,7 +23,12 @@ import com.polylingy.app.study.StudyScreen
 import com.polylingy.app.study.StudyViewModel
 import com.polylingy.app.study.TheoryScreen
 import com.polylingy.app.ui.AppTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.Modifier
 import com.polylingy.content.compose.CourseContent
+import com.polylingy.content.compose.PlayerDock
 import com.polylingy.core.content.CoursePart
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.serialization.Serializable
@@ -137,6 +142,9 @@ fun App(container: AppContainer, text: TextStyle = TextStyle.Default) {
     AppTheme(text) {
         val nav = rememberNavController()
         val go = remember(nav) { Navigator(nav) }
+        // The docked player of a long recording sits under every screen: the sound goes on when the page is left, and so does its player.
+        Column(Modifier.fillMaxSize()) {
+        Box(Modifier.weight(1f)) {
         NavHost(nav, startDestination = CourseListRoute) {
             composable<CourseListRoute> {
                 CourseListScreen(
@@ -168,7 +176,7 @@ fun App(container: AppContainer, text: TextStyle = TextStyle.Default) {
             composable<TheoryRoute> { entry ->
                 val route = entry.toRoute<TheoryRoute>()
                 val course = container.storage.courses.get(Uuid.parse(route.courseId))
-                if (course != null) CourseContent(container.audio(course.id), container.annotations(course.id)) { TheoryScreen(
+                if (course != null) CourseContent(container.audio(course.id), container.annotations(course.id), container.dockTitle) { TheoryScreen(
                     course = course,
                     unitId = Uuid.parse(route.unitId),
                     section = route.section?.let(Uuid::parse),
@@ -183,7 +191,7 @@ fun App(container: AppContainer, text: TextStyle = TextStyle.Default) {
                 val courseId = Uuid.parse(route.courseId)
                 val unitId = route.unitId?.let(Uuid::parse)
                 val part = if (route.unit) CoursePart.Unit(unitId) else CoursePart.Topic(unitId, route.topicId?.let(Uuid::parse))
-                CourseContent(container.audio(courseId), container.annotations(courseId)) {
+                CourseContent(container.audio(courseId), container.annotations(courseId), container.dockTitle) {
                     EditorScreen(
                         viewModel = viewModel { EditorViewModel(container.courseService, container.study, container.storage.courses, courseId, part) },
                         images = container.images(courseId),
@@ -199,7 +207,7 @@ fun App(container: AppContainer, text: TextStyle = TextStyle.Default) {
                 val route = entry.toRoute<StudyRoute>()
                 val courseId = Uuid.parse(route.courseId)
                 val unitId = route.unitId?.let(Uuid::parse)
-                CourseContent(container.audio(courseId), container.annotations(courseId)) {
+                CourseContent(container.audio(courseId), container.annotations(courseId), container.dockTitle) {
                     StudyScreen(
                         viewModel = viewModel { StudyViewModel(container.study, courseId, unitId, route.topicId?.let(Uuid::parse)) },
                         images = container.images(courseId),
@@ -208,6 +216,9 @@ fun App(container: AppContainer, text: TextStyle = TextStyle.Default) {
                     )
                 }
             }
+        }
+        }
+        PlayerDock(container.nowPlaying, container.dockTitle)
         }
     }
 }

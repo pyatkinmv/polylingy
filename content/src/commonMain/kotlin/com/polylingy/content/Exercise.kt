@@ -50,6 +50,9 @@ sealed interface Exercise {
     /** A video to watch before answering, a card above the frame that opens it in the browser; null — none. */
     val video: Block.Video?
 
+    /** Whether the exercise was generated rather than written by the course's author; false — written. Shown nowhere, only in the file. */
+    val generated: Boolean
+
     /**
      * Whether answering means typing on a keyboard. Every type says it itself, so a new type can't be left out: the
      * course setting "avoid typing" prefers the exercises of a topic where this is false.
@@ -70,6 +73,7 @@ sealed interface Exercise {
         override val aside: Aside? = null,
         override val audio: String? = null,
         override val video: Block.Video? = null,
+        override val generated: Boolean = false,
         /** A solved sentence shown first, as "0" in a textbook. */
         val example: Inline? = null,
         override val wordBank: List<String> = emptyList(),
@@ -111,6 +115,7 @@ sealed interface Exercise {
         override val aside: Aside? = null,
         override val audio: String? = null,
         override val video: Block.Video? = null,
+        override val generated: Boolean = false,
         val items: List<ChoiceItem>,
     ) : Exercise {
         override val needsKeyboard get() = false
@@ -175,6 +180,7 @@ sealed interface Exercise {
         override val aside: Aside? = null,
         override val audio: String? = null,
         override val video: Block.Video? = null,
+        override val generated: Boolean = false,
         override val wordBank: List<String> = emptyList(),
         val items: List<PictureItem>,
     ) : Exercise {
@@ -207,6 +213,7 @@ sealed interface Exercise {
         override val aside: Aside? = null,
         override val audio: String? = null,
         override val video: Block.Video? = null,
+        override val generated: Boolean = false,
         val head: List<Inline> = emptyList(),
         val rows: List<List<Inline>>,
     ) : Exercise {
@@ -238,6 +245,7 @@ sealed interface Exercise {
         override val aside: Aside? = null,
         override val audio: String? = null,
         override val video: Block.Video? = null,
+        override val generated: Boolean = false,
         /** Each pair is `[left, right]`. */
         val pairs: List<List<Side>>,
         val extra: List<Side> = emptyList(),
@@ -275,6 +283,7 @@ sealed interface Exercise {
         override val aside: Aside? = null,
         override val audio: String? = null,
         override val video: Block.Video? = null,
+        override val generated: Boolean = false,
         val items: List<OrderItem>,
     ) : Exercise {
         override val needsKeyboard get() = false
@@ -342,6 +351,7 @@ sealed interface Exercise {
         override val aside: Aside? = null,
         override val audio: String? = null,
         override val video: Block.Video? = null,
+        override val generated: Boolean = false,
         override val wordBank: List<String> = emptyList(),
         /** A solved item shown first, as "0" in a textbook. */
         val example: Inline? = null,
@@ -388,6 +398,7 @@ sealed interface Exercise {
         override val aside: Aside? = null,
         override val audio: String? = null,
         override val video: Block.Video? = null,
+        override val generated: Boolean = false,
         val items: List<FixItem>,
     ) : Exercise {
         override val needsKeyboard get() = true
@@ -444,6 +455,7 @@ sealed interface Exercise {
     /** An exercise type from a newer format; it is not shown. */
     @Serializable(with = UnknownExerciseSerializer::class)
     data class Unknown(val raw: JsonObject) : Exercise {
+        override val generated: Boolean get() = false
         val type: String get() = raw.typeName()
         override val look: Look? get() = null
         override val aside: Aside? get() = null

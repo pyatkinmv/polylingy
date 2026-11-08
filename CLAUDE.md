@@ -115,7 +115,7 @@ The course file format is fixed by code, tests and docs together; change all of 
 - a sample in `content/src/commonTest/.../Samples.kt` (and `examples/` when it shows the feature);
 - the format description in `docs/content-format.md`.
 
-To write a course (by hand or from a book), follow `.claude/skills/make-course/SKILL.md`.
+To write a course (by hand or from a book), follow `.claude/skills/make-course/SKILL.md`; it points to `transfer.md` (carrying over from a book, `generated`, review file), `pictures.md`, `sanity-check.md` and `handover.md` in the same folder.
 
 ## Additional Docs
 

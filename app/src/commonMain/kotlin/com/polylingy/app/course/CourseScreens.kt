@@ -331,7 +331,7 @@ fun TheoryButton(accent: Color, onClick: () -> Unit) {
         shape = RoundedCornerShape(8.dp),
         border = androidx.compose.foundation.BorderStroke(1.5.dp, accent),
         colors = ButtonDefaults.outlinedButtonColors(contentColor = accent),
-    ) { Text("Theory") }
+    ) { Text("Theory", maxLines = 1, softWrap = false) }
 }
 
 @Composable
