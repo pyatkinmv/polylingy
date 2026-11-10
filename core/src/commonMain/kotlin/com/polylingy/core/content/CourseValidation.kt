@@ -31,6 +31,11 @@ fun Course.validate(): List<Problem> = buildList {
     }
     description?.let { addAll(it.validate(root / "description")) }
     theme?.accent?.let { if (!Accent.matches(it)) error(root / "theme" / "accent", "must be a colour like #2F6B5E") }
+    if (extraKeys.size > MAX_EXTRA_KEYS) error(root / "extraKeys", "has more than $MAX_EXTRA_KEYS keys")
+    extraKeys.forEachIndexed { i, key ->
+        if (key.isBlank() || key.length > MAX_EXTRA_KEY_LENGTH) error((root / "extraKeys")[i], "must be 1 to $MAX_EXTRA_KEY_LENGTH characters")
+    }
+    if (extraKeys.toSet().size != extraKeys.size) error(root / "extraKeys", "has the same key twice")
     rules?.let { addAll(it.validate(root / "rules")) }
     when {
         units.isNotEmpty() && topics.isNotEmpty() -> error(root, "has both units and topics; a course has one or the other")

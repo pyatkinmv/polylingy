@@ -40,6 +40,22 @@ class ContentJsonTest {
         assertFailsWith<ContentFormatException> { blocks("""[ { "type": "tip", "kind": "loud", "blocks": [ { "type": "text", "text": "x" } ] } ]""") }
     }
 
+    @Test fun pictureSizeAndSituationLookAreReadAndOmittedWhenDefault() {
+        val content = ContentJson.decode(Content.serializer(), Samples.pictureSizes) as Content.Blocks
+        val pictures = content.blocks.filterIsInstance<Block.Picture>()
+        assertEquals(listOf(Aside.Size.SMALL, null), pictures.map { it.size })
+        val situations = content.blocks.filterIsInstance<Block.Situation>()
+        assertEquals(listOf(Block.Situation.Style.PLAIN, Block.Situation.Style.CARD), situations.map { it.look })
+        assertEquals((situations[0].aside as Block.Picture).size, Aside.Size.MEDIUM)
+        val written = ContentJson.encode(Content.serializer(), content)
+        assertEquals(content, ContentJson.decode(Content.serializer(), written))
+        assertEquals(2, Regex("\"size\"").findAll(written).count(), "a picture without a size writes none")
+        assertEquals(emptyList(), content.validate(Path("theory")))
+        assertFailsWith<ContentFormatException> {
+            ContentJson.decode(Content.serializer(), """{ "format": "blocks", "blocks": [ { "type": "image", "src": "a.png", "alt": "A", "size": "huge" } ] }""")
+        }
+    }
+
     @Test fun aGeneratedExerciseIsMarkedAndTheDefaultIsNotWritten() {
         val json = """{ "id": "${Samples.ID}", "type": "choice", "generated": true, "items": [ { "text": "a = {{x|y}}" } ] }"""
         val generated = exercise(json)
@@ -57,6 +73,7 @@ class ContentJsonTest {
         assertIs<Exercise.Table>(exercise(Samples.table))
         assertIs<Exercise.Match>(exercise(Samples.match))
         assertIs<Exercise.Order>(exercise(Samples.order))
+        assertIs<Exercise.Sort>(exercise(Samples.sort))
     }
 
     @Test fun fieldsAreRead() {

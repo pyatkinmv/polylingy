@@ -25,6 +25,19 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.geometry.Offset
@@ -74,8 +87,9 @@ fun ExerciseView(
         val first = (exercise as? Exercise.Choice)?.items?.firstNotNullOfOrNull { it.mark }
         if (first != null) marked = first
     }
+    val focus = LocalFocusManager.current
     CompositionLocalProvider(LocalMarked provides marked) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(18.dp)) {
+    Column(modifier.pointerInput(Unit) { detectTapGestures { focus.clearFocus() } }, verticalArrangement = Arrangement.spacedBy(18.dp)) {
         exercise.instruction?.let { InlineText(it, style = MaterialTheme.typography.titleMedium) }
         WordBank(exercise.wordBank)
         exercise.audio?.let { Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { PlayButton(it, large = true) } }
@@ -88,6 +102,7 @@ fun ExerciseView(
                 is Exercise.Choice -> ChoiceView(exercise, response as Response.Choice, checks, onChange, seed, marked) { marked = it }
                 is Exercise.Match -> MatchView(exercise, response as Response.Match, checks, onChange, seed)
                 is Exercise.Order -> OrderView(exercise, response as Response.Order, checks, onChange, seed)
+                is Exercise.Sort -> SortView(exercise, response as Response.Sort, checks, onChange, seed)
                 is Exercise.Expand -> ExpandView(exercise, response as Response.Blanks, checks, onChange, onSubmit)
                 is Exercise.Fix -> FixView(exercise, response as Response.Blanks, checks, onChange, onSubmit)
                 is Exercise.Unknown -> Text("This exercise needs a newer version of Polylingy.", color = colors.muted)
@@ -157,6 +172,19 @@ internal fun BlankField(
 ) {
     val focus = LocalFocusManager.current
     var focused by remember { mutableStateOf(false) }
+    val keys = LocalExtraKeys.current
+    // The text with its cursor: a key from the bubble goes where the cursor is.
+    var field by remember { mutableStateOf(TextFieldValue(value, TextRange(value.length))) }
+    if (field.text != value) field = TextFieldValue(value, TextRange(value.length))
+    fun change(next: TextFieldValue) {
+        val text = next.text.replace("\n", "").take(maxLength)
+        field = if (text == next.text) next else TextFieldValue(text, TextRange(text.length))
+        onValueChange(text)
+    }
+    fun insert(key: String) {
+        val text = (field.text.substring(0, field.selection.min) + key + field.text.substring(field.selection.max)).take(maxLength)
+        change(TextFieldValue(text, TextRange(minOf(field.selection.min + key.length, text.length))))
+    }
     val full = value.length >= maxLength
     val shape = RoundedCornerShape(8.dp)
     val edge = when {
@@ -165,38 +193,69 @@ internal fun BlankField(
         else -> BlankEdge
     }
     val shown = maxOf(value.length, placeholder?.length ?: 0, minChars)
-    BasicTextField(
-        value = value,
-        onValueChange = { onValueChange(it.replace("\n", "").take(maxLength)) },
-        singleLine = true,
-        textStyle = LocalTextStyle.current.copy(color = colors.ink),
-        cursorBrush = SolidColor(colors.ink),
-        keyboardOptions = KeyboardOptions.Default,
-        modifier = Modifier
-            .width(((minOf(shown, maxLength) + 2) * 9.5).dp)
-            .semantics { contentDescription = label }
-            .onFocusChanged { focused = it.isFocused }
-            .onPreviewKeyEvent {
-                if (it.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
-                when (it.key) {
-                    Key.Tab -> { focus.moveFocus(if (it.isShiftPressed) FocusDirection.Previous else FocusDirection.Next); true }
-                    Key.Enter, Key.NumPadEnter -> { onSubmit(); true }
-                    else -> false
+    Box {
+        BasicTextField(
+            value = field,
+            onValueChange = ::change,
+            singleLine = true,
+            textStyle = LocalTextStyle.current.copy(color = colors.ink),
+            cursorBrush = SolidColor(colors.ink),
+            keyboardOptions = KeyboardOptions.Default,
+            modifier = Modifier
+                .width(((minOf(shown, maxLength) + 2) * 9.5).dp)
+                .semantics { contentDescription = label }
+                .onFocusChanged { focused = it.isFocused }
+                .onPreviewKeyEvent {
+                    if (it.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                    when (it.key) {
+                        Key.Tab -> { focus.moveFocus(if (it.isShiftPressed) FocusDirection.Previous else FocusDirection.Next); true }
+                        Key.Enter, Key.NumPadEnter -> { onSubmit(); true }
+                        else -> false
+                    }
+                },
+            decorationBox = { inner ->
+                Box(
+                    Modifier
+                        .background(colors.card, shape)
+                        .border(if (focused || full) 1.5.dp else 1.dp, edge, shape)
+                        .padding(horizontal = 10.dp, vertical = 3.dp),
+                    contentAlignment = Alignment.CenterStart,
+                ) {
+                    if (value.isEmpty() && placeholder != null) Text(placeholder, color = BlankPlaceholder, maxLines = 1)
+                    inner()
                 }
             },
-        decorationBox = { inner ->
-            Box(
+        )
+        if (focused && keys.isNotEmpty()) KeysBubble(keys, ::insert)
+    }
+}
+
+/**
+ * The keys a course adds to a text field (its `extraKeys`: letters and signs the keyboard has none for), in a small light
+ * bubble above the field while it has focus. A key is not focusable, so pressing one leaves the cursor in the field.
+ */
+@Composable
+private fun KeysBubble(keys: List<String>, onKey: (String) -> Unit) {
+    val lift = with(LocalDensity.current) { 46.dp.roundToPx() }
+    val shape = RoundedCornerShape(10.dp)
+    Popup(alignment = Alignment.TopStart, offset = IntOffset(0, -lift), properties = PopupProperties(focusable = false)) {
+        Row(
+            Modifier.shadow(3.dp, shape).background(Color.White.copy(alpha = 0.94f), shape).border(1.dp, colors.line, shape).padding(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            for (key in keys) Text(
+                key,
                 Modifier
-                    .background(colors.card, shape)
-                    .border(if (focused || full) 1.5.dp else 1.dp, edge, shape)
-                    .padding(horizontal = 10.dp, vertical = 3.dp),
-                contentAlignment = Alignment.CenterStart,
-            ) {
-                if (value.isEmpty() && placeholder != null) Text(placeholder, color = BlankPlaceholder, maxLines = 1)
-                inner()
-            }
-        },
-    )
+                    .semantics { contentDescription = "Key $key" }
+                    .clip(RoundedCornerShape(7.dp))
+                    .focusProperties { canFocus = false }
+                    .clickable { onKey(key) }
+                    .padding(horizontal = 11.dp, vertical = 4.dp),
+                color = colors.ink,
+                fontWeight = FontWeight.Medium,
+            )
+        }
+    }
 }
 
 /** The edges of a blank: resting, typing (ink), full (dark amber); and its placeholder — quiet, but clearly a field. */

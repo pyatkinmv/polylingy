@@ -40,6 +40,7 @@ class SchemaTest {
     @Test fun everySamplePassesTheSchema() {
         for ((name, json) in Samples.exercises) assertEquals(emptyList(), errors("exercise", json), name)
         assertEquals(emptyList(), errors("content", Samples.theory))
+        assertEquals(emptyList(), errors("content", Samples.pictureSizes))
     }
 
     @Test fun whatTheAppWritesPassesTheSchema() {
@@ -87,6 +88,8 @@ class SchemaTest {
             "exercise.match" to Exercise.Match.serializer().descriptor,
             "exercise.order" to Exercise.Order.serializer().descriptor,
             "orderItem" to Exercise.OrderItem.serializer().descriptor,
+            "exercise.sort" to Exercise.Sort.serializer().descriptor,
+            "sortGroup" to Exercise.SortGroup.serializer().descriptor,
             "exercise.expand" to Exercise.Expand.serializer().descriptor,
             "expandItem" to Exercise.ExpandItem.serializer().descriptor,
             "exercise.fix" to Exercise.Fix.serializer().descriptor,

@@ -129,6 +129,16 @@ object Samples {
     """.trimIndent()
 
     /** Order of whole phrases: the lines of a dialogue. */
+    val sort = """
+        { "id": "$ID", "type": "sort", "instruction": "К какому ряду относятся слова?",
+          "groups": [
+            { "title": "задний ряд", "items": ["шатар", "ном"] },
+            { "title": "передний ряд", "items": ["үдэр", "гэр"] } ] }
+    """.trimIndent()
+    val choiceAudio = """
+        { "id": "$ID", "type": "choice", "instruction": "Какое слово вы слышите?",
+          "items": [ { "text": "{{үдэн}}", "options": ["үдэн", "үүдэн"], "audio": "audio/word-01.mp3" } ] }
+    """.trimIndent()
     val orderParts = """
         { "id": "$ID", "type": "order", "instruction": "Расставьте реплики по порядку.",
           "items": [ { "parts": ["[你好](Nǐ hǎo)！", "[你好](Nǐ hǎo)！[你是老师吗](Nǐ shì lǎoshī ma)？", "[不是](Bú shì)。"] } ] }
@@ -141,7 +151,18 @@ object Samples {
     )
 
     /** One sample of each type, to put any look or aside on. */
-    val ofEachType = listOf(gaps, choice, pictures, table, match, order, expand, fix)
+    val ofEachType = listOf(gaps, choice, pictures, table, match, order, sort, expand, fix)
+
+    /** Pictures with a size word, and a situation without a frame. */
+    val pictureSizes = """
+        { "format": "blocks", "blocks": [
+          { "type": "image", "src": "images/tram.png", "alt": "A tram stop", "caption": "My tram stop", "size": "small" },
+          { "type": "image", "src": "images/tram.png", "alt": "A tram stop" },
+          { "type": "situation", "look": "plain",
+            "aside": { "type": "image", "src": "images/tram.png", "alt": "A tram stop", "size": "medium" },
+            "blocks": [ { "type": "text", "text": "A picture that stands beside a paragraph, without a frame." } ] },
+          { "type": "situation", "look": "card", "blocks": [ { "type": "text", "text": "A soft card." } ] } ] }
+    """.trimIndent()
 
     /** Section A of a textbook unit, using every block type. */
     val theory = """

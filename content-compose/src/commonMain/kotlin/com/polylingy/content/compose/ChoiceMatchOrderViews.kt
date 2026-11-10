@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -37,6 +38,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.polylingy.content.Exercise
 import com.polylingy.content.Inline
@@ -49,7 +51,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import kotlin.random.Random
 
-private fun resultColors(result: ItemResult?, colors: ContentColors): Pair<Color, Color> = when (result) {
+internal fun resultColors(result: ItemResult?, colors: ContentColors): Pair<Color, Color> = when (result) {
     ItemResult.CORRECT -> colors.correct to colors.correctBg
     ItemResult.TYPO -> colors.typo to colors.typoBg
     ItemResult.WRONG -> colors.wrong to colors.wrongBg
@@ -110,6 +112,9 @@ internal fun ChoiceView(
                     .then(if (choosable) Modifier.clickable(remember { MutableInteractionSource() }, indication = null, role = androidx.compose.ui.semantics.Role.Button) { onMark(item.mark) } else Modifier)
                     .padding(4.dp),
             ) {
+              Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                // An item with its own sound (a word to recognise by ear) has its play button before it.
+                item.audio?.let { PlayButton(it) }
                 InlineFlow(item.text) { blank ->
                     val p = offsets[i] + blank.index
                     val check = checks?.get(p)
@@ -125,6 +130,7 @@ internal fun ChoiceView(
                         }
                     }
                 }
+              }
             }
         }
     }
@@ -139,12 +145,32 @@ private data class PairMark(val number: Int) {
     val colour: Color get() = PairColours[(number - 1) % PairColours.size]
 }
 
+/** The side of a picture card: every picture card is a square of this size, whatever the picture. */
+private val PictureCard = 128.dp
+
+/** [minHeight]: a text card is at least this tall; beside a picture card it is as tall as the picture card, so the two columns line up. */
 @Composable
-private fun SideCard(side: Side, badge: PairMark?, selected: Boolean, result: ItemResult?, enabled: Boolean, onClick: () -> Unit) {
+private fun SideCard(side: Side, badge: PairMark?, selected: Boolean, result: ItemResult?, enabled: Boolean, minHeight: Dp = 48.dp, onClick: () -> Unit) {
     val (fg, bg) = resultColors(result, colors)
+    if (side is Side.Picture) {
+        // A picture card: a square; the whole picture sits in it, centred and never cut; the pair's number sits in the corner.
+        val cardShape = RoundedCornerShape(12.dp)
+        Box(
+            Modifier.size(PictureCard).clip(cardShape).background(bg, cardShape)
+                .border(if (selected) 2.dp else 1.dp, if (selected) BlankFocus else colors.line, cardShape)
+                .semantics { this.selected = selected }
+                .clickable(remember { MutableInteractionSource() }, indication = null, enabled = enabled, onClick = onClick),
+        ) {
+            Picture(side.image, Modifier.fillMaxSize(), contain = true)
+            if (badge != null) Box(Modifier.padding(6.dp).size(24.dp).background(badge.colour, CircleShape), contentAlignment = Alignment.Center) {
+                Text(badge.label, color = Color.White, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+            }
+        }
+        return
+    }
     val shape = RoundedCornerShape(10.dp)
     Row(
-        Modifier.fillMaxWidth().heightIn(min = 48.dp)
+        Modifier.fillMaxWidth().heightIn(min = minHeight)
             .clip(shape)
             .background(bg, shape)
             .border(if (selected) 1.5.dp else 1.dp, if (selected) BlankFocus else colors.line, shape)
@@ -175,34 +201,43 @@ internal fun MatchView(exercise: Exercise.Match, response: Response.Match, check
     var selected by remember(exercise.id) { mutableStateOf<Int?>(null) }
     val leftOfRight = response.matched.withIndex().filter { it.value != null }.associate { it.value!! to it.index }
 
+    // One left side with, once checked, the right answer under a wrong one.
+    val leftCell: @Composable (Int) -> Unit = { i ->
+        val pair = exercise.pairs[i]
+        val matched = response.matched[i]
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            SideCard(pair[0], if (matched != null) PairMark(i + 1) else null, selected == i, checks?.get(i)?.result, enabled = checks == null) {
+                if (matched != null) onChange(Response.Match(response.matched.toMutableList().also { it[i] = null }))
+                else selected = if (selected == i) null else i
+            }
+            val check = checks?.get(i)
+            if (check != null && check.result != ItemResult.CORRECT) Text("→ ${check.rightAnswer}", color = colors.correct, style = MaterialTheme.typography.bodySmall)
+        }
+    }
+    val rightCell: @Composable (Int, Dp) -> Unit = { r, minHeight ->
+        val left = leftOfRight[r]
+        SideCard(rights[r], left?.let { PairMark(it + 1) }, false, null, enabled = checks == null && (selected != null || left != null), minHeight = minHeight) {
+            val l = selected ?: run {
+                if (left != null) onChange(Response.Match(response.matched.toMutableList().also { it[left] = null }))
+                return@SideCard
+            }
+            val matched = response.matched.map { if (it == r) null else it }.toMutableList().also { it[l] = r }
+            onChange(Response.Match(matched))
+            selected = null
+        }
+    }
+
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         if (checks == null) Text("Click an item on the left, then its match on the right. Click a pair to undo it.", color = colors.muted, style = MaterialTheme.typography.bodySmall)
-        Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                exercise.pairs.forEachIndexed { i, pair ->
-                    val matched = response.matched[i]
-                    SideCard(pair[0], if (matched != null) PairMark(i + 1) else null, selected == i, checks?.get(i)?.result, enabled = checks == null) {
-                        if (matched != null) onChange(Response.Match(response.matched.toMutableList().also { it[i] = null }))
-                        else selected = if (selected == i) null else i
-                    }
-                    val check = checks?.get(i)
-                    if (check != null && check.result != ItemResult.CORRECT) Text("→ ${check.rightAnswer}", color = colors.correct, style = MaterialTheme.typography.bodySmall)
-                }
+        if (exercise.pairs.any { it[0] is Side.Picture }) {
+            // Picture cards on the left: square, all the same; row by row, so each right card is as tall as the picture beside it and both columns end together.
+            for (k in 0 until maxOf(exercise.pairs.size, order.size)) Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.width(PictureCard)) { if (k < exercise.pairs.size) leftCell(k) }
+                Box(Modifier.weight(1f)) { order.getOrNull(k)?.let { rightCell(it, PictureCard) } }
             }
-            Column(Modifier.weight(1.3f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                for (r in order) {
-                    val left = leftOfRight[r]
-                    SideCard(rights[r], left?.let { PairMark(it + 1) }, false, null, enabled = checks == null && (selected != null || left != null)) {
-                        val l = selected ?: run {
-                            if (left != null) onChange(Response.Match(response.matched.toMutableList().also { it[left] = null }))
-                            return@SideCard
-                        }
-                        val matched = response.matched.map { if (it == r) null else it }.toMutableList().also { it[l] = r }
-                        onChange(Response.Match(matched))
-                        selected = null
-                    }
-                }
-            }
+        } else Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) { for (i in exercise.pairs.indices) leftCell(i) }
+            Column(Modifier.weight(1.3f), verticalArrangement = Arrangement.spacedBy(8.dp)) { for (r in order) rightCell(r, 48.dp) }
         }
     }
 }
@@ -212,7 +247,7 @@ internal fun MatchView(exercise: Exercise.Match, response: Response.Match, check
  * place a used word leaves in the bank: it keeps the bank still and is neither clickable nor read out.
  */
 @Composable
-private fun Tile(word: String, result: ItemResult?, enabled: Boolean, faded: Boolean = false, onClick: () -> Unit) {
+internal fun Tile(word: String, result: ItemResult?, enabled: Boolean, faded: Boolean = false, onClick: () -> Unit) {
     val (fg, bg) = when {
         result != null -> resultColors(result, colors)
         faded -> colors.line to colors.panel
@@ -243,11 +278,11 @@ private fun Slot(next: Boolean) {
     )
 }
 
-private val WordEdge = Color(0xFFD6CCB8)
+internal val WordEdge = Color(0xFFD6CCB8)
 private val SlotEdge = Color(0xFFC9BFAC)
 
 /** A dashed rounded edge, for places that wait for something. */
-private fun Modifier.dashedBorder(colour: Color, radius: androidx.compose.ui.unit.Dp) = drawBehind {
+internal fun Modifier.dashedBorder(colour: Color, radius: androidx.compose.ui.unit.Dp) = drawBehind {
     val stroke = 1.5.dp.toPx()
     drawRoundRect(
         colour,

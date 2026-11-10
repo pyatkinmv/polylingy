@@ -52,6 +52,23 @@ kover {
 
 tasks.named("check") { dependsOn("koverVerify") }
 
+// Imports a course file into the real database as the Import button does (close the app first):
+// ./gradlew :client:importCourse -Pcourse=path/to/course.zip [-Pdelete=id1,id2]  (the delete ids are removed first)
+tasks.register<JavaExec>("importCourse") {
+    group = "application"
+    description = "Imports a course file (-Pcourse=path) into <Documents>/polylingy as the Import button does."
+    val desktop = kotlin.jvm("desktop").compilations.getByName("main")
+    classpath = files(desktop.output.allOutputs, desktop.runtimeDependencyFiles)
+    mainClass.set("com.polylingy.client.ImportCourse")
+    javaLauncher.set(javaToolchains.launcherFor { languageVersion.set(JavaLanguageVersion.of(libs.versions.jdk.get().toInt())) })
+    jvmArgs("--enable-native-access=ALL-UNNAMED")
+    workingDir = rootDir
+    args(
+        (project.findProperty("delete") as String?)?.let { listOf("--delete=$it") }.orEmpty() +
+            (project.findProperty("course") as String?)?.split(",").orEmpty(),
+    )
+}
+
 // Checks a course file as import does: ./gradlew :client:checkCourse -Pcourse=path/to/course.json (or .zip)
 tasks.register<JavaExec>("checkCourse") {
     group = "verification"

@@ -147,4 +147,17 @@ class ExerciseCheckerTest {
         val unknown = exercise("dictation", """"audio": "a.mp3"""")
         assertFailsWith<IllegalArgumentException> { Checking.check(unknown, Response.Blanks(emptyList())) }
     }
+
+    private val sort = exercise("sort", """"groups": [
+        { "title": "задний ряд", "items": ["шатар", "ном"] },
+        { "title": "передний ряд", "items": ["үдэр"] } ]""")
+
+    @Test fun eachWordMustBeInItsOwnGroup() = assertEquals(
+        listOf(ItemCheck(CORRECT, "задний ряд"), ItemCheck(WRONG, "задний ряд"), ItemCheck(CORRECT, "передний ряд")),
+        Checking.check(sort, Response.Sort(listOf(0, 1, 1))),
+    )
+
+    @Test fun aWordLeftInThePileIsWrong() = assertEquals(
+        WRONG, Checking.check(sort, Response.Sort(listOf(0, 0, null)))[2].result,
+    )
 }

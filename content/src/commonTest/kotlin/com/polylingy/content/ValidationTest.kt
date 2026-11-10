@@ -41,7 +41,7 @@ class ValidationTest {
 
     @Test fun everyTypeSaysWhetherItNeedsAKeyboard() {
         val typing = Samples.ofEachType.map { exercise(it) }.associate { it::class.simpleName.orEmpty() to it.needsKeyboard }
-        assertEquals(mapOf("Gaps" to true, "Choice" to false, "Pictures" to true, "Table" to true, "Match" to false, "Order" to false,
+        assertEquals(mapOf("Gaps" to true, "Choice" to false, "Pictures" to true, "Table" to true, "Match" to false, "Order" to false, "Sort" to false,
             "Expand" to true, "Fix" to true), typing)
     }
 
@@ -379,5 +379,17 @@ class ValidationTest {
             .single().kind == Problem.Kind.UNKNOWN_TYPE)
         assertEquals(listOf("exercises[0]: unknown exercise type \"dictation\""),
             problemsOf("""{ "id": "${Samples.ID}", "type": "dictation", "audio": "a.mp3" }"""))
+    }
+
+    @Test fun sortNeedsTwoGroupsAndEachWordOnce() {
+        assertProblems(ex("sort", """"groups": [ { "title": "a", "items": ["x", "y"] } ]"""),
+            "exercises[0].groups: needs 2 to 6 groups", "exercises[0].groups: needs 3 to 24 words in all")
+        assertTrue(problemsOf(ex("sort", """"groups": [ { "title": "a", "items": ["x", "y"] }, { "title": "b", "items": ["x"] } ]""")).isNotEmpty())
+    }
+
+    @Test fun anItemOfAChoiceMayHaveItsOwnSound() {
+        assertEquals(emptyList(), problemsOf(Samples.choiceAudio))
+        assertTrue(problemsOf(Samples.choiceAudio.replace("audio/word-01.mp3", "../x.mp3")).isNotEmpty())
+        assertEquals(listOf("audio/word-01.mp3"), exercise(Samples.choiceAudio).audios(at).map { it.second })
     }
 }

@@ -26,6 +26,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.polylingy.content.Aside
@@ -126,7 +127,7 @@ private fun WithAside(aside: Aside?, body: @Composable () -> Unit) {
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         val side = if (maxWidth < NarrowWidth && aside.side in setOf(Aside.Edge.LEFT, Aside.Edge.RIGHT)) Aside.Edge.TOP else aside.side
         val picture = @Composable {
-            Picture(aside.image, Modifier.width(maxWidth * share(side, aside.size)).semantics { contentDescription = "Aside" })
+            Picture(aside.image, Modifier.width(minOf(maxWidth * share(side, aside.size), asideCap(side, aside.size))).semantics { contentDescription = "Aside" }, rounded = true)
         }
         when (side) {
             Aside.Edge.LEFT, Aside.Edge.RIGHT -> Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
@@ -140,6 +141,20 @@ private fun WithAside(aside: Aside?, body: @Composable () -> Unit) {
                 if (side == Aside.Edge.BOTTOM) picture()
             }
         }
+    }
+}
+
+/** The most a picture of this size may take in dp, so that a wide window does not stretch it. */
+internal fun asideCap(side: Aside.Edge, size: Aside.Size): Dp = when (side) {
+    Aside.Edge.LEFT, Aside.Edge.RIGHT -> when (size) {
+        Aside.Size.SMALL -> 160.dp
+        Aside.Size.MEDIUM -> 220.dp
+        Aside.Size.LARGE -> 320.dp
+    }
+    Aside.Edge.TOP, Aside.Edge.BOTTOM -> when (size) {
+        Aside.Size.SMALL -> 220.dp
+        Aside.Size.MEDIUM -> 340.dp
+        Aside.Size.LARGE -> 520.dp
     }
 }
 

@@ -10,7 +10,11 @@ import kotlin.time.Instant
 import kotlin.uuid.Uuid
 
 /** The course file format this app reads and writes; see docs/content-format.md, section 9. */
-const val FORMAT_VERSION = 6
+const val FORMAT_VERSION = 7
+
+/** At most this many extra keys, each at most this long (docs/content-format.md). */
+const val MAX_EXTRA_KEYS = 12
+const val MAX_EXTRA_KEY_LENGTH = 8
 
 /**
  * A course is a versioned document: it is always saved and synced as a whole, in the same JSON as the course file.
@@ -26,6 +30,11 @@ data class Course(
     val revision: Int = 0,
     val updatedAt: Instant,
     val theme: Theme? = null,
+    /**
+     * Keys the course adds to every text field because the keyboard has none for them (the letters of its language, say):
+     * the field shows them above itself while it has focus, and a key puts its text where the cursor is.
+     */
+    val extraKeys: List<String> = emptyList(),
     /**
      * Course policies as the file gives them; without them, the ladder preset. They are copied into the course's settings
      * on import and not used after that: the settings are what counts (docs/architecture.md, section 5).

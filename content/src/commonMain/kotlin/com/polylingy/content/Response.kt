@@ -28,6 +28,11 @@ sealed interface Response {
     @Serializable
     @SerialName("order")
     data class Order(val sentences: List<List<String>>) : Response
+
+    /** For sort: for each word ([Exercise.Sort.entries]), the index of the group the learner put it in, or null if it is still in the pile. */
+    @Serializable
+    @SerialName("sort")
+    data class Sort(val placed: List<Int?>) : Response
 }
 
 /** The result of checking one item. */
@@ -46,6 +51,7 @@ fun Exercise.emptyResponse(): Response = when (this) {
     is Exercise.Choice -> Response.Choice(List(itemCount) { null })
     is Exercise.Match -> Response.Match(List(pairs.size) { null })
     is Exercise.Order -> Response.Order(List(items.size) { emptyList() })
+    is Exercise.Sort -> Response.Sort(List(itemCount) { null })
     is Exercise.Unknown -> throw IllegalArgumentException("an exercise of unknown type \"$type\" can't be answered")
 }
 
@@ -57,12 +63,12 @@ val Exercise.blanks: List<InlineNode.Blank>
         is Exercise.Table -> rows.flatten().flatMap { it.blanks }
         is Exercise.Expand -> items.flatMap { it.text.blanks }
         is Exercise.Fix -> items.flatMap { it.text.blanks }
-        is Exercise.Choice, is Exercise.Match, is Exercise.Order, is Exercise.Unknown -> emptyList()
+        is Exercise.Choice, is Exercise.Match, is Exercise.Order, is Exercise.Sort, is Exercise.Unknown -> emptyList()
     }
 
 /**
  * Whether [response] has an answer for every item, so that "Check" makes sense: every blank typed, every place picked,
- * every pair matched (sides that fit nothing stay free), every sentence put together. A fix keeps a mark as it is with an
+ * every pair matched (sides that fit nothing stay free), every sentence put together, every word put in a group. A fix keeps a mark as it is with an
  * empty answer, so it is always complete.
  */
 fun Exercise.isComplete(response: Response): Boolean = when (this) {
@@ -74,5 +80,6 @@ fun Exercise.isComplete(response: Response): Boolean = when (this) {
     is Exercise.Order -> (response as? Response.Order)?.sentences?.let { placed ->
         placed.size == items.size && items.indices.all { placed[it].size == items[it].words.size }
     } == true
+    is Exercise.Sort -> (response as? Response.Sort)?.placed?.all { it != null } == true
     is Exercise.Unknown -> false
 }

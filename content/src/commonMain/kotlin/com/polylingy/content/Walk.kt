@@ -45,8 +45,11 @@ fun Content.audios(at: Path): List<Pair<Path, String>> = walk(at).flatMap { (pat
 }
 
 /** Every sound of this exercise, its explanation included, with its path. */
-fun Exercise.audios(at: Path): List<Pair<Path, String>> =
-    listOfNotNull(audio?.let { at / "audio" to it }) + explanation?.audios(at / "explanation").orEmpty()
+fun Exercise.audios(at: Path): List<Pair<Path, String>> {
+    val ofItems = (this as? Exercise.Choice)?.items.orEmpty()
+        .mapIndexedNotNull { i, item -> item.audio?.let { (at / "items")[i] / "audio" to it } }
+    return listOfNotNull(audio?.let { at / "audio" to it }) + ofItems + explanation?.audios(at / "explanation").orEmpty()
+}
 
 /** Every picture of this exercise, its explanation included, with the path of its `src`. */
 fun Exercise.images(at: Path): List<Pair<Path, Image>> {
@@ -58,7 +61,7 @@ fun Exercise.images(at: Path): List<Pair<Path, Image>> {
             }
             extra.forEachIndexed { e, side -> if (side is Side.Picture) add((at / "extra")[e] / "image" / "src" to side.image) }
         }
-        is Exercise.Gaps, is Exercise.Choice, is Exercise.Table, is Exercise.Order, is Exercise.Expand, is Exercise.Fix,
+        is Exercise.Gaps, is Exercise.Choice, is Exercise.Table, is Exercise.Order, is Exercise.Sort, is Exercise.Expand, is Exercise.Fix,
         is Exercise.Unknown -> emptyList()
     }
     val aside = aside?.let { listOf(at / "aside" / "image" / "src" to it.image) }.orEmpty()
@@ -73,6 +76,7 @@ fun Exercise.withId(id: Uuid): Exercise = when (this) {
     is Exercise.Table -> copy(id = id)
     is Exercise.Match -> copy(id = id)
     is Exercise.Order -> copy(id = id)
+    is Exercise.Sort -> copy(id = id)
     is Exercise.Expand -> copy(id = id)
     is Exercise.Fix -> copy(id = id)
     is Exercise.Unknown -> copy(raw = JsonObject(raw + ("id" to JsonPrimitive(id.toString()))))
@@ -101,6 +105,7 @@ fun Exercise.mapLinks(transform: (Block.Link) -> Block.Link): Exercise = when (t
     is Exercise.Table -> copy(explanation = explanation?.mapLinks(transform))
     is Exercise.Match -> copy(explanation = explanation?.mapLinks(transform))
     is Exercise.Order -> copy(explanation = explanation?.mapLinks(transform))
+    is Exercise.Sort -> copy(explanation = explanation?.mapLinks(transform))
     is Exercise.Expand -> copy(explanation = explanation?.mapLinks(transform))
     is Exercise.Fix -> copy(explanation = explanation?.mapLinks(transform))
     is Exercise.Unknown -> this

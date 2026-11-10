@@ -109,7 +109,7 @@ private fun ExerciseBody(
             }
         }
         val onLink: (Block.Link) -> Unit = { link -> links.target(link)?.let { go.theory(course.id, it.unitId, it.section, back = true) } }
-        ContentTheme(ContentColors.forAccent(null), images, links.names) {
+        ContentTheme(ContentColors.forAccent(null), images, links.names, extraKeys = course.extraKeys) {
             ExerciseView(
                 exercise = state.next.exercise,
                 response = state.response,

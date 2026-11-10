@@ -111,10 +111,12 @@ internal val LocalLinkNames = staticCompositionLocalOf { LinkNames { null } }
 internal val LocalAudioPlayer = staticCompositionLocalOf { AudioPlayer {} }
 internal val LocalShowAnnotations = staticCompositionLocalOf { true }
 internal val LocalDockTitle = staticCompositionLocalOf { DockTitle() }
+internal val LocalExtraKeys = staticCompositionLocalOf { emptyList<String>() }
 
 /**
  * Provides colours, pictures, sounds and link names to the content views inside, and whether annotations over words
- * show ([annotations], a course setting).
+ * show ([annotations], a course setting). [extraKeys] are the keys the course adds to a text field because the keyboard has none
+ * for them (the course's `extraKeys`); the field shows them while it has focus.
  */
 @Composable
 fun ContentTheme(
@@ -123,9 +125,11 @@ fun ContentTheme(
     links: LinkNames = LinkNames { null },
     audio: AudioPlayer = LocalAudioPlayer.current,
     annotations: Boolean = LocalShowAnnotations.current,
+    extraKeys: List<String> = LocalExtraKeys.current,
     content: @Composable () -> Unit,
 ) {
     CompositionLocalProvider(
+        LocalExtraKeys provides extraKeys,
         LocalContentColors provides colors,
         LocalImageLoader provides images,
         LocalLinkNames provides links,

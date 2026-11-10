@@ -54,8 +54,8 @@
       "type": "object",
       "properties": {
         "formatVersion": {
-          "description": "The format this file is written in. This schema describes 6.",
-          "const": 6
+          "description": "The format this file is written in. This schema describes 7.",
+          "const": 7
         },
         "id": {
           "$ref": "#/$defs/uuid"
@@ -95,6 +95,18 @@
           "items": {
             "$ref": "#/$defs/topic"
           }
+        },
+        "extraKeys": {
+          "description": "Keys the course adds to every text field because the keyboard has none for them, e.g. letters of the language: shown above the field while it has focus.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8,
+            "pattern": "\\S"
+          },
+          "maxItems": 12,
+          "uniqueItems": true
         }
       },
       "required": [
@@ -531,7 +543,7 @@
       "additionalProperties": false
     },
     "block.situation": {
-      "description": "A framed example situation, with an optional aside block (usually a picture).",
+      "description": "An example situation, with an optional aside block (usually a picture).",
       "type": "object",
       "properties": {
         "type": {
@@ -546,6 +558,14 @@
         },
         "aside": {
           "$ref": "#/$defs/block"
+        },
+        "look": {
+          "description": "How the situation is set off from the text: a soft card (default) or no frame.",
+          "enum": [
+            "card",
+            "plain"
+          ],
+          "default": "card"
         }
       },
       "required": [
@@ -573,6 +593,15 @@
         },
         "caption": {
           "$ref": "#/$defs/inline"
+        },
+        "size": {
+          "description": "How big the picture is: a word, not pixels; the same words as an exercise's aside.",
+          "enum": [
+            "small",
+            "medium",
+            "large"
+          ],
+          "default": "medium"
         }
       },
       "required": [
@@ -937,6 +966,9 @@
           "$ref": "#/$defs/exercise.order"
         },
         {
+          "$ref": "#/$defs/exercise.sort"
+        },
+        {
           "$ref": "#/$defs/exercise.expand"
         },
         {
@@ -1229,6 +1261,9 @@
           "type": "string",
           "minLength": 1,
           "pattern": "\\S"
+        },
+        "audio": {
+          "$ref": "#/$defs/audio"
         }
       },
       "required": [
@@ -1533,6 +1568,76 @@
           ]
         }
       ]
+    },
+    "exercise.sort": {
+      "description": "Words to sort into groups: the words are shown shuffled in one pile, the learner puts each into its group.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "sort"
+        },
+        "id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "instruction": {
+          "$ref": "#/$defs/inline"
+        },
+        "explanation": {
+          "$ref": "#/$defs/content"
+        },
+        "look": {
+          "$ref": "#/$defs/look"
+        },
+        "aside": {
+          "$ref": "#/$defs/aside"
+        },
+        "audio": {
+          "$ref": "#/$defs/audio"
+        },
+        "video": {
+          "$ref": "#/$defs/video"
+        },
+        "groups": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/sortGroup"
+          },
+          "minItems": 2,
+          "maxItems": 6
+        },
+        "generated": {
+          "description": "True when the exercise was generated, not written by the course's author; default false.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type",
+        "groups"
+      ],
+      "additionalProperties": false
+    },
+    "sortGroup": {
+      "description": "A group and the words that belong to it; each word is in one group only, and 3 to 24 words in all.",
+      "type": "object",
+      "properties": {
+        "title": {
+          "$ref": "#/$defs/inline"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "title",
+        "items"
+      ],
+      "additionalProperties": false
     },
     "exercise.expand": {
       "description": "Replies to write from notes (the word bank). An answer is right when it has the key words of one of the orders, in that order, with any words between them.",

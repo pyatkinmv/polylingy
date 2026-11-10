@@ -53,6 +53,16 @@ class TheoryElementsUiTest {
         screenshot("theory-elements")
     }
 
+    @Test fun aSectionWithOnlyAVideoHasNoHeading() = runDesktopComposeUiTest(width = 700, height = 600) {
+        val content = ContentJson.decode(Content.serializer(), """{ "format": "blocks", "blocks": [
+            { "type": "section", "title": "Name of the link", "blocks": [ { "type": "video", "title": "The video card", "url": "https://www.youtube.com/watch?v=abc" } ] } ] }""")
+        setContent {
+            MaterialTheme { ContentTheme(ContentColors.forAccent(null)) { Column(Modifier.fillMaxSize().padding(24.dp)) { ContentView(content) } } }
+        }
+        onNodeWithText("The video card").assertIsDisplayed()
+        onNodeWithText("Name of the link").assertDoesNotExist()
+    }
+
     @Test fun theWordsAroundTheContentFollowTheLanguageOfTheApp() = runDesktopComposeUiTest(width = 700, height = 1000) {
         val content = ContentJson.decode(Content.serializer(), theory)
         setContent {

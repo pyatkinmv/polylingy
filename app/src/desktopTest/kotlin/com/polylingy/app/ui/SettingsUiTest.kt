@@ -185,7 +185,7 @@ class SettingsUiTest {
         assertEquals(listOf(com.polylingy.content.ItemResult.TYPO), journal.results)
     }
 
-    @Test fun aCourseFromANewerVersionHasNoSettings() = appTest({ it.seedCourse(course.replace("\"formatVersion\": 2", "\"formatVersion\": 7")) }) {
+    @Test fun aCourseFromANewerVersionHasNoSettings() = appTest({ it.seedCourse(course.replace("\"formatVersion\": 2", "\"formatVersion\": 8")) }) {
         click("Irregular verbs")
         assertTrue(test.onAllNodesWithText("Study settings").fetchSemanticsNodes().isEmpty())
         click("Courses")

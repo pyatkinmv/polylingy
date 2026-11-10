@@ -101,6 +101,17 @@ object OrderChecker : ExerciseChecker<Exercise.Order, Response.Order> {
     }
 }
 
+/** Each word must be in the group it belongs to; the right answer shown is the title of that group. */
+object SortChecker : ExerciseChecker<Exercise.Sort, Response.Sort> {
+    override fun check(exercise: Exercise.Sort, response: Response.Sort): List<ItemCheck> {
+        val entries = exercise.entries
+        require(response.placed.size == entries.size) { "expected ${entries.size} placements, got ${response.placed.size}" }
+        return entries.zip(response.placed) { entry, placed ->
+            ItemCheck(if (placed == entry.group) ItemResult.CORRECT else ItemResult.WRONG, exercise.groups[entry.group].title.plainText())
+        }
+    }
+}
+
 /** Checks any exercise with the checker of its type. */
 object Checking {
     fun check(exercise: Exercise, response: Response): List<ItemCheck> = when (exercise) {
@@ -108,6 +119,7 @@ object Checking {
         is Exercise.Choice -> ChoiceChecker.check(exercise, response.expect())
         is Exercise.Match -> MatchChecker.check(exercise, response.expect())
         is Exercise.Order -> OrderChecker.check(exercise, response.expect())
+        is Exercise.Sort -> SortChecker.check(exercise, response.expect())
         is Exercise.Expand -> ExpandChecker.check(exercise, response.expect())
         is Exercise.Fix -> FixChecker.check(exercise, response.expect())
         is Exercise.Unknown -> throw IllegalArgumentException("an exercise of unknown type \"${exercise.type}\" can't be checked")

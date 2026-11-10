@@ -67,20 +67,30 @@ sealed interface Block {
         }
     }
 
-    /** A framed example situation, with an optional [aside] (usually a picture) next to it. */
+    /**
+     * An example situation, with an optional [aside] (usually a picture) next to it. A [look] says how it is set off from the text:
+     * a soft card (the default) or no frame at all, for a picture that simply stands beside a paragraph.
+     */
     @Serializable
     @SerialName("situation")
-    data class Situation(val blocks: List<Block>, val aside: Block? = null) : Block {
+    data class Situation(val blocks: List<Block>, val aside: Block? = null, val look: Style? = null) : Block {
         override fun validate(at: Path) = checks {
             require(blocks.isNotEmpty(), at / "blocks", "needs at least one block")
             blocks(blocks, at / "blocks")
             aside?.let { nested(it.validate(at / "aside")) }
         }
+
+        @Serializable
+        enum class Style {
+            @SerialName("card") CARD,
+            @SerialName("plain") PLAIN,
+        }
     }
 
+    /** A picture. Its [size] is a word, not pixels (the same words as an exercise's aside): the app keeps it small enough not to fill a wide window. */
     @Serializable
     @SerialName("image")
-    data class Picture(val src: String, val alt: String, val caption: Inline? = null) : Block {
+    data class Picture(val src: String, val alt: String, val caption: Inline? = null, val size: Aside.Size? = null) : Block {
         val image: Image get() = Image(src, alt, caption)
         override fun validate(at: Path) = checks { image(src, alt, caption, at) }
     }

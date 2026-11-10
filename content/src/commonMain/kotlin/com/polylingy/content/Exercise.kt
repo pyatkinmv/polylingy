@@ -132,6 +132,7 @@ sealed interface Exercise {
                 val itemAt = (at / "items")[i]
                 text(item.note, itemAt / "note")
                 notBlank(item.mark, itemAt / "mark")
+                audio(item.audio, itemAt / "audio")
                 if (item.options.isNotEmpty()) {
                     text(item.text, itemAt / "text", BlankRule.EXACTLY_ONE)
                     val options = itemAt / "options"
@@ -158,9 +159,16 @@ sealed interface Exercise {
      * [options] are given for an item with one place; empty when each place lists its options in the text. [mark] is a piece
      * of text the item is about ("ب" in "how many times does ب appear"): once the exercise is checked, choosing the item shows
      * every place of it in the text of the exercise's frame (a headline, a letter), so the learner sees what was meant.
+     * [audio] is a sound of this item alone (a word to recognise by ear); its play button stands before the item.
      */
     @Serializable
-    data class ChoiceItem(val text: Inline, val options: List<String> = emptyList(), val note: Inline? = null, val mark: String? = null) {
+    data class ChoiceItem(
+        val text: Inline,
+        val options: List<String> = emptyList(),
+        val note: Inline? = null,
+        val mark: String? = null,
+        val audio: String? = null,
+    ) {
         val places: List<ChoicePlace>
             get() = if (options.isNotEmpty()) text.blanks.map { ChoicePlace(options, it.answer) }
             else text.blanks.map { ChoicePlace(it.variants, it.answer) }
@@ -337,6 +345,53 @@ sealed interface Exercise {
     }
 
     /**
+     * Words to sort into groups: each group has a [SortGroup.title] and the words that belong to it. The words are shown
+     * shuffled in one pile; the learner puts each into a group. Each word is one checked item ([entries]).
+     */
+    @Serializable
+    @SerialName("sort")
+    data class Sort(
+        override val id: Uuid,
+        override val instruction: Inline? = null,
+        override val explanation: Content? = null,
+        override val look: Look? = null,
+        override val aside: Aside? = null,
+        override val audio: String? = null,
+        override val video: Block.Video? = null,
+        override val generated: Boolean = false,
+        val groups: List<SortGroup>,
+    ) : Exercise {
+        override val needsKeyboard get() = false
+        override val wordBank: List<String> get() = emptyList()
+        override val itemCount get() = groups.sumOf { it.items.size }
+
+        /** Every word with the index of its right group, group by group; [Response.Sort.placed] follows it. */
+        val entries: List<SortEntry> get() = groups.flatMapIndexed { g, group -> group.items.map { SortEntry(it, g) } }
+
+        override fun validate(at: Path) = checks {
+            common(this@Sort, at)
+            require(groups.size in 2..MAX_SORT_GROUPS, at / "groups", "needs 2 to $MAX_SORT_GROUPS groups")
+            val seen = mutableSetOf<String>()
+            groups.forEachIndexed { g, group ->
+                val groupAt = (at / "groups")[g]
+                text(group.title, groupAt / "title")
+                require(group.items.isNotEmpty(), groupAt / "items", "needs at least one word")
+                group.items.forEachIndexed { i, word ->
+                    notBlank(word, (groupAt / "items")[i])
+                    require(seen.add(word.trim().lowercase()), (groupAt / "items")[i], "\"$word\" is in two groups or twice in one")
+                }
+            }
+            require(itemCount in 3..MAX_SORT_ITEMS, at / "groups", "needs 3 to $MAX_SORT_ITEMS words in all")
+        }
+    }
+
+    @Serializable
+    data class SortGroup(val title: Inline, val items: List<String>)
+
+    /** One word of a [Sort] and the index of the group it belongs to. */
+    data class SortEntry(val text: String, val group: Int)
+
+    /**
      * Replies to write from notes. The item's one blank holds the model answer (variants allowed); the learner types the
      * whole answer, which is right when it has the key words of one of [ExpandItem.keys] in that order, with any words
      * between them. The notes to use are the [wordBank].
@@ -473,6 +528,9 @@ sealed interface Exercise {
 }
 
 private const val ENDING = ".?!…。？！"
+
+const val MAX_SORT_GROUPS = 6
+const val MAX_SORT_ITEMS = 24
 
 internal fun words(sentence: String): List<String> = sentence.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }
 

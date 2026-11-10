@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -46,6 +48,7 @@ import androidx.compose.ui.graphics.Color
 import kotlinx.coroutines.delay
 import kotlin.uuid.Uuid
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -66,6 +69,15 @@ import com.polylingy.content.Inline
 /** Below this width an aside goes under the content instead of beside it. */
 private val NarrowWidth = 560.dp
 private val AsideMaxWidth = 280.dp
+private val SmallAside = 120.dp
+private val MediumAside = 180.dp
+
+/** How wide a picture block may be: a word, not pixels; the column is still the limit on a narrow window. */
+internal fun pictureMaxWidth(size: com.polylingy.content.Aside.Size?): Dp = when (size) {
+    com.polylingy.content.Aside.Size.SMALL -> 160.dp
+    null, com.polylingy.content.Aside.Size.MEDIUM -> 300.dp
+    com.polylingy.content.Aside.Size.LARGE -> 560.dp
+}
 
 /**
  * A page of content: unit theory or an explanation. [onLink] is called for a "see also" link.
@@ -117,7 +129,10 @@ fun BlockView(block: Block, onLink: (Block.Link) -> Unit = {}) {
     when (block) {
         is Block.Section -> {
             val label = block.label
-            if (label != null) Row(Modifier.highlightedSection(block.id), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            val onlyVideo = label == null && block.blocks.singleOrNull() is Block.Video
+            // A section that holds just a video has the title only as the name of links to it: the video card is its own heading.
+            if (onlyVideo) Column(Modifier.highlightedSection(block.id).padding(top = 6.dp)) { Blocks(block.blocks, onLink = onLink, spacing = 10) }
+            else if (label != null) Row(Modifier.highlightedSection(block.id), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 Text(label, Modifier.width(32.dp), style = MaterialTheme.typography.headlineMedium, color = colors.accent)
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     block.title?.let { InlineText(it, style = MaterialTheme.typography.titleMedium) }
@@ -131,18 +146,25 @@ fun BlockView(block: Block, onLink: (Block.Link) -> Unit = {}) {
         is Block.Text -> when (block.role) {
             Block.Text.Role.LEAD -> InlineText(
                 block.text,
-                style = MaterialTheme.typography.bodyLarge.copy(fontStyle = FontStyle.Italic, fontSize = 20.sp, lineHeight = 30.sp, color = colors.muted),
+                style = MaterialTheme.typography.bodyLarge.copy(fontStyle = FontStyle.Italic, fontSize = 20.sp, lineHeight = 30.sp, color = colors.ink),
             )
             null -> InlineText(block.text)
         }
         is Block.Track -> TrackView(block)
         is Block.Video -> VideoView(block)
-        is Block.Situation -> Box(
-            Modifier.fillMaxWidth().border(1.dp, colors.line, RoundedCornerShape(10.dp)).padding(16.dp),
-        ) {
-            WithAside(block.aside, asideFirst = false, onLink = onLink) { Blocks(block.blocks, onLink = onLink, spacing = 10) }
+        is Block.Situation -> {
+            val card = block.look != Block.Situation.Style.PLAIN
+            Box(
+                if (card) Modifier.fillMaxWidth().background(colors.accentSoft, RoundedCornerShape(14.dp)).padding(horizontal = 16.dp, vertical = 14.dp)
+                else Modifier.fillMaxWidth(),
+            ) {
+                // A thumbnail stands before the text, like an avatar; a bigger picture stands after it.
+                WithAside(block.aside, asideFirst = (block.aside as? Block.Picture)?.size == com.polylingy.content.Aside.Size.SMALL, onLink = onLink) { Blocks(block.blocks, onLink = onLink, spacing = 10) }
+            }
         }
-        is Block.Picture -> Picture(block.image, Modifier.fillMaxWidth())
+        is Block.Picture -> Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+            Picture(block.image, Modifier.widthIn(max = pictureMaxWidth(block.size)), rounded = true)
+        }
         is Block.Table -> CellTable(block.head, block.rows)
         is Block.Dialogue -> Column(
             Modifier.fillMaxWidth().background(colors.card, RoundedCornerShape(10.dp)).border(1.dp, colors.line, RoundedCornerShape(10.dp))
@@ -314,11 +336,21 @@ private fun WithAside(aside: Block?, asideFirst: Boolean, onLink: (Block.Link) -
                 BlockView(aside, onLink)
             }
         } else {
-            val asideWidth = min(maxWidth * 0.35f, AsideMaxWidth)
-            Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                if (asideFirst) Box(Modifier.width(asideWidth)) { BlockView(aside, onLink) }
+            val picture = aside as? Block.Picture
+            val asideWidth = when (picture?.size) {
+                com.polylingy.content.Aside.Size.SMALL -> SmallAside
+                com.polylingy.content.Aside.Size.MEDIUM -> MediumAside
+                else -> min(maxWidth * 0.35f, AsideMaxWidth)
+            }
+            val place = @Composable {
+                if (picture != null && picture.size == com.polylingy.content.Aside.Size.SMALL) {
+                    Picture(picture.image, Modifier.size(asideWidth), crop = true, rounded = true)
+                } else Box(Modifier.width(asideWidth)) { BlockView(aside, onLink) }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(20.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (asideFirst) place()
                 Box(Modifier.weight(1f)) { main() }
-                if (!asideFirst) Box(Modifier.width(asideWidth)) { BlockView(aside, onLink) }
+                if (!asideFirst) place()
             }
         }
     }
@@ -326,14 +358,21 @@ private fun WithAside(aside: Block?, asideFirst: Boolean, onLink: (Block.Link) -
 
 /** A picture as wide as its place allows, as tall as its proportions say; its description when it can't be loaded. */
 @Composable
-fun Picture(image: Image, modifier: Modifier = Modifier) {
+fun Picture(image: Image, modifier: Modifier = Modifier, crop: Boolean = false, rounded: Boolean = false, contain: Boolean = false) {
     val bitmap = LocalImageLoader.current.load(image.src)
+    val shape = RoundedCornerShape(if (rounded) 12.dp else 0.dp)
     Column(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        if (bitmap != null) {
+        if (bitmap != null && contain) {
+            // A card: the whole picture, centred, never cut; a square picture fills a square place exactly.
+            Image(bitmap, contentDescription = image.alt, modifier = Modifier.fillMaxSize().clip(shape), contentScale = ContentScale.Fit)
+        } else if (bitmap != null && crop) {
+            // A thumbnail: the middle of the picture fills the whole place.
+            Image(bitmap, contentDescription = image.alt, modifier = Modifier.fillMaxSize().clip(shape), contentScale = ContentScale.Crop)
+        } else if (bitmap != null) {
             Image(
                 bitmap,
                 contentDescription = image.alt,
-                modifier = Modifier.fillMaxWidth().aspectRatio(bitmap.width.toFloat() / bitmap.height),
+                modifier = Modifier.fillMaxWidth().aspectRatio(bitmap.width.toFloat() / bitmap.height).clip(shape),
                 contentScale = ContentScale.Fit,
             )
         } else {
