@@ -90,9 +90,12 @@ sealed interface Block {
     /** A picture. Its [size] is a word, not pixels (the same words as an exercise's aside): the app keeps it small enough not to fill a wide window. */
     @Serializable
     @SerialName("image")
-    data class Picture(val src: String, val alt: String, val caption: Inline? = null, val size: Aside.Size? = null) : Block {
-        val image: Image get() = Image(src, alt, caption)
-        override fun validate(at: Path) = checks { image(src, alt, caption, at) }
+    data class Picture(
+        val src: String, val alt: String, val caption: Inline? = null, val size: Aside.Size? = null,
+        val description: String? = null, val made: String? = null,
+    ) : Block {
+        val image: Image get() = Image(src, alt, caption, description, made)
+        override fun validate(at: Path) = checks { image(src, alt, caption, description, made, at) }
     }
 
     @Serializable

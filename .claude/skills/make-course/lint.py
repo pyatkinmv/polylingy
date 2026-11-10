@@ -1,7 +1,7 @@
 """Finds sentences in a course file that talk about the source instead of the language, and Latin letters stuck to Arabic or Hebrew words
 (vowel marks written as ASCII by a generator and never converted).
 Run: python .claude/skills/make-course/lint.py course.json|course.zip
-Prints every text field with a forbidden word; exit code 1 when there is any. `alt` (picture descriptions) and URLs are not read."""
+Prints every text field with a forbidden word; exit code 1 when there is any. `alt`, `description`, `made` (picture notes) and URLs are not read."""
 import json
 import re
 import sys
@@ -33,7 +33,7 @@ def walk(x, path, out):
             walk(v, f"{path}[{i}]", out)
     elif isinstance(x, dict):
         for k, v in x.items():
-            if k not in SKIP_KEYS:
+            if k not in SKIP_KEYS and not (k in ("description", "made") and "src" in x):   # picture notes are for editors
                 walk(v, f"{path}.{k}", out)
 
 

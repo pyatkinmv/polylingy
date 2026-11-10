@@ -156,7 +156,8 @@ object Samples {
     /** Pictures with a size word, and a situation without a frame. */
     val pictureSizes = """
         { "format": "blocks", "blocks": [
-          { "type": "image", "src": "images/tram.png", "alt": "A tram stop", "caption": "My tram stop", "size": "small" },
+          { "type": "image", "src": "images/tram.png", "alt": "A tram stop", "caption": "My tram stop", "size": "small",
+            "description": "A red tram stands at a stop with a yellow sign; two people wait on the platform.", "made": "Prompt: flat vector, a red tram at a stop, two people" },
           { "type": "image", "src": "images/tram.png", "alt": "A tram stop" },
           { "type": "situation", "look": "plain",
             "aside": { "type": "image", "src": "images/tram.png", "alt": "A tram stop", "size": "medium" },

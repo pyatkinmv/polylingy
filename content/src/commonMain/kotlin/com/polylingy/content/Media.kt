@@ -21,11 +21,14 @@ import kotlinx.serialization.json.jsonPrimitive
  * [alt] is required: it is read out by screen readers and shown when the picture can't be loaded.
  */
 @Serializable
-data class Image(val src: String, val alt: String, val caption: Inline? = null) {
-    fun validate(at: Path): List<Problem> = checks { image(src, alt, caption, at) }
+data class Image(val src: String, val alt: String, val caption: Inline? = null, val description: String? = null, val made: String? = null) {
+    fun validate(at: Path): List<Problem> = checks { image(src, alt, caption, description, made, at) }
 }
 
-internal fun Checks.image(src: String, alt: String, caption: Inline?, at: Path) {
+/** Longest [Image.description] and [Image.made]: they are for editors and tools, not for the learner, but a file must stay small. */
+const val MAX_IMAGE_NOTE = 2000
+
+internal fun Checks.image(src: String, alt: String, caption: Inline?, description: String?, made: String?, at: Path) {
     val srcAt = at / "src"
     when {
         src.isBlank() -> error(srcAt, "must not be empty")
@@ -37,6 +40,11 @@ internal fun Checks.image(src: String, alt: String, caption: Inline?, at: Path) 
     }
     require(alt.isNotBlank(), at / "alt", "must not be empty: describe the picture")
     text(caption, at / "caption")
+    for ((key, value) in listOf("description" to description, "made" to made)) {
+        if (value == null) continue
+        require(value.isNotBlank(), at / key, "must not be empty: leave it out, or say something")
+        require(value.length <= MAX_IMAGE_NOTE, at / key, "must be at most $MAX_IMAGE_NOTE characters")
+    }
 }
 
 /** One side of a matching pair: a text (JSON string) or a picture (`{"image": {…}}`). */

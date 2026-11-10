@@ -61,3 +61,7 @@ the world where it is spoken. Not the default look of the generator (for example
 - Check against the original, not only against the setting: a picture must still show what the original shows (the same job, the same number and
   gender of people, the same scene). The setting changes how it looks, not what it says.
 - If the setting is not clear from the source, ask the user once instead of guessing.
+
+## Diagrams drawn by code
+
+Schemes, clocks, counts and other pictures that must be exact are drawn by code, not by an image model. Their style, accuracy rules (every fact comes from the course text and its source, words come from data, numbers are computed) and shared helpers are fixed in `build-notes/buryat/pictures/DIAGRAM_STYLE.md` and `build-notes/buryat/course2/diagram_kit.py`; for a new course keep the same structure.

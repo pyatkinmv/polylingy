@@ -75,7 +75,7 @@ class LocalStorageTest {
     }
 
     @Test fun aStudyOnlyCourseIsStoredAsItCame() {
-        val text = """{ "formatVersion": 8, "name": "Future", "level": "C1",
+        val text = """{ "formatVersion": 9, "name": "Future", "level": "C1",
             "topics": [ { "title": "T", "exercises": [ { "type": "dictation", "audio": "a.mp3" } ] } ] }"""
         val c = CourseJson.read(text, Instant.fromEpochSeconds(0)).course
         storage.courses.save(c)

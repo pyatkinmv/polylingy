@@ -13,7 +13,8 @@ cell = lambda x: ann(x if isinstance(x, str) else x.get("text", ""))
 
 
 def pic(p):
-    return f"[PICTURE: {p.get('alt', '')[:170]}{' | caption: ' + p['caption'] if p.get('caption') else ''}{' | size ' + p['size'] if p.get('size') else ''}]"
+    return (f"[PICTURE: {p.get('alt', '')[:170]}{' | caption: ' + p['caption'] if p.get('caption') else ''}{' | size ' + p['size'] if p.get('size') else ''}"
+            f"{' | WHAT IS DRAWN: ' + p['description'] if p.get('description') else ''}]")
 
 
 def block(b, o, ind=""):

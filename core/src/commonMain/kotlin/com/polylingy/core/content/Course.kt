@@ -10,7 +10,7 @@ import kotlin.time.Instant
 import kotlin.uuid.Uuid
 
 /** The course file format this app reads and writes; see docs/content-format.md, section 9. */
-const val FORMAT_VERSION = 7
+const val FORMAT_VERSION = 8
 
 /** At most this many extra keys, each at most this long (docs/content-format.md). */
 const val MAX_EXTRA_KEYS = 12

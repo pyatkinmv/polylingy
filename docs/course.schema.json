@@ -41,6 +41,20 @@
         },
         "caption": {
           "$ref": "#/$defs/inline"
+        },
+        "description": {
+          "description": "What exactly is in the picture, in words, for editors and tools; the app does not show it.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000,
+          "pattern": "\\S"
+        },
+        "made": {
+          "description": "How the picture was made (the prompt of an image model, or the script and data of a drawing); the app does not show it.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000,
+          "pattern": "\\S"
         }
       },
       "required": [
@@ -54,8 +68,8 @@
       "type": "object",
       "properties": {
         "formatVersion": {
-          "description": "The format this file is written in. This schema describes 7.",
-          "const": 7
+          "description": "The format this file is written in. This schema describes 8.",
+          "const": 8
         },
         "id": {
           "$ref": "#/$defs/uuid"
@@ -593,6 +607,20 @@
         },
         "caption": {
           "$ref": "#/$defs/inline"
+        },
+        "description": {
+          "description": "What exactly is in the picture, in words, for editors and tools; the app does not show it.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000,
+          "pattern": "\\S"
+        },
+        "made": {
+          "description": "How the picture was made (the prompt of an image model, or the script and data of a drawing); the app does not show it.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000,
+          "pattern": "\\S"
         },
         "size": {
           "description": "How big the picture is: a word, not pixels; the same words as an exercise's aside.",

@@ -125,6 +125,6 @@ To write a course (by hand or from a book), follow `.claude/skills/make-course/S
 | `docs/learning-model.md` | Learning model: units, rounds, grades, course policies, checking and typos |
 | `docs/migration-plan.md` | How 0.2 was built (done): stages, invariants, decisions, open questions |
 | `docs/content-format.md` | Course format: theory blocks, exercise layers and types, explanations, links, import, validation, schema, `formatVersion` |
-| `docs/course.schema.json` | Formal JSON Schema of `course.json`, format 7 |
+| `docs/course.schema.json` | Formal JSON Schema of `course.json`, format 8 |
 | `docs/testing.md` | How changes are verified: test levels, UI tests, screenshots, manual checks |
 | `.claude/docs/architectural_patterns.md` | Code conventions: ports, DI, ViewModels, testing helpers |

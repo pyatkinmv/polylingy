@@ -269,6 +269,12 @@ class ValidationTest {
         assertEquals(listOf("image.caption: must not be empty"), Image("a.png", "alt", Inline("")).validate(Path("image")).map { it.toString() })
     }
 
+    @Test fun imageDescriptionAndMade() {
+        assertEquals(emptyList(), Image("a.png", "alt", description = "A red tram at a stop", made = "Prompt: a red tram").validate(Path("image")))
+        assertEquals(listOf("image.description: must not be empty: leave it out, or say something", "image.made: must be at most 2000 characters"),
+            Image("a.png", "alt", description = " ", made = "x".repeat(2001)).validate(Path("image")).map { it.toString() })
+    }
+
     // table
 
     @Test fun tableRules() {

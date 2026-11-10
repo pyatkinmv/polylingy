@@ -116,7 +116,7 @@ class CoursePartsTest {
     @Test fun aGoneOrStudyOnlyCourseCantBeChanged() {
         assertNull(service.partJson(course.id, topicPart(Uuid.random())))
         assertFalse(service.checkPart(course.id, topicPart(Uuid.random()), "{}").ok)
-        val newer = service.import(CourseJson.read(CourseSamples.flat.replace("\"formatVersion\": 1", "\"formatVersion\": 8"), clock.now().instant).course)
+        val newer = service.import(CourseJson.read(CourseSamples.flat.replace("\"formatVersion\": 1", "\"formatVersion\": 9"), clock.now().instant).course)
         assertFalse(service.checkPart(newer.id, CoursePart.Topic(null, null), CourseParts.TOPIC_TEMPLATE).ok)
         assertFailsWith<PartException> { service.deletePart(newer.id, CoursePart.Topic(null, newer.topics[0].id)) }
     }
