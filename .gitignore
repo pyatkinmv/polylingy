@@ -21,3 +21,6 @@ Thumbs.db
 # The full Arabic course carries the publisher's audio, and these are scratch reports: neither goes to git
 examples/arabic-mastering-1.zip
 build-notes/
+
+# secrets
+.env

@@ -13,9 +13,11 @@ anything outside it is an import error. Do not invent fields, types or values.
 | Situation | Read |
 |---|---|
 | Any course | this file |
+| Looking for a book or course to make a course from | `find-source.md` (the search prompt and what to check) |
 | Made from a book, workbook or other material | `transfer.md` (nothing lost, `generated`, topics, annotations, review file) |
 | The source has pictures, or the course needs some | `pictures.md` |
-| A course was generated or changed | `sanity-check.md`, then `handover.md` |
+| The course uses videos from the internet (explainers, songs, speech) | `video.md` (roles, where they live, the theory a song needs) |
+| A course was generated or changed | `sanity-check.md`, then the skill `review-course` (isolated reviewers), then `handover.md` |
 
 ## Working with the user
 
@@ -23,6 +25,7 @@ anything outside it is an import error. Do not invent fields, types or values.
 - Ask before mass changes (many exercises, a new section, a new rule) and before arguable choices such as where
   readings go; do not decide them alone.
 - Never add what the user did not ask for (links, extra sections, extra pictures); never remove what they asked for.
+- Everything made for the course (pictures, voices, video, names, situations) fits the cultural setting of the course; see `pictures.md`, "Cultural context".
 - Say plainly what was not verified. The user may not read the language of the course.
 
 ## 1. Read the format first
@@ -106,7 +109,7 @@ Rules that catch most mistakes:
 
 ## 3. Check before handing over
 
-A valid file is not yet a good course: follow `sanity-check.md` and `handover.md` too.
+A valid file is not yet a good course: follow `sanity-check.md` and `handover.md` too. Vary the exercise forms (no form over ~40% of a topic) and give the answers an `explanation`: see `sanity-check.md`, section 2.
 
 ```bash
 ./gradlew :client:checkCourse -Pcourse=path/to/course.json

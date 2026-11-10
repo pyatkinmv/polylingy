@@ -1,4 +1,5 @@
-"""Finds sentences in a course file that talk about the source instead of the language.
+"""Finds sentences in a course file that talk about the source instead of the language, and Latin letters stuck to Arabic or Hebrew words
+(vowel marks written as ASCII by a generator and never converted).
 Run: python .claude/skills/make-course/lint.py course.json|course.zip
 Prints every text field with a forbidden word; exit code 1 when there is any. `alt` (picture descriptions) and URLs are not read."""
 import json
@@ -13,13 +14,20 @@ FORBIDDEN = [
     r"Grammar", r"грамматик[аи] серии", r"серии",
 ]
 RX = re.compile("|".join(FORBIDDEN), re.I)
+# the words «книга» and «тетрадь» themselves are vocabulary of a course (a translation of «ном», «дэбтэр»), not a mention of the source;
+# «в книге», «книги», «тетради» still match
+VOCAB = re.compile(r"(?<!\bиз )(?<!\bв )(?<!\bпо )(?<!\bо )\b(книга|тетрадь|книги|тетради|книг)\b", re.I)
+# a letter of an RTL script right next to a Latin letter or ~: a mark that was meant to be a vowel sign
+STUCK = re.compile(r"[֐-׿؀-ۿݐ-ݿ][A-Za-z~]|[A-Za-z~][֐-׿؀-ۿݐ-ݿ]")
 SKIP_KEYS = {"alt", "url", "src", "audio", "id", "type", "format"}
 
 
 def walk(x, path, out):
     if isinstance(x, str):
-        if RX.search(x) and not re.fullmatch(r"Юнит \d+", x):
+        if RX.search(VOCAB.sub("", x)) and not re.fullmatch(r"Юнит \d+", x):
             out.append((path, x))
+        elif STUCK.search(re.sub(r"\]\([^)]*\)", "]", x)):   # the readings in (…) after an annotated word are Latin on purpose
+            out.append((path, "LATIN LETTER STUCK TO AN ARABIC/HEBREW WORD: " + x))
     elif isinstance(x, list):
         for i, v in enumerate(x):
             walk(v, f"{path}[{i}]", out)

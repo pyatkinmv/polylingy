@@ -14,5 +14,6 @@ Every item is done, or the answer says why it was not.
    - import next to an already-studied copy of the course and leave that copy alone; delete an older copy only when it
      has no journal events and the user allowed it;
    - run `scripts/relaunch.ps1` in the background, check the window came up, and say which version runs.
-7. The answer to the user: what was carried over, changed and left out; what is generated; what could not be
+7. The transfer map and the list of pictures that are not in the course are rebuilt from the final `course.json` and match it.
+8. The answer to the user: what was carried over, changed and left out; what is generated; what could not be
    verified; where each report is. Commit only when asked.
