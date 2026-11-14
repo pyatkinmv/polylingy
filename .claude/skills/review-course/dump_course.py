@@ -20,9 +20,11 @@ def pic(p):
 def block(b, o, ind=""):
     t = b.get("type")
     if t == "section":
-        o.append(f"\n{ind}## THEORY SECTION: {b.get('title', '')}")
+        o.append(f"\n{ind}## " + ("THEORY SECTION" if not ind else "SUBSECTION (nested; the blocks after it, at the outer indent, belong to the outer section)") + f": {b.get('title', '')}")
         for x in b["blocks"]:
-            block(x, o, ind)
+            block(x, o, ind + "    " if x.get("type") == "section" else ind)
+        if ind == "" and any(x.get("type") == "section" for x in b["blocks"]):
+            o.append(f"{ind}(end of section «{b.get('title', '')}»)")
     elif t == "text":
         o.append(ind + ann(b["text"]) + ("   (lead)" if b.get("role") == "lead" else ""))
     elif t == "table":
@@ -30,8 +32,15 @@ def block(b, o, ind=""):
             o.append(ind + "  | " + " | ".join(b["head"]))
         for r in b["rows"]:
             o.append(ind + "  | " + " | ".join(cell(x) for x in r))
+    elif t == "grid":
+        o.append(ind + f"[GRID: {b.get('columns', '?')} columns, side by side]")
+        for n, x in enumerate(b["blocks"], 1):
+            o.append(ind + f"  (cell {n})")
+            block(x, o, ind + "    ")
     elif t == "tip":
-        o.append(ind + f"TIP ({b.get('kind', 'tip')}): " + " ".join(x.get("text", "") for x in b["blocks"]))
+        o.append(ind + f"[TIP {b.get('kind', 'tip')}" + (f": {b['title']}" if b.get("title") else "") + "]")
+        for x in b["blocks"]:
+            block(x, o, ind + "  ")
     elif t == "dialogue":
         for l in b["lines"]:
             o.append(ind + f"  {l.get('who', '')}: {ann(l['text'])}  — {l.get('translation', '')}")
