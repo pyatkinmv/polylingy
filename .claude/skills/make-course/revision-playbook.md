@@ -22,7 +22,7 @@ update it at the end of every batch.**
 |---|---|---|
 | Meaning | each paragraph, rule, table and example: one sentence "what can the learner do after this"; contradictions; no history for beginners | `SKILL.md` §2a, skill `review-course` ("purpose pass") |
 | Theory elements | grid, tip kinds (`fact`, `culture`, `rule`), situation frames, `==marks==` (tones 1–5), table `appearance`, dialogues, pictures/schemes where they help, videos in theory only | `SKILL.md` §3, `theory-blocks-format-9` in memory, `pictures.md` |
-| Exercises | every exercise covers the whole topic (the picker is random); variety of types; wall size; distractors; no answer on view; no ambiguous keys; an introduction in each topic | `SKILL.md` §2, §"Size of a unit", `sanity-check.md` |
+| Exercises | every exercise covers the whole topic (the picker is random); variety of types; wall size; distractors; no answer on view; a picture beside an exercise is `top` and `large` (see `pictures.md`); no ambiguous keys; an introduction in each topic | `SKILL.md` §2, §"Size of a unit", `sanity-check.md` |
 | Words | learned words only (units introduced earlier), every theory word used in an exercise of its topic, nothing used before its topic | `sanity.py` warnings "введено в юните…" |
 | Dialogues and heroes | full width, not in `grid`, two portraits (Сэсэг, Баяр, Дарима in unit 17), a translation on every line, no orphan examples | `SKILL.md` §2b |
 | Checks | `checkCourse`, `lint.py`, `sanity.py` (+ `sanity_variety.py`), `image_info.json` (description, made), `pictures_approved.json` | `sanity-check.md` |

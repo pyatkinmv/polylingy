@@ -51,6 +51,8 @@ Before the unit is finished, ask: "what would a learner look at on this page?" I
 
 **Pictures in exercises.** Every picture of a unit's theory that names a thing or a scene is used once more in an exercise of the same unit (the `pictures` type: choose the phrase or form for the picture, or a choice with `aside`), unless that would give the answer away; a picture that has no exercise needs a reason in the unit's picture list. A picture exercise is never the only place of a picture: the theory comes first.
 
+**A picture beside an exercise must be readable.** An exercise `aside` that the learner has to read (a board, a scheme, a diagram with words) is set `side: top`, `size: large`; the default (right, medium) makes it a thumbnail where nothing can be seen. `sanity.py` fails on an `aside` that is not top or bottom and medium or large. If the picture shows the answer (words under tags, captions that are the key), do not put it beside the exercise at all.
+
 **Where a picture earns its place**
 - a rule with a choice or a sequence (which ending after which sound, how a form is built, a yes/no answer): a diagram or a decision scheme;
 - a form made of parts (word + ending = form), numbers by place, a family or any structure with relations: a scheme;
