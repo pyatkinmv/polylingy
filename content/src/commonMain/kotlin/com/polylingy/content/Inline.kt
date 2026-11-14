@@ -8,9 +8,10 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
 /**
- * A text with a little markup: `**bold**`, `*italic*`, blanks `{{answer|other variant}}`, annotations
+ * A text with a little markup: `**bold**`, `*italic*`, a highlight `==marked==` (`=={2}second==`: after the opening `==`
+ * the number of the palette's mark in braces, 1 to 5, see [MarkTone]; none means 1), blanks `{{answer|other variant}}`, annotations
  * `[base](annotation)` — small text over a word, like how to read it — and line breaks.
- * `\` makes the next `*`, `{`, `}`, `|`, `[`, `]` or `\` literal; a `[` not followed by `…](…)` is plain text. Malformed markup doesn't throw: it is shown as plain
+ * `\` makes the next `*`, `=`, `{`, `}`, `|`, `[`, `]` or `\` literal; a `[` not followed by `…](…)` is plain text. Malformed markup doesn't throw: it is shown as plain
  * text and reported in [problems], so import can list every mistake at once.
  */
 @Serializable(with = InlineSerializer::class)
@@ -28,6 +29,7 @@ class Inline(val text: String) {
         is InlineNode.Annotated -> true
         is InlineNode.Bold -> node.children.any(::annotated)
         is InlineNode.Italic -> node.children.any(::annotated)
+        is InlineNode.Marked -> node.children.any(::annotated)
         is InlineNode.Text, is InlineNode.Blank, InlineNode.LineBreak -> false
     }
 
@@ -43,6 +45,7 @@ class Inline(val text: String) {
             is InlineNode.Blank -> add(node)
             is InlineNode.Bold -> collectBlanks(node.children)
             is InlineNode.Italic -> collectBlanks(node.children)
+            is InlineNode.Marked -> collectBlanks(node.children)
             is InlineNode.Text, is InlineNode.Annotated, InlineNode.LineBreak -> {}
         }
     }
@@ -55,6 +58,7 @@ class Inline(val text: String) {
             is InlineNode.Text -> append(node.text)
             is InlineNode.Bold -> plain(node.children)
             is InlineNode.Italic -> plain(node.children)
+            is InlineNode.Marked -> plain(node.children)
             is InlineNode.Blank -> append(node.answer)
             is InlineNode.Annotated -> append(node.base)
             InlineNode.LineBreak -> append('\n')
@@ -66,10 +70,25 @@ class Inline(val text: String) {
     override fun toString(): String = text
 }
 
+/**
+ * Which of the palette's five marks colours a [InlineNode.Marked] passage; [number] is what the text writes in braces after the opening `==`.
+ * The tones are roles, not colours: the course's palette says what colour each one is.
+ */
+enum class MarkTone(val number: Int) {
+    FIRST(1), SECOND(2), THIRD(3), FOURTH(4), FIFTH(5);
+
+    companion object {
+        fun of(number: Int): MarkTone? = entries.firstOrNull { it.number == number }
+    }
+}
+
 sealed interface InlineNode {
     data class Text(val text: String) : InlineNode
     data class Bold(val children: List<InlineNode>) : InlineNode
     data class Italic(val children: List<InlineNode>) : InlineNode
+
+    /** A passage drawn on a coloured background, e.g. the ending of a word. */
+    data class Marked(val children: List<InlineNode>, val tone: MarkTone) : InlineNode
 
     /** A blank to fill in; [variants] are all accepted answers, the first one is shown as the right answer. */
     data class Blank(val index: Int, val variants: List<String>) : InlineNode {
@@ -93,7 +112,7 @@ private class InlineParser(private val s: String) {
     private var blankCount = 0
 
     /** An open `**` or `*` (or the root, [mark] == null) and what has been read inside it. */
-    private class Frame(val mark: String?, val start: Int) {
+    private class Frame(val mark: String?, val start: Int, val tone: MarkTone = MarkTone.FIRST) {
         val children = mutableListOf<InlineNode>()
     }
 
@@ -109,6 +128,7 @@ private class InlineParser(private val s: String) {
                 s.startsWith("{{", i) -> i = blank(i)
                 c == '[' -> i = annotated(i)
                 s.startsWith("}}", i) -> { problems += "}} without {{ at ${i + 1}"; text.append("}}"); i += 2 }
+                s.startsWith("==", i) -> i = marked(i)
                 s.startsWith("**", i) -> { toggle("**", i); i += 2 }
                 c == '*' -> { toggle("*", i); i += 1 }
                 c == '\n' -> { flush(); stack.last().children += InlineNode.LineBreak; i += 1 }
@@ -152,6 +172,34 @@ private class InlineParser(private val s: String) {
         }
     }
 
+    /** Opens or closes a `==` highlight at [at], reading the tone after the opening one; returns the index after what it read. */
+    private fun marked(at: Int): Int {
+        if (stack.last().mark == "==") {
+            flush()
+            val open = stack.removeLast()
+            stack.last().children += InlineNode.Marked(open.children, open.tone)
+            return at + 2
+        }
+        if (stack.any { it.mark == "==" }) {
+            problems += "== at ${at + 1} closes a == that has another mark open inside it"
+            text.append("==")
+            return at + 2
+        }
+        var tone = MarkTone.FIRST
+        var next = at + 2
+        if (s.startsWith("{", next) && !s.startsWith("{{", next)) {
+            val close = s.indexOf('}', next)
+            if (close == next + 2) {
+                val named = s[next + 1].digitToIntOrNull()?.let { MarkTone.of(it) }
+                if (named == null) problems += "tone after == at ${at + 1} must be one of " + MarkTone.entries.joinToString { "{${it.number}}" }
+                else { tone = named; next = close + 1 }
+            }
+        }
+        flush()
+        stack.addLast(Frame("==", at, tone))
+        return next
+    }
+
     /** Reads `[base](annotation)` starting at [at]; anything else is a plain `[`. Returns the index after what it read. */
     private fun annotated(at: Int): Int {
         val close = s.indexOf("](", at + 1)
@@ -185,6 +233,6 @@ private class InlineParser(private val s: String) {
     }
 
     private companion object {
-        const val ESCAPABLE = "\\*{}|[]"
+        const val ESCAPABLE = "\\*={}|[]"
     }
 }

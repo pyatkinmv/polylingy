@@ -1,5 +1,7 @@
 package com.polylingy.app.ui
 
+import com.polylingy.content.compose.ContentColors
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.Canvas
@@ -131,12 +133,26 @@ fun AppTheme(text: TextStyle = TextStyle.Default, content: @Composable () -> Uni
     }
 }
 
-/** A page column of readable width, centred. */
+/**
+ * The colours of the course whose content is on screen, or null outside a course. The palette paints only the sheet of the course
+ * (see [Page]); the bar, the margins and every other screen stay in the colours of the app.
+ */
+val LocalCourseSheet = staticCompositionLocalOf<ContentColors?> { null }
+
+/**
+ * A page column of readable width, centred. Inside a course ([LocalCourseSheet]) it is a sheet in the course's palette, lying on the
+ * app's own background, so the content of a course is set apart from the app around it.
+ */
 @Composable
 fun Page(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
-    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+    val sheet = LocalCourseSheet.current
+    val shape = RoundedCornerShape(16.dp)
+    Box(Modifier.fillMaxWidth().then(if (sheet != null) Modifier.padding(horizontal = 16.dp, vertical = 20.dp) else Modifier), contentAlignment = Alignment.TopCenter) {
         Column(
-            modifier.widthIn(max = 860.dp).fillMaxWidth().padding(horizontal = 32.dp, vertical = 28.dp),
+            Modifier.widthIn(max = 860.dp).fillMaxWidth()
+                .then(if (sheet != null) Modifier.clip(shape).background(sheet.background, shape).border(1.dp, sheet.line, shape) else Modifier)
+                .then(modifier)
+                .padding(horizontal = 32.dp, vertical = 28.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
             content = content,
         )

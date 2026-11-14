@@ -71,7 +71,7 @@ fun TheoryScreen(
                 Text(unit.title, style = MaterialTheme.typography.headlineMedium)
                 unit.subtitle?.let { InlineText(it, style = MaterialTheme.typography.bodyLarge.copy(color = Look.Muted)) }
             }
-            ContentTheme(ContentColors.forAccent(null), images, links.names) {
+            ContentTheme(null, images, links.names) {
                 ContentView(
                     theory,
                     Modifier.padding(top = 8.dp),

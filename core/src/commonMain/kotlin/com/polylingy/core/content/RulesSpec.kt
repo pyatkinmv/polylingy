@@ -1,5 +1,6 @@
 package com.polylingy.core.content
 
+import com.polylingy.content.CourseStyle
 import com.polylingy.content.Path
 import com.polylingy.content.Problem
 import kotlinx.serialization.SerialName
@@ -57,6 +58,7 @@ data class RulesSpec(
             scheduler.days.forEachIndexed { i, d -> if (d < 1) add(Problem((at / "scheduler" / "days")[i], "must be at least 1 day")) }
         }
         picker?.newPerDay?.let { if (it < 1) add(Problem(at / "picker" / "newPerDay", "must be at least 1, or left out for no limit")) }
+        display?.palette?.let { if (it.isBlank()) add(Problem(at / "display" / "palette", "must not be empty: leave it out, or name a palette")) }
     }
 }
 
@@ -64,9 +66,16 @@ data class RulesSpec(
  * How a course's exercises look to the learner. [annotations]: show the small text a course puts over words
  * (`[老师](lǎoshī)`); off, only the words show. [avoidTyping]: of a topic's exercises, prefer those answered without a
  * keyboard ([com.polylingy.content.Exercise.needsKeyboard]); a topic that has only typing ones keeps them.
+ * [palette]: the id of the colour palette the course is drawn in (the app's list of palettes, see docs/content-format.md); null — the app's
+ * default; an id this version doesn't know is drawn in the default too. [style]: how marks and details are set off, see [CourseStyle].
  */
 @Serializable
-data class DisplaySpec(val annotations: Boolean = true, val avoidTyping: Boolean = false)
+data class DisplaySpec(
+    val annotations: Boolean = true,
+    val avoidTyping: Boolean = false,
+    val palette: String? = null,
+    val style: CourseStyle = CourseStyle.SOFT,
+)
 
 /** Ready sets of grading, mastery and scheduler (docs/learning-model.md, section 4); each comes with the conveyor picker. */
 @Serializable

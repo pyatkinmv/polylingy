@@ -6,6 +6,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
+import kotlin.test.assertTrue
 import kotlin.uuid.Uuid
 
 class ContentJsonTest {
@@ -54,6 +55,39 @@ class ContentJsonTest {
         assertFailsWith<ContentFormatException> {
             ContentJson.decode(Content.serializer(), """{ "format": "blocks", "blocks": [ { "type": "image", "src": "a.png", "alt": "A", "size": "huge" } ] }""")
         }
+    }
+
+    @Test fun theBlocksOfFormat9AreReadWrittenAndChecked() {
+        val content = ContentJson.decode(Content.serializer(), Samples.newBlocks) as Content.Blocks
+        assertEquals(emptyList(), content.validate(Path("theory")))
+        val written = ContentJson.encode(Content.serializer(), content)
+        assertEquals(content, ContentJson.decode(Content.serializer(), written))
+        val grid = content.blocks.filterIsInstance<Block.Grid>().single()
+        assertEquals(3, grid.columns)
+        assertEquals(Block.Table.Appearance(stripedRows = true, highlightedColumns = listOf(0)), grid.blocks.filterIsInstance<Block.Table>().single().appearance)
+        assertIs<Look.Email>(content.blocks.filterIsInstance<Block.Situation>().single().frame)
+        assertEquals(listOf(Block.Tip.Kind.FACT, Block.Tip.Kind.CULTURE), content.blocks.filterIsInstance<Block.Tip>().map { it.kind })
+        val dialogue = content.blocks.filterIsInstance<Block.Dialogue>().single()
+        assertEquals(Block.Dialogue.Style.BUBBLES, dialogue.look)
+        assertEquals(listOf("Anna", "Pavel"), dialogue.portraits.map { it.who })
+        // pictures of portraits, of a remark's aside and inside a grid are found by the walk (the library packs them)
+        val srcs = content.images(Path("theory")).map { it.second.src }
+        assertEquals(setOf("images/hat.png", "images/lake.png", "images/anna.png", "images/pavel.png"), srcs.toSet())
+    }
+
+    @Test fun theBlocksOfFormat9AreStrict() {
+        fun problems(block: String) = (ContentJson.decode(Content.serializer(), """{ "format": "blocks", "blocks": [ $block ] }""")).validate(Path("t"))
+        assertTrue(problems("""{ "type": "grid", "columns": 5, "blocks": [ { "type": "text", "text": "a" } ] }""").isNotEmpty())
+        assertTrue(problems("""{ "type": "grid", "blocks": [] }""").isNotEmpty())
+        assertTrue(problems("""{ "type": "dialogue", "portraits": [ { "who": " ", "image": { "src": "a.png", "alt": "A" } } ], "lines": [ { "text": "x" } ] }""").isNotEmpty())
+        assertTrue(problems("""{ "type": "dialogue", "portraits": [ { "who": "A", "image": { "src": "a.png", "alt": "A" } }, { "who": "A", "image": { "src": "b.png", "alt": "B" } } ], "lines": [ { "text": "x" } ] }""").isNotEmpty())
+        assertTrue(problems("""{ "type": "situation", "frame": { "type": "chat" }, "blocks": [ { "type": "text", "text": "x" } ] }""").isNotEmpty())
+        assertFailsWith<ContentFormatException> { problems("""{ "type": "table", "appearance": { "background": "glass" }, "rows": [["a"]] }""") }
+        assertFailsWith<ContentFormatException> { problems("""{ "type": "table", "appearance": { "look": "banded" }, "rows": [["a"]] }""") }
+        assertTrue(problems("""{ "type": "table", "appearance": { "highlightedColumns": [2] }, "rows": [["a", "b"]] }""").isNotEmpty(), "a table of two columns has no column 2")
+        assertTrue(problems("""{ "type": "table", "appearance": { "highlightedColumns": [0, 0] }, "rows": [["a", "b"]] }""").isNotEmpty())
+        assertEquals(emptyList(), problems("""{ "type": "table", "appearance": { "highlightedColumns": [1] }, "rows": [["a", "b"]] }"""))
+        assertFailsWith<ContentFormatException> { problems("""{ "type": "dialogue", "look": "loud", "lines": [ { "text": "x" } ] }""") }
     }
 
     @Test fun aGeneratedExerciseIsMarkedAndTheDefaultIsNotWritten() {

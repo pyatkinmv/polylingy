@@ -27,6 +27,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import com.polylingy.content.Inline
 import com.polylingy.content.InlineNode
+import com.polylingy.content.CourseStyle
+import com.polylingy.content.MarkTone
+import androidx.compose.runtime.remember
+import androidx.compose.ui.text.style.TextDecoration
 
 /**
  * A text with markup and no blanks, as one paragraph. Annotated words (`[老师](lǎoshī)`) show their annotation over
@@ -37,18 +41,44 @@ fun InlineText(inline: Inline, modifier: Modifier = Modifier, style: TextStyle =
     if (inline.hasAnnotations && LocalShowAnnotations.current) {
         InlineFlow(inline, modifier, style) { Text(it.answer, style = style) }
     } else {
-        Text(inline.annotated(), modifier, style = style.copy(textDirection = if (inline.runsRightToLeft()) TextDirection.Rtl else TextDirection.Ltr))
+        Text(inline.annotated(rememberMarkPaint()), modifier, style = style.copy(textDirection = if (inline.runsRightToLeft()) TextDirection.Rtl else TextDirection.Ltr))
     }
 }
 
 /** Bold and italic as text styles; blanks, which can't be shown here, as their answer; annotated words as the words. */
-fun Inline.annotated(): AnnotatedString = buildAnnotatedString { append(nodes, bold = false, italic = false) }
+fun Inline.annotated(): AnnotatedString = annotated(MarkPaint.Default)
 
-private fun AnnotatedString.Builder.append(nodes: List<InlineNode>, bold: Boolean, italic: Boolean) {
+/** The same with marks painted by [paint]: the palette of the course and the style it is drawn in. */
+internal fun Inline.annotated(paint: MarkPaint): AnnotatedString = buildAnnotatedString { append(nodes, bold = false, italic = false, paint) }
+
+/** What a mark (`==text==`) looks like: the five marks of a palette, drawn in a style: soft — on a coloured background; strict — underlined. */
+internal class MarkPaint(private val marks: List<MarkColor>, private val style: CourseStyle) {
+    fun spanStyle(tone: MarkTone): SpanStyle {
+        val mark = marks[(tone.number - 1).coerceIn(0, marks.lastIndex)]
+        return when (style) {
+            CourseStyle.SOFT -> SpanStyle(background = mark.fill, fontWeight = FontWeight.SemiBold)
+            CourseStyle.STRICT -> SpanStyle(color = mark.strong, fontWeight = FontWeight.Bold, textDecoration = TextDecoration.Underline)
+        }
+    }
+
+    companion object {
+        val Default = MarkPaint(Palettes.default.colors.marks, CourseStyle.SOFT)
+    }
+}
+
+@Composable
+internal fun rememberMarkPaint(): MarkPaint {
+    val colors = colors
+    val style = LocalCourseStyle.current
+    return remember(colors, style) { MarkPaint(colors.marks, style) }
+}
+
+private fun AnnotatedString.Builder.append(nodes: List<InlineNode>, bold: Boolean, italic: Boolean, paint: MarkPaint) {
     for (node in nodes) when (node) {
         is InlineNode.Text -> appendScaled(node.text, bold, italic)
-        is InlineNode.Bold -> append(node.children, true, italic)
-        is InlineNode.Italic -> append(node.children, bold, true)
+        is InlineNode.Bold -> append(node.children, true, italic, paint)
+        is InlineNode.Italic -> append(node.children, bold, true, paint)
+        is InlineNode.Marked -> withStyle(paint.spanStyle(node.tone)) { append(node.children, bold, italic, paint) }
         is InlineNode.Blank -> appendScaled(node.answer, bold, italic)
         is InlineNode.Annotated -> appendScaled(node.base, bold, italic)
         // A line break between two enlarged runs is enlarged too: with a gap of plain text between them the second run's size
@@ -173,6 +203,8 @@ internal fun chunks(inline: Inline): List<List<Chunk>> {
             }
             is InlineNode.Bold -> walk(node.children, true, italic)
             is InlineNode.Italic -> walk(node.children, bold, true)
+            // A highlight is not drawn inside text with annotations: the words show, the colour does not.
+            is InlineNode.Marked -> walk(node.children, bold, italic)
             is InlineNode.Blank -> {
                 endText()
                 chunk += Piece.Gap(node)

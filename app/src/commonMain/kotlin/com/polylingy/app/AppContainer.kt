@@ -1,5 +1,9 @@
 package com.polylingy.app
 
+import com.polylingy.core.content.DisplaySpec
+import com.polylingy.content.compose.Palettes
+import com.polylingy.content.compose.ContentColors
+import com.polylingy.content.CourseStyle
 import androidx.compose.ui.graphics.ImageBitmap
 import com.polylingy.client.CourseArchives
 import com.polylingy.client.CourseLibrary
@@ -134,6 +138,12 @@ class AppContainer(
         override fun stop() = sound.stop()
     }
 
+    /** The palette and the style a course is drawn in: its "How the course looks" settings (the default palette when none is chosen). */
+    fun look(courseId: Uuid): CourseLook {
+        val display = study.settings(courseId)?.resolved()?.display ?: DisplaySpec()
+        return CourseLook(Palettes.byId(display.palette).colors, display.style)
+    }
+
     /** Whether the course's annotations over words show: its "Show annotations over text" setting. */
     fun annotations(courseId: Uuid): Boolean = study.settings(courseId)?.resolved()?.display?.annotations ?: true
 
@@ -148,3 +158,6 @@ class AppContainer(
         }
     }
 }
+
+/** The colours and the style content is drawn in, for one course. */
+data class CourseLook(val colors: ContentColors, val style: CourseStyle)

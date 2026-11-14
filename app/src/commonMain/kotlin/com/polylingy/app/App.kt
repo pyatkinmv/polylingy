@@ -1,5 +1,8 @@
 package com.polylingy.app
 
+import com.polylingy.app.ui.LocalCourseSheet
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.foundation.background
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.text.TextStyle
@@ -176,7 +179,7 @@ fun App(container: AppContainer, text: TextStyle = TextStyle.Default) {
             composable<TheoryRoute> { entry ->
                 val route = entry.toRoute<TheoryRoute>()
                 val course = container.storage.courses.get(Uuid.parse(route.courseId))
-                if (course != null) CourseContent(container.audio(course.id), container.annotations(course.id), container.dockTitle) { TheoryScreen(
+                if (course != null) CourseLooked(container, course.id) { TheoryScreen(
                     course = course,
                     unitId = Uuid.parse(route.unitId),
                     section = route.section?.let(Uuid::parse),
@@ -191,7 +194,7 @@ fun App(container: AppContainer, text: TextStyle = TextStyle.Default) {
                 val courseId = Uuid.parse(route.courseId)
                 val unitId = route.unitId?.let(Uuid::parse)
                 val part = if (route.unit) CoursePart.Unit(unitId) else CoursePart.Topic(unitId, route.topicId?.let(Uuid::parse))
-                CourseContent(container.audio(courseId), container.annotations(courseId), container.dockTitle) {
+                CourseLooked(container, courseId) {
                     EditorScreen(
                         viewModel = viewModel { EditorViewModel(container.courseService, container.study, container.storage.courses, courseId, part) },
                         images = container.images(courseId),
@@ -207,7 +210,7 @@ fun App(container: AppContainer, text: TextStyle = TextStyle.Default) {
                 val route = entry.toRoute<StudyRoute>()
                 val courseId = Uuid.parse(route.courseId)
                 val unitId = route.unitId?.let(Uuid::parse)
-                CourseContent(container.audio(courseId), container.annotations(courseId), container.dockTitle) {
+                CourseLooked(container, courseId) {
                     StudyScreen(
                         viewModel = viewModel { StudyViewModel(container.study, courseId, unitId, route.topicId?.let(Uuid::parse)) },
                         images = container.images(courseId),
@@ -220,5 +223,14 @@ fun App(container: AppContainer, text: TextStyle = TextStyle.Default) {
         }
         PlayerDock(container.nowPlaying, container.dockTitle)
         }
+    }
+}
+
+/** Content of one course: its sounds, annotations, palette and style. The palette paints only the sheet of the course ([Page]), not the app. */
+@Composable
+private fun CourseLooked(container: AppContainer, courseId: Uuid, content: @Composable () -> Unit) {
+    val look = container.look(courseId)
+    CourseContent(container.audio(courseId), container.annotations(courseId), container.dockTitle, look.colors, look.style) {
+        CompositionLocalProvider(LocalCourseSheet provides look.colors) { content() }
     }
 }

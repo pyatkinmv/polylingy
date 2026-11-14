@@ -18,6 +18,7 @@ book. A reviewer that has only the page cannot. So:
 
 ## Steps
 
+0. **Student view.** `python .claude/skills/review-course/student_view.py <course.zip|json> <folder>` writes `unit1_student.txt`… : every exercise exactly as the learner sees it in the app, WITHOUT the key (blanks as `[____]`, pills as `[a | b]`, match columns and order tiles scrambled). Give it to the reviewers together with the dump and tell them to solve from it first: a blank that hides a whole word with nothing to derive it from (no translation, no related word) is a defect that the key-marked dump hides. The same rule is checked by `sanity.py` ("пропуск без подсказки").
 1. **Dump.** `python .claude/skills/review-course/dump_course.py <course.zip|json> <folder>` writes `unit1_dump.txt`, `unit2_dump.txt`… The dump shows theory,
    topics and exercises, the key marked (the first option of `{{a|b|c}}` is right, `ORDER` is the right order, `PAIR` the right match), readings as `‹…›`,
    pictures as their `alt`. Reviewers cannot see pictures or hear audio: say so.
@@ -28,6 +29,7 @@ book. A reviewer that has only the page cannot. So:
    - *reject* — wrong, or contrary to a rule the user set (say why in the report);
    - *ask the user* — taste and structure (merging exercises, moving topics, removing readings).
    Check anything that touches the source against the source (the book's answer key settles a key; a reviewer's memory does not).
+   **Write the triage down**: after each review append to the course's `review-decisions.md` (build notes) what was accepted, what was rejected and why, and what stays open for a native speaker; the person must be able to revise all of it in one place later. Forms derived by a rule rather than taken from the source go to a generated list (for the Buryat course `course2/review_log.py` -> `review-forms-by-rule.md`).
 4. **Fix**, rebuild, run `checkCourse` and `lint.py`.
 5. **Second round** with new reviewers on the fixed course. Two rounds are usually enough: stop when what is left is taste or "unsure".
 6. **Report to the user**: what was found, what was fixed, what was rejected and why, what is left for them to decide, and what the reviewers could not check

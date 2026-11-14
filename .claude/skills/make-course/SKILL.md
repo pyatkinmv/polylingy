@@ -24,14 +24,16 @@ anything outside it is an import error. Do not invent fields, types or values.
 - Understand a remark before acting on it: find what is actually wrong, then fix the cause, not only the example.
 - Ask before mass changes (many exercises, a new section, a new rule) and before arguable choices such as where
   readings go; do not decide them alone.
-- Never add what the user did not ask for (links, extra sections, extra pictures); never remove what they asked for.
+- Never add what the user did not ask for (links, extra sections); never remove what they asked for. Pictures are the exception inside limits: a course should look pleasant
+  and be easy on the eye, so where a unit's theory is clearer with a picture or a diagram, add one (see `pictures.md`, "Visualise where it helps"), but only there; do not
+  illustrate everything.
 - Everything made for the course (pictures, voices, video, names, situations) fits the cultural setting of the course; see `pictures.md`, "Cultural context".
 - Say plainly what was not verified. The user may not read the language of the course.
 
 ## 1. Read the format first
 
-- `docs/course.schema.json` — the formal JSON Schema (format 3): every object, field and allowed value. It is the
-  authority on *shape* (format 6).
+- `docs/course.schema.json` — the formal JSON Schema (format 9): every object, field and allowed value. It is the
+  authority on *shape*.
 - `docs/content-format.md` — what each part means and how it looks: sections 2 (the course), 3 (text markup),
   4 (theory blocks), 5 (exercise layers and types), 6 (explanations and links), 7 (pictures).
 - `examples/advanced-grammar.json` and `examples/irregular-verbs.json` — complete, valid courses to copy from.
@@ -70,7 +72,16 @@ Rules that catch most mistakes:
 - every `{{…}}` variant ≤ 60 characters (expand answers ≤ 150); `choice` with `options` has exactly one blank;
 - an `expand` model answer must itself contain its `keys` in order;
 - pictures: `src` is `https://…` or `images/…` inside the zip; `alt` is required;
-- ids may be left out (import adds them); `formatVersion` is `6`.
+- ids may be left out (import adds them); `formatVersion` is `9`.
+
+## 3. Theory elements and the look of a course (format 9)
+
+Theory is made of a few composable blocks; pick the block by what the learner needs to see (details: `docs/content-format.md` §4, showcase course `examples/theory-showcase.zip`):
+- `tip` with `kind` `tip`/`note`/`rule`/`warning` for remarks; `fact` and `culture` (with `title`, and an `aside` picture) for a fact or a cultural note;
+- `grid` (2–4 columns of any blocks) for side by side; `situation` with a `frame` (email, article, …); `dialogue` with `look: bubbles` and `portraits`;
+- `table` with `appearance` (fullWidth/onlyAsWideAsContent, card/none background, highlighted header row, `highlightedColumns`, striped rows, lines between rows); short tables: `onlyAsWideAsContent`;
+- `==mark==` / `=={2}mark==` in text: tones are numbers 1–5, roles not colours; give a mark one meaning across the course (root, ending, the pattern).
+- Colours are never written in a course. The learner picks a palette and a style in the course settings; the file may only name defaults in `rules.display.palette` and `rules.display.style`. Pictures drawn by code are transparent with meaning colours fixed (`pictures.md`).
 - **Critical: no meta-comments in the course.** Theory, instructions, tips, notes, descriptions and titles never mention
   the source: no "the book says", "as in the book", "the textbook suggests", "not carried over", "on the book's website",
   "the Activity Book", unit or page numbers of the source, and nothing about what the course copies, adapts or leaves out
@@ -107,6 +118,10 @@ Rules that catch most mistakes:
 - Every topic should have at least one exercise without typing (`choice`, `match`, `order`) when learners may turn on
   "avoid typing"; a topic with only typing exercises still works.
 
+## Size of a unit (a floor, not a target)
+
+A unit is one study session. Aim for **5–6 topics, about 20 exercises, theory of at least 3000 characters, 35–60 new words**. If the source gives less, say why in the build notes, but do not leave it short by default. What fills a unit, in this order: (1) the full rules of the lesson from the source, not only a scheme of them (conditions, exceptions, examples); (2) a topic with the vocabulary of the lesson's theme; (3) a topic "Читаем": a short text or dialogue of our own, built from the forms of the unit, with questions; (4) a mixed topic that makes the learner tell this unit's form from earlier ones. Pictures follow the need of the unit, not a quota, but the **picture pass** (`pictures.md`, "The picture pass is a step") is mandatory: write the list of sections with a picture or the reason for none, before building and before handing over; take existing pictures first, and give each theory picture one exercise (`pictures.md`, "Reuse before drawing", "Pictures in exercises"). Before handing a unit over, read its `unitN_student.txt` (what the learner sees) and solve the exercises yourself.
+
 ## 3. Check before handing over
 
 A valid file is not yet a good course: follow `sanity-check.md` and `handover.md` too. Vary the exercise forms (no form over ~40% of a topic) and give the answers an `explanation`: see `sanity-check.md`, section 2.
@@ -118,3 +133,5 @@ A valid file is not yet a good course: follow `sanity-check.md` and `handover.md
 It runs exactly the checks of import (shape, markup, blanks, links, model answers, files in the zip) and prints
 every problem with its path, like `units[0].topics[2].exercises[1].items[0].keys: …`. Fix and re-run until it says
 `OK`. Only then give the file to the user (or import it).
+
+**Open questions and review decisions go to one file** (`review-decisions.md` in the build notes), not only to the chat: what the reviewers found, what was accepted or rejected (and why), what needs a native speaker. Forms derived by a rule are listed by a script from the lexicon marks. Update it after every unit.

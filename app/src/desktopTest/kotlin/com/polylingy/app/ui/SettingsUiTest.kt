@@ -10,6 +10,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import com.polylingy.app.AppContainer
+import com.polylingy.content.CourseStyle
 import com.polylingy.content.Response
 import com.polylingy.core.content.GradingSpec
 import com.polylingy.core.content.MasterySpec
@@ -74,6 +75,24 @@ class SettingsUiTest {
         tap("Save")
         assertEquals(DisplaySpec(annotations = false, avoidTyping = true), settings().display)
         assertEquals(false, container.annotations(stored().id))
+    }
+
+    @Test fun theLookOfTheCourseIsChosenWithAPreviewAndSavedWithTheSettings() = appTest(seed, height = 1700) {
+        open()
+        test.onNodeWithText("How the course looks").performScrollTo().assertIsDisplayed()
+        text("Save").assertIsNotEnabled()
+        screenshot("settings-look")
+        test.onNode(hasContentDescription("Palette Pine")).performScrollTo().performClick()
+        test.onNode(hasContentDescription("Style Strict")).performScrollTo().performClick()
+        test.waitForIdle()
+        test.onNode(hasContentDescription("Preview of the course look")).performScrollTo().assertIsDisplayed()
+        screenshot("settings-look-pine-strict")
+        text("Save").assertIsEnabled()
+        tap("Save")
+        assertEquals(DisplaySpec(palette = "pine", style = CourseStyle.STRICT), settings().display)
+        val look = container.look(stored().id)
+        assertEquals(CourseStyle.STRICT, look.style)
+        assertEquals(com.polylingy.content.compose.Palettes.byId("pine").colors, look.colors)
     }
 
     @Test fun theSettingsOpenFromTheCourseAndFromItsMenu() = appTest(seed) {
@@ -185,7 +204,7 @@ class SettingsUiTest {
         assertEquals(listOf(com.polylingy.content.ItemResult.TYPO), journal.results)
     }
 
-    @Test fun aCourseFromANewerVersionHasNoSettings() = appTest({ it.seedCourse(course.replace("\"formatVersion\": 2", "\"formatVersion\": 9")) }) {
+    @Test fun aCourseFromANewerVersionHasNoSettings() = appTest({ it.seedCourse(course.replace("\"formatVersion\": 2", "\"formatVersion\": 10")) }) {
         click("Irregular verbs")
         assertTrue(test.onAllNodesWithText("Study settings").fetchSemanticsNodes().isEmpty())
         click("Courses")

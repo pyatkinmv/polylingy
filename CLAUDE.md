@@ -27,7 +27,7 @@ Versions live in `gradle/libs.versions.toml`.
 
 Dependencies point only towards `core` (and `core` → `content`). Root package: `com.polylingy`.
 
-Version 0.2 is the rewrite to the current model (courses with units and theory, exercise types, course policies); how it went is in `docs/migration-plan.md`. Version 0.3 added exercise layers (`look`, `aside`), `expand` and `fix`, and the formal schema of the course file; 0.4 added sounds (played with JLayer), dialogues, annotations over words and the "How exercises look" settings; 0.5 added the docked player of long recordings, the `track` and `video` blocks and right-to-left text (Arabic); 0.5.1 added kinds of remarks (`tip.kind`), lead paragraphs (`text.role`) and numbered examples; 0.5.5 added `extraKeys` (keys over a text field for letters the keyboard lacks), the `sort` exercise and `audio` of a `choice` item. Example courses for manual checks are in `examples/`.
+Version 0.2 is the rewrite to the current model (courses with units and theory, exercise types, course policies); how it went is in `docs/migration-plan.md`. Version 0.3 added exercise layers (`look`, `aside`), `expand` and `fix`, and the formal schema of the course file; 0.4 added sounds (played with JLayer), dialogues, annotations over words and the "How exercises look" settings; 0.5 added the docked player of long recordings, the `track` and `video` blocks and right-to-left text (Arabic); 0.5.1 added kinds of remarks (`tip.kind`), lead paragraphs (`text.role`) and numbered examples; 0.5.5 added `extraKeys` (keys over a text field for letters the keyboard lacks), the `sort` exercise and `audio` of a `choice` item. 0.6 added blocks for richer theory (format 9): `grid` (columns of any blocks), `tip` kinds `fact` and `culture` with `title` and `aside`, a frame (letter, article) round a `situation`, colour highlights `==text==` in text, speech-bubble dialogues with portraits, table `appearance` flags, colour palettes and styles chosen in the course settings (`rules.display.palette`, `rules.display.style`, tones of marks are numbers 1–5), and a showcase course with every element in `examples/theory-showcase.zip`. Example courses for manual checks are in `examples/`.
 
 Key files:
 - `app/src/desktopMain/kotlin/com/polylingy/app/Main.kt` — entry point: opens storage, seeds the sample course, opens the window
@@ -115,7 +115,7 @@ The course file format is fixed by code, tests and docs together; change all of 
 - a sample in `content/src/commonTest/.../Samples.kt` (and `examples/` when it shows the feature);
 - the format description in `docs/content-format.md`.
 
-To write a course (by hand or from a book), follow `.claude/skills/make-course/SKILL.md`; it points to `transfer.md` (carrying over from a book, `generated`, review file), `pictures.md`, `sanity-check.md` and `handover.md` in the same folder; after generating or editing a course, run the skill `review-course` (isolated reviewers).
+To write a course (by hand or from a book), follow `.claude/skills/make-course/SKILL.md`; it points to `transfer.md` (carrying over from a book, `generated`, review file), `pictures.md`, `sanity-check.md` and `handover.md` in the same folder; where it helps the learner add a visual (a code-drawn scheme or a picture; not everywhere, see `pictures.md` "Visualise where it helps"); after generating or editing a course, run the skill `review-course` (isolated reviewers).
 
 ## Additional Docs
 
@@ -125,6 +125,6 @@ To write a course (by hand or from a book), follow `.claude/skills/make-course/S
 | `docs/learning-model.md` | Learning model: units, rounds, grades, course policies, checking and typos |
 | `docs/migration-plan.md` | How 0.2 was built (done): stages, invariants, decisions, open questions |
 | `docs/content-format.md` | Course format: theory blocks, exercise layers and types, explanations, links, import, validation, schema, `formatVersion` |
-| `docs/course.schema.json` | Formal JSON Schema of `course.json`, format 8 |
+| `docs/course.schema.json` | Formal JSON Schema of `course.json`, format 9 |
 | `docs/testing.md` | How changes are verified: test levels, UI tests, screenshots, manual checks |
 | `.claude/docs/architectural_patterns.md` | Code conventions: ports, DI, ViewModels, testing helpers |

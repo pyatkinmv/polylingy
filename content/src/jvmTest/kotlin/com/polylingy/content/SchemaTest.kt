@@ -41,6 +41,7 @@ class SchemaTest {
         for ((name, json) in Samples.exercises) assertEquals(emptyList(), errors("exercise", json), name)
         assertEquals(emptyList(), errors("content", Samples.theory))
         assertEquals(emptyList(), errors("content", Samples.pictureSizes))
+        assertEquals(emptyList(), errors("content", Samples.newBlocks))
     }
 
     @Test fun whatTheAppWritesPassesTheSchema() {
@@ -110,6 +111,9 @@ class SchemaTest {
             "block.track" to Block.Track.serializer().descriptor,
             "block.video" to Block.Video.serializer().descriptor,
             "line" to Block.Line.serializer().descriptor,
+            "portrait" to Block.Dialogue.Portrait.serializer().descriptor,
+            "block.grid" to Block.Grid.serializer().descriptor,
+            "table.appearance" to Block.Table.Appearance.serializer().descriptor,
         )
         for ((def, descriptor) in classes) {
             assertEquals(descriptor.elementNames.toSet(), properties(def) - "type" - "format", def)

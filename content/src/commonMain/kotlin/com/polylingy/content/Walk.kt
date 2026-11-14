@@ -23,15 +23,24 @@ private fun MutableList<Pair<Path, Block>>.walk(block: Block, at: Path) {
             block.aside?.let { walk(it, at / "aside") }
         }
         is Block.Quote -> block.aside?.let { walk(it, at / "aside") }
-        is Block.Tip -> walk(block.blocks, at / "blocks")
+        is Block.Tip -> {
+            walk(block.blocks, at / "blocks")
+            block.aside?.let { walk(it, at / "aside") }
+        }
+        is Block.Grid -> walk(block.blocks, at / "blocks")
         is Block.Text, is Block.Picture, is Block.Table, is Block.Examples, is Block.Words, is Block.SeeAlso, is Block.Dialogue,
         is Block.Track, is Block.Video, is Block.Unknown -> {}
     }
 }
 
 /** Every picture on this page, with the path of its `src`. */
-fun Content.images(at: Path): List<Pair<Path, Image>> =
-    walk(at).mapNotNull { (path, block) -> (block as? Block.Picture)?.let { path / "src" to it.image } }
+fun Content.images(at: Path): List<Pair<Path, Image>> = walk(at).flatMap { (path, block) ->
+    when (block) {
+        is Block.Picture -> listOf(path / "src" to block.image)
+        is Block.Dialogue -> block.portraits.mapIndexed { i, p -> (path / "portraits")[i] / "image" / "src" to p.image }
+        else -> emptyList()
+    }
+}
 
 /** Every sound on this page — dialogue lines, table cells, examples and tracks — with its path. */
 fun Content.audios(at: Path): List<Pair<Path, String>> = walk(at).flatMap { (path, block) ->
@@ -92,7 +101,8 @@ private fun Block.mapLinks(transform: (Block.Link) -> Block.Link): Block = when 
     is Block.Section -> copy(blocks = blocks.map { it.mapLinks(transform) })
     is Block.Situation -> copy(blocks = blocks.map { it.mapLinks(transform) }, aside = aside?.mapLinks(transform))
     is Block.Quote -> copy(aside = aside?.mapLinks(transform))
-    is Block.Tip -> copy(blocks = blocks.map { it.mapLinks(transform) })
+    is Block.Tip -> copy(blocks = blocks.map { it.mapLinks(transform) }, aside = aside?.mapLinks(transform))
+    is Block.Grid -> copy(blocks = blocks.map { it.mapLinks(transform) })
     is Block.SeeAlso -> copy(links = links.map(transform))
     is Block.Text, is Block.Picture, is Block.Table, is Block.Examples, is Block.Words, is Block.Dialogue, is Block.Track, is Block.Video, is Block.Unknown -> this
 }

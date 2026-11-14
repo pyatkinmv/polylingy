@@ -16,7 +16,7 @@ FORBIDDEN = [
 RX = re.compile("|".join(FORBIDDEN), re.I)
 # the words «книга» and «тетрадь» themselves are vocabulary of a course (a translation of «ном», «дэбтэр»), not a mention of the source;
 # «в книге», «книги», «тетради» still match
-VOCAB = re.compile(r"(?<!\bиз )(?<!\bв )(?<!\bпо )(?<!\bо )\b(книга|тетрадь|книги|тетради|книг)\b", re.I)
+VOCAB = re.compile(r"(?<!\bиз )(?<!\bв )(?<!\bпо )(?<!\bо )\b(книга|книгу|книгой|тетрадь|книги|тетради|тетрадью|книг)\b", re.I)
 # a letter of an RTL script right next to a Latin letter or ~: a mark that was meant to be a vowel sign
 STUCK = re.compile(r"[֐-׿؀-ۿݐ-ݿ][A-Za-z~]|[A-Za-z~][֐-׿؀-ۿݐ-ݿ]")
 SKIP_KEYS = {"alt", "url", "src", "audio", "id", "type", "format"}

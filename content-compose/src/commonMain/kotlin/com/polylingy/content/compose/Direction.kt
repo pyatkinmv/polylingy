@@ -35,6 +35,7 @@ internal fun Inline.runsRightToLeft(): Boolean {
             is InlineNode.Text -> count(n.text)
             is InlineNode.Bold -> walk(n.children)
             is InlineNode.Italic -> walk(n.children)
+            is InlineNode.Marked -> walk(n.children)
             is InlineNode.Blank -> count(n.answer)
             is InlineNode.Annotated -> count(n.base)
             InlineNode.LineBreak -> {}

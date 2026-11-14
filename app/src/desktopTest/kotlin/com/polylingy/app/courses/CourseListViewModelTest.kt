@@ -30,7 +30,7 @@ class CourseListViewModelTest {
     @Test fun aBrokenFileFailsWithItsProblems() {
         val outcome = assertIs<ImportOutcome.Failed>(vm.import(PickedFile("x.json", "{}".toByteArray())))
         assertEquals("x.json", outcome.fileName)
-        assertEquals(listOf("formatVersion: missing; this app writes 8"), outcome.problems.map { it.toString() })
+        assertEquals(listOf("formatVersion: missing; this app writes 9"), outcome.problems.map { it.toString() })
         assertEquals(emptyList(), names)
     }
 

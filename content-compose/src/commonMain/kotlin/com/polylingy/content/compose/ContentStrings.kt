@@ -24,6 +24,8 @@ object EnglishContentStrings : ContentStrings {
         Block.Tip.Kind.NOTE -> "Note"
         Block.Tip.Kind.RULE -> "Rule"
         Block.Tip.Kind.WARNING -> "Warning"
+        Block.Tip.Kind.FACT -> "Did you know?"
+        Block.Tip.Kind.CULTURE -> "Tradition"
     }
     override val seeAlso = "See also"
     override val theory = "Theory"
@@ -36,6 +38,8 @@ object RussianContentStrings : ContentStrings {
         Block.Tip.Kind.NOTE -> "Примечание"
         Block.Tip.Kind.RULE -> "Правило"
         Block.Tip.Kind.WARNING -> "Осторожно"
+        Block.Tip.Kind.FACT -> "Знаете ли вы?"
+        Block.Tip.Kind.CULTURE -> "Традиция"
     }
     override val seeAlso = "См. также"
     override val theory = "Теория"

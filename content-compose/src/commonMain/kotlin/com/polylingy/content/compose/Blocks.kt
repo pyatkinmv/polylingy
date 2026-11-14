@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -35,6 +36,7 @@ import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -154,19 +156,22 @@ fun BlockView(block: Block, onLink: (Block.Link) -> Unit = {}) {
         is Block.Video -> VideoView(block)
         is Block.Situation -> {
             val card = block.look != Block.Situation.Style.PLAIN
-            Box(
-                if (card) Modifier.fillMaxWidth().background(colors.accentSoft, RoundedCornerShape(14.dp)).padding(horizontal = 16.dp, vertical = 14.dp)
-                else Modifier.fillMaxWidth(),
-            ) {
-                // A thumbnail stands before the text, like an avatar; a bigger picture stands after it.
+            // A thumbnail stands before the text, like an avatar; a bigger picture stands after it.
+            val inside = @Composable {
                 WithAside(block.aside, asideFirst = (block.aside as? Block.Picture)?.size == com.polylingy.content.Aside.Size.SMALL, onLink = onLink) { Blocks(block.blocks, onLink = onLink, spacing = 10) }
             }
+            // A frame (a letter, an article) is the card itself; without one the situation is a soft card or plain.
+            if (block.frame != null) Framed(block.frame, null) { Box(Modifier.fillMaxWidth()) { inside() } }
+            else Box(
+                if (card) Modifier.fillMaxWidth().background(colors.accentSoft, RoundedCornerShape(14.dp)).padding(horizontal = 16.dp, vertical = 14.dp)
+                else Modifier.fillMaxWidth(),
+            ) { inside() }
         }
         is Block.Picture -> Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
             Picture(block.image, Modifier.widthIn(max = pictureMaxWidth(block.size)), rounded = true)
         }
-        is Block.Table -> CellTable(block.head, block.rows)
-        is Block.Dialogue -> Column(
+        is Block.Table -> CellTable(block.head, block.rows, block.appearance ?: Block.Table.Appearance())
+        is Block.Dialogue -> if (block.look == Block.Dialogue.Style.BUBBLES) DialogueBubbles(block) else Column(
             Modifier.fillMaxWidth().background(colors.card, RoundedCornerShape(10.dp)).border(1.dp, colors.line, RoundedCornerShape(10.dp))
                 .padding(horizontal = 16.dp, vertical = 10.dp).semantics { contentDescription = "Dialogue" },
             verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -198,15 +203,16 @@ fun BlockView(block: Block, onLink: (Block.Link) -> Unit = {}) {
                 example.audio?.let { PlayButton(it) } ?: if (!block.numbered) Text("•", color = colors.muted) else Unit
                 val phrase: @Composable () -> Unit = {
                     val muted = colors.muted
+                    val paint = rememberMarkPaint()
                     if (example.text.hasAnnotations && example.not == null) InlineText(example.text)
                     else Text(
                         buildAnnotatedString {
-                            append(example.text.annotated())
+                            append(example.text.annotated(paint))
                             example.not?.let { not ->
                                 withStyle(SpanStyle(color = muted)) {
                                     append("  (")
                                     withStyle(SpanStyle(fontStyle = FontStyle.Italic)) { append("not ") }
-                                    append(not.annotated())
+                                    append(not.annotated(paint))
                                     append(")")
                                 }
                             }
@@ -231,18 +237,36 @@ fun BlockView(block: Block, onLink: (Block.Link) -> Unit = {}) {
             )
         }
         is Block.Tip -> {
-            val warning = block.kind == Block.Tip.Kind.WARNING
-            val tone = if (warning) colors.typo else colors.accent
-            Column(
-                Modifier.fillMaxWidth().background(if (warning) colors.typoBg else colors.accentSoft, RoundedCornerShape(10.dp)).padding(14.dp)
-                    .semantics { contentDescription = block.kind.name.lowercase() },
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    TipIcon(block.kind, tone)
-                    Text(LocalContentStrings.current.remark(block.kind), color = tone, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge)
+            val (tone, soft) = when (block.kind) {
+                Block.Tip.Kind.WARNING -> colors.typo to colors.typoBg
+                Block.Tip.Kind.FACT -> colors.info to colors.infoBg
+                Block.Tip.Kind.CULTURE -> colors.culture to colors.cultureBg
+                Block.Tip.Kind.TIP, Block.Tip.Kind.NOTE, Block.Tip.Kind.RULE -> colors.accent to colors.accentSoft
+            }
+            Box(Modifier.fillMaxWidth().background(soft, RoundedCornerShape(10.dp)).padding(14.dp).semantics { contentDescription = block.kind.name.lowercase() }) {
+                WithAside(block.aside, asideFirst = false, onLink = onLink) {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            TipIcon(block.kind, tone)
+                            // A title names this remark ("Obo"); without one the kind's caption does.
+                            val title = block.title
+                            if (title != null) InlineText(title, style = MaterialTheme.typography.labelLarge.copy(color = tone, fontWeight = FontWeight.Bold))
+                            else Text(LocalContentStrings.current.remark(block.kind), color = tone, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge)
+                        }
+                        Blocks(block.blocks, onLink = onLink, spacing = 8)
+                    }
                 }
-                Blocks(block.blocks, onLink = onLink, spacing = 8)
+            }
+        }
+        is Block.Grid -> BoxWithConstraints(Modifier.fillMaxWidth()) {
+            // Columns need room: two from NarrowWidth up, three and four from a wider place; otherwise the blocks stand in one column.
+            val needed = if (block.columns > 2) GridWideWidth else NarrowWidth
+            if (maxWidth < needed) Blocks(block.blocks, onLink = onLink)
+            else Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                for (row in block.blocks.chunked(block.columns)) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    for (cell in row) Box(Modifier.weight(1f)) { BlockView(cell, onLink) }
+                    repeat(block.columns - row.size) { Box(Modifier.weight(1f)) }
+                }
             }
         }
         is Block.SeeAlso -> FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -256,6 +280,49 @@ fun BlockView(block: Block, onLink: (Block.Link) -> Unit = {}) {
             )
         }
         is Block.Unknown -> NewerVersion()
+    }
+}
+
+/** Below this width a grid of three or four columns becomes one column. */
+private val GridWideWidth = 760.dp
+
+/**
+ * A dialogue as speech bubbles: the first speaker's on the left, the second's on the right, any other speaker's on the left; a speaker's
+ * portrait (if the block has one) stands next to the bubble, otherwise the name stands over the line.
+ */
+@Composable
+private fun DialogueBubbles(block: Block.Dialogue) {
+    val speakers = block.lines.mapNotNull { it.who?.plainText() }.distinct()
+    Column(Modifier.fillMaxWidth().semantics { contentDescription = "Dialogue" }, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        for (line in block.lines) {
+            val who = line.who?.plainText()
+            val right = who != null && speakers.indexOf(who) == 1
+            val portrait = block.portraits.firstOrNull { it.who == who }
+            val avatar = @Composable {
+                if (portrait != null) Picture(portrait.image, Modifier.size(52.dp).clip(CircleShape), crop = true)
+            }
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp, if (right) Alignment.End else Alignment.Start),
+                verticalAlignment = Alignment.Bottom,
+            ) {
+                if (!right) avatar()
+                Column(
+                    Modifier.widthIn(max = 460.dp).background(if (right) colors.panel else colors.accentSoft, RoundedCornerShape(16.dp)).padding(horizontal = 14.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    if (portrait == null) line.who?.let { InlineText(it, style = MaterialTheme.typography.labelMedium.copy(color = colors.muted, fontWeight = FontWeight.Bold)) }
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                        line.audio?.let { PlayButton(it) }
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            InlineText(line.text, style = MaterialTheme.typography.bodyLarge)
+                            line.translation?.let { Translation(it) }
+                        }
+                    }
+                }
+                if (right) avatar()
+            }
+        }
     }
 }
 
@@ -331,9 +398,14 @@ private fun WithAside(aside: Block?, asideFirst: Boolean, onLink: (Block.Link) -
     if (aside == null) return main()
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         if (maxWidth < NarrowWidth) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                main()
-                BlockView(aside, onLink)
+            // Narrow: the picture goes over the content when it would stand before it, under it otherwise.
+            val picture = aside as? Block.Picture
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                if (asideFirst) {
+                    if (picture != null && picture.size == com.polylingy.content.Aside.Size.SMALL) Picture(picture.image, Modifier.size(SmallAside), crop = true, rounded = true) else BlockView(aside, onLink)
+                }
+                Box(Modifier.fillMaxWidth()) { main() }
+                if (!asideFirst) BlockView(aside, onLink)
             }
         } else {
             val picture = aside as? Block.Picture
@@ -419,11 +491,11 @@ internal fun place(rows: List<List<Cell>>): List<List<CellPlace>> {
 }
 
 /**
- * A theory table: columns as wide as their content, a cell may span rows. A table wider than its place
- * scrolls sideways inside its frame.
+ * A theory table; a cell may span rows. How it is drawn is [appearance] (see [Block.Table.Appearance]). By default the table is as wide as its
+ * place, in a soft card; its columns share the width in proportion to their text. A table too wide for its place scrolls sideways.
  */
 @Composable
-private fun CellTable(head: List<Inline>, rows: List<List<Cell>>) {
+private fun CellTable(head: List<Inline>, rows: List<List<Cell>>, appearance: Block.Table.Appearance) {
     val places = place(rows)
     val all = buildList {
         head.forEachIndexed { c, cell -> add(Triple(CellPlace(0, c, 1), cell, true)) }
@@ -435,55 +507,92 @@ private fun CellTable(head: List<Inline>, rows: List<List<Cell>>) {
         rows.forEach { row -> row.forEach { add(it.audio) } }
     }
     val offset = if (head.isEmpty()) 0 else 1
-    // No fills and no frame: thin lines between the rows and a slightly stronger one under the header. Every cell fills its
-    // row, so the lines run from edge to edge.
+    val fullWidth = appearance.widthOfTable == Block.Table.Appearance.WidthOfTable.FULL_WIDTH
+    val card = appearance.background == Block.Table.Appearance.Background.CARD
+    val highlightedHeader = appearance.headerRow == Block.Table.Appearance.HeaderRow.HIGHLIGHTED
+    val highlightedColumns = appearance.highlightedColumns.toSet()
+    val lastRow = rows.size - 1
     val rowLine = colors.line
-    val headLine = colors.accent.copy(alpha = 0.45f)
-    Box(Modifier.horizontalScroll(rememberScrollState())) {
-        Layout(
-            content = {
-                all.forEachIndexed { i, (place, text, isHead) ->
-                    val style = if (isHead) MaterialTheme.typography.labelLarge.copy(color = colors.accent, fontWeight = FontWeight.Bold)
-                    else MaterialTheme.typography.bodyMedium
-                    val sound = sounds[i]
-                    val line = if (isHead) headLine else rowLine
-                    val width = if (isHead) 1.5.dp else 1.dp
-                    Box(
-                        Modifier.drawBehind { drawLine(line, Offset(0f, size.height - width.toPx() / 2), Offset(size.width, size.height - width.toPx() / 2), width.toPx()) },
-                        contentAlignment = Alignment.CenterStart,
-                    ) {
-                        if (sound == null) InlineText(text, Modifier.padding(horizontal = 12.dp, vertical = 9.dp), style = style)
-                        else Row(Modifier.padding(horizontal = 12.dp, vertical = 9.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                            PlayButton(sound)
-                            if (text.text.isNotEmpty()) InlineText(text, style = style)
+    val headLine = colors.separator
+    val columnLine = colors.separator
+    val shape = RoundedCornerShape(12.dp)
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val available = with(LocalDensity.current) { maxWidth.roundToPx() }
+        // A card as wide as the page, or only as wide as the table when the table is only as wide as its text.
+        val frame = if (card) {
+            (if (fullWidth) Modifier.fillMaxWidth() else Modifier).clip(shape).background(colors.card, shape).border(1.dp, colors.line, shape)
+        } else Modifier
+        Box(frame.horizontalScroll(rememberScrollState())) {
+            Layout(
+                content = {
+                    all.forEachIndexed { i, (place, text, isHead) ->
+                        val bodyRow = place.row - offset
+                        val style = when {
+                            isHead -> MaterialTheme.typography.labelLarge.copy(color = colors.accent, fontWeight = FontWeight.Bold)
+                            place.column in highlightedColumns -> MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
+                            else -> MaterialTheme.typography.bodyMedium
+                        }
+                        val sound = sounds[i]
+                        // Row lines: thin under body rows (not under the last one of a card, whose edge is its line); a stronger one under a plain header.
+                        val endsTable = place.row + place.rowSpan - 1 - offset >= lastRow
+                        val drawLine = if (isHead) !highlightedHeader else appearance.linesBetweenRows && !(card && endsTable)
+                        val line = if (isHead) headLine else rowLine
+                        val width = if (isHead) 1.5.dp else 1.dp
+                        val shade = when {
+                            isHead -> if (highlightedHeader) colors.head else Color.Transparent
+                            place.column in highlightedColumns -> colors.column
+                            appearance.stripedRows && bodyRow % 2 == 1 -> colors.stripe
+                            else -> Color.Transparent
+                        }
+                        val padding = if (card) PaddingValues(horizontal = 16.dp, vertical = 11.dp) else PaddingValues(horizontal = 12.dp, vertical = 9.dp)
+                        Box(
+                            Modifier.background(shade).drawBehind {
+                                if (drawLine) drawLine(line, Offset(0f, size.height - width.toPx() / 2), Offset(size.width, size.height - width.toPx() / 2), width.toPx())
+                                // A highlighted column is parted from its neighbours by a line on its right edge.
+                                if (place.column in highlightedColumns) drawLine(columnLine, Offset(size.width - 0.5.dp.toPx(), 0f), Offset(size.width - 0.5.dp.toPx(), size.height), 1.dp.toPx())
+                            },
+                            contentAlignment = Alignment.CenterStart,
+                        ) {
+                            if (sound == null) InlineText(text, Modifier.padding(padding), style = style)
+                            else Row(Modifier.padding(padding), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                PlayButton(sound)
+                                if (text.text.isNotEmpty()) InlineText(text, style = style)
+                            }
                         }
                     }
+                },
+            ) { measurables, _ ->
+                val columns = (all.maxOfOrNull { it.first.column } ?: -1) + 1
+                val widths = IntArray(columns)
+                measurables.forEachIndexed { i, m -> val col = all[i].first.column; widths[col] = maxOf(widths[col], m.maxIntrinsicWidth(Constraints.Infinity)) }
+                // A table that is to fill its place shares the spare width among the columns in proportion to their text.
+                val natural = widths.sum()
+                if (fullWidth && natural in 1 until available) {
+                    val spare = available - natural
+                    val shares = widths.copyOf()
+                    for (c in widths.indices) widths[c] += (spare.toLong() * shares[c] / natural).toInt()
                 }
-            },
-        ) { measurables, _ ->
-            val columns = (all.maxOfOrNull { it.first.column } ?: -1) + 1
-            val widths = IntArray(columns)
-            measurables.forEachIndexed { i, m -> val col = all[i].first.column; widths[col] = maxOf(widths[col], m.maxIntrinsicWidth(Constraints.Infinity)) }
-            // A measurable may be measured once, so the natural heights come from the intrinsics; the cells are then measured to their row.
-            val naturalHeights = measurables.mapIndexed { i, m -> m.minIntrinsicHeight(widths[all[i].first.column]) }
-            val rowCount = (all.maxOfOrNull { it.first.row } ?: -1) + 1
-            val heights = IntArray(rowCount)
-            all.forEachIndexed { i, (place) -> if (place.rowSpan == 1) heights[place.row] = maxOf(heights[place.row], naturalHeights[i]) }
-            all.forEachIndexed { i, (place) ->
-                if (place.rowSpan > 1) {
-                    val last = place.row + place.rowSpan - 1
-                    val have = (place.row..last).sumOf { heights[it] }
-                    if (naturalHeights[i] > have) heights[last] += naturalHeights[i] - have
+                // A measurable may be measured once, so the natural heights come from the intrinsics; the cells are then measured to their row.
+                val naturalHeights = measurables.mapIndexed { i, m -> m.minIntrinsicHeight(widths[all[i].first.column]) }
+                val rowCount = (all.maxOfOrNull { it.first.row } ?: -1) + 1
+                val heights = IntArray(rowCount)
+                all.forEachIndexed { i, (place) -> if (place.rowSpan == 1) heights[place.row] = maxOf(heights[place.row], naturalHeights[i]) }
+                all.forEachIndexed { i, (place) ->
+                    if (place.rowSpan > 1) {
+                        val last = place.row + place.rowSpan - 1
+                        val have = (place.row..last).sumOf { heights[it] }
+                        if (naturalHeights[i] > have) heights[last] += naturalHeights[i] - have
+                    }
                 }
-            }
-            val xs = widths.runningFold(0) { acc, w -> acc + w }
-            val ys = heights.toList().runningFold(0) { acc, h -> acc + h }
-            val placeables = measurables.mapIndexed { i, m ->
-                val place = all[i].first
-                m.measure(Constraints.fixed(widths[place.column], ys[place.row + place.rowSpan] - ys[place.row]))
-            }
-            layout(xs.last(), ys.last()) {
-                all.forEachIndexed { i, (place) -> placeables[i].place(xs[place.column], ys[place.row]) }
+                val xs = widths.runningFold(0) { acc, w -> acc + w }
+                val ys = heights.toList().runningFold(0) { acc, h -> acc + h }
+                val placeables = measurables.mapIndexed { i, m ->
+                    val place = all[i].first
+                    m.measure(Constraints.fixed(widths[place.column], ys[place.row + place.rowSpan] - ys[place.row]))
+                }
+                layout(xs.last(), ys.last()) {
+                    all.forEachIndexed { i, (place) -> placeables[i].place(xs[place.column], ys[place.row]) }
+                }
             }
         }
     }

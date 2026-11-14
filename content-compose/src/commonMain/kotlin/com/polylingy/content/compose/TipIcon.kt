@@ -48,6 +48,26 @@ internal fun TipIcon(kind: Block.Tip.Kind, color: Color, modifier: Modifier = Mo
                 drawLine(color, at(10f, 8f), at(10f, 12f), stroke.width, StrokeCap.Round)
                 drawLine(color, at(10f, 14.2f), at(10f, 14.3f), stroke.width, StrokeCap.Round)
             }
+            Block.Tip.Kind.FACT -> {
+                // a four-pointed spark
+                val spark = Path().apply {
+                    moveTo(10f * k, 2.5f * k)
+                    cubicTo(10.8f * k, 7f * k, 13f * k, 9.2f * k, 17.5f * k, 10f * k)
+                    cubicTo(13f * k, 10.8f * k, 10.8f * k, 13f * k, 10f * k, 17.5f * k)
+                    cubicTo(9.2f * k, 13f * k, 7f * k, 10.8f * k, 2.5f * k, 10f * k)
+                    cubicTo(7f * k, 9.2f * k, 9.2f * k, 7f * k, 10f * k, 2.5f * k)
+                    close()
+                }
+                drawPath(spark, color, style = stroke)
+            }
+            Block.Tip.Kind.CULTURE -> {
+                // a pole with a pennant
+                drawLine(color, at(5f, 3f), at(5f, 17.5f), stroke.width, StrokeCap.Round)
+                val flag = Path().apply {
+                    moveTo(5f * k, 4f * k); lineTo(16f * k, 7f * k); lineTo(5f * k, 11f * k)
+                }
+                drawPath(flag, color, style = stroke)
+            }
             Block.Tip.Kind.NOTE -> {
                 drawCircle(color, 7.5f * k, at(10f, 10f), style = stroke)
                 drawLine(color, at(10f, 9f), at(10f, 14f), stroke.width, StrokeCap.Round)

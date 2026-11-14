@@ -154,6 +154,12 @@ class SettingsViewModel(private val study: StudyService, private val clock: Cloc
 
     fun avoidTyping(avoid: Boolean) = update { it.copy(display = display.copy(avoidTyping = avoid)) }
 
+    /** The palette of the course, by its id (see [com.polylingy.content.compose.Palettes]). */
+    fun palette(id: String) = update { it.copy(display = display.copy(palette = id)) }
+
+    /** The style of the course: how marks and details are set off. */
+    fun style(style: com.polylingy.content.CourseStyle) = update { it.copy(display = display.copy(style = style)) }
+
     /** The course's topics that have exercises, and those whose every exercise needs typing: avoiding typing keeps them. */
     val typing: Pair<Int, Int>
         get() {

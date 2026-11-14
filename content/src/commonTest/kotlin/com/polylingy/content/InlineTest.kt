@@ -5,6 +5,7 @@ import com.polylingy.content.InlineNode.Blank
 import com.polylingy.content.InlineNode.Bold
 import com.polylingy.content.InlineNode.Italic
 import com.polylingy.content.InlineNode.LineBreak
+import com.polylingy.content.InlineNode.Marked
 import com.polylingy.content.InlineNode.Text
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -27,6 +28,28 @@ class InlineTest {
         listOf(Bold(listOf(Text("a "), Italic(listOf(Text("b"))), Text(" c")))),
         nodes("**a *b* c**"),
     )
+
+    @Test fun highlightsHaveAToneOrAmberByDefault() {
+        assertEquals(listOf(Text("a "), Marked(listOf(Text("b")), MarkTone.FIRST), Text(" c")), nodes("a ==b== c"))
+        assertEquals(listOf(Marked(listOf(Text("root")), MarkTone.SECOND), Marked(listOf(Text("ing")), MarkTone.THIRD)), nodes("=={2}root===={3}ing=="))
+        assertEquals(listOf(Marked(listOf(Text("a "), Bold(listOf(Text("b")))), MarkTone.FIFTH)), nodes("=={5}a **b**=="))
+        assertEquals(listOf(Marked(listOf(Text("x")), MarkTone.FIRST)), nodes("=={1}x=="))
+        assertEquals("root ing", Inline("=={2}root== ==ing==").plainText())
+    }
+
+    @Test fun aHighlightMayHoldAnAnnotationAndBlanks() {
+        assertTrue(Inline("==[你好](nǐ hǎo)==").hasAnnotations)
+        assertEquals(1, Inline("==a {{b}}==").blanks.size)
+    }
+
+    @Test fun aBrokenHighlightIsAProblemAndPlainText() {
+        assertTrue(Inline("a == b").problems.isNotEmpty())
+        assertTrue(Inline("=={x}a==").problems.isNotEmpty(), "x is no tone")
+        assertTrue(Inline("=={g}a==").problems.isNotEmpty(), "tones are numbers, not colours")
+        assertTrue(Inline("=={6}a==").problems.isNotEmpty(), "there are five tones")
+        assertEquals(emptyList(), Inline("a \\== b").problems)
+        assertEquals("a == b", Inline("a \\== b").plainText())
+    }
 
     @Test fun annotatedWords() {
         assertEquals(listOf(Annotated("你好", "nǐ hǎo"), Text("！"), Bold(listOf(Annotated("老师", "lǎoshī")))), nodes("[你好](nǐ hǎo)！**[老师](lǎoshī)**"))

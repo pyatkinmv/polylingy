@@ -15,36 +15,57 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import com.polylingy.content.Block
+import com.polylingy.content.CourseStyle
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
+/** The two paints of a mark (`==text==`): [fill] under the text of the soft style, [strong] for the text and its line in the strict style. */
+@Immutable
+data class MarkColor(val fill: Color, val strong: Color)
+
 /**
- * How content looks. Courses may set only [accent]; everything else belongs to the app, so a course can't
- * break the layout or the meaning of the check colours.
+ * How content looks: the colours of one [Palette], each for its role. Courses never carry colours, they name a palette, so a course can't
+ * break the layout or the meaning of the check colours (those do not change with the palette).
+ * [background] is the page, [card] a card on it, [line] the edges and thin lines, [separator] the stronger line between parts
+ * (under a header, beside a highlighted column); the fills: [accentSoft] of a remark, [head] of a highlighted header, [column] of a
+ * highlighted column, [stripe] of a striped row; [marks] are the five marks of a text highlight.
  */
 @Immutable
 data class ContentColors(
     val accent: Color,
+    val accentSoft: Color,
+    val ink: Color,
+    val muted: Color,
+    val line: Color,
+    val card: Color,
+    val panel: Color,
+    val background: Color,
+    val head: Color,
+    val column: Color,
+    val stripe: Color,
+    val separator: Color,
+    val typo: Color,
+    val typoBg: Color,
+    val info: Color,
+    val infoBg: Color,
+    val culture: Color,
+    val cultureBg: Color,
+    val marks: List<MarkColor>,
     val onAccent: Color = Color.White,
-    val accentSoft: Color = accent.copy(alpha = 0.12f),
-    val ink: Color = Color(0xFF1F1D1A),
-    val muted: Color = Color(0xFF6B6458),
-    val line: Color = Color(0xFFE6DFD0),
-    val card: Color = Color.White,
-    val panel: Color = Color(0xFFF3EEE2),
     val correct: Color = Color(0xFF2F7A4F),
     val correctBg: Color = Color(0xFFE4F0E7),
-    val typo: Color = Color(0xFF7A5200),
-    val typoBg: Color = Color(0xFFF6E9C8),
     val wrong: Color = Color(0xFFB3261E),
     val wrongBg: Color = Color(0xFFF7E1DD),
 ) {
     companion object {
-        /** The soft green of the app ("Notebook" look); a course without its own accent uses it. */
-        val DefaultAccent = Color(0xFF2F7A4F)
+        /** The colours of the default palette. */
+        val Default: ContentColors get() = Palettes.default.colors
 
-        /** The theme for a course: its accent (`#2F6B5E`) if it sets a valid one, the app's otherwise. */
-        fun forAccent(hex: String?): ContentColors = ContentColors(parseHex(hex) ?: DefaultAccent)
+        /** The default palette with the accent of a course's old `theme.accent` (`#2F6B5E`), if it is a valid one. */
+        fun forAccent(hex: String?): ContentColors {
+            val accent = parseHex(hex) ?: return Default
+            return Default.copy(accent = accent, accentSoft = accent.copy(alpha = 0.12f))
+        }
 
         private fun parseHex(hex: String?): Color? {
             if (hex == null || !Regex("#[0-9A-Fa-f]{6}").matches(hex)) return null
@@ -105,7 +126,8 @@ class DockTitle {
     var text: String? by mutableStateOf(null)
 }
 
-internal val LocalContentColors = staticCompositionLocalOf { ContentColors(ContentColors.DefaultAccent) }
+internal val LocalContentColors = staticCompositionLocalOf { ContentColors.Default }
+internal val LocalCourseStyle = staticCompositionLocalOf { CourseStyle.SOFT }
 internal val LocalImageLoader = staticCompositionLocalOf { ImageLoader { null } }
 internal val LocalLinkNames = staticCompositionLocalOf { LinkNames { null } }
 internal val LocalAudioPlayer = staticCompositionLocalOf { AudioPlayer {} }
@@ -120,17 +142,19 @@ internal val LocalExtraKeys = staticCompositionLocalOf { emptyList<String>() }
  */
 @Composable
 fun ContentTheme(
-    colors: ContentColors,
+    colors: ContentColors? = null,
     images: ImageLoader = ImageLoader { null },
     links: LinkNames = LinkNames { null },
     audio: AudioPlayer = LocalAudioPlayer.current,
     annotations: Boolean = LocalShowAnnotations.current,
     extraKeys: List<String> = LocalExtraKeys.current,
+    style: CourseStyle? = null,
     content: @Composable () -> Unit,
 ) {
     CompositionLocalProvider(
         LocalExtraKeys provides extraKeys,
-        LocalContentColors provides colors,
+        LocalContentColors provides (colors ?: LocalContentColors.current),
+        LocalCourseStyle provides (style ?: LocalCourseStyle.current),
         LocalImageLoader provides images,
         LocalLinkNames provides links,
         LocalAudioPlayer provides audio,
@@ -140,12 +164,22 @@ fun ContentTheme(
 }
 
 /**
- * Sounds and annotations for the content inside, for one course; [ContentTheme] inside keeps them unless it is given its own.
+ * Sounds, annotations, palette ([colors]) and [style] for the content inside, for one course; [ContentTheme] inside keeps them unless it is given its own.
  * The docked player of a long recording is not here: it belongs to the app (see [PlayerDock]), so it stays when the screen changes.
  */
 @Composable
-fun CourseContent(audio: AudioPlayer, annotations: Boolean, dockTitle: DockTitle = remember { DockTitle() }, content: @Composable () -> Unit) {
-    CompositionLocalProvider(LocalAudioPlayer provides audio, LocalShowAnnotations provides annotations, LocalDockTitle provides dockTitle) {
+fun CourseContent(
+    audio: AudioPlayer,
+    annotations: Boolean,
+    dockTitle: DockTitle = remember { DockTitle() },
+    colors: ContentColors = ContentColors.Default,
+    style: CourseStyle = CourseStyle.SOFT,
+    content: @Composable () -> Unit,
+) {
+    CompositionLocalProvider(
+        LocalAudioPlayer provides audio, LocalShowAnnotations provides annotations, LocalDockTitle provides dockTitle,
+        LocalContentColors provides colors, LocalCourseStyle provides style,
+    ) {
         content()
     }
 }

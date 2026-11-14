@@ -165,6 +165,27 @@ object Samples {
           { "type": "situation", "look": "card", "blocks": [ { "type": "text", "text": "A soft card." } ] } ] }
     """.trimIndent()
 
+    /** The blocks and marks of format 9: a grid, a framed situation, kinds of remark with title and picture, table looks, bubbles, highlights. */
+    val newBlocks = """
+        { "format": "blocks", "blocks": [
+          { "type": "text", "text": "A =={2}root== and =={3}ing== highlight; ==first==." },
+          { "type": "grid", "columns": 3, "blocks": [
+            { "type": "situation", "look": "plain", "aside": { "type": "image", "src": "images/hat.png", "alt": "A hat", "size": "small" },
+              "blocks": [ { "type": "examples", "items": [ { "text": "hat", "translation": "шапка" } ] } ] },
+            { "type": "text", "text": "A second cell." },
+            { "type": "table", "appearance": { "stripedRows": true, "highlightedColumns": [0] }, "rows": [["a", "b"], ["c", "d"]] } ] },
+          { "type": "situation", "frame": { "type": "email", "from": "Anna", "to": "Pavel", "subject": "Hello" },
+            "blocks": [ { "type": "text", "text": "A letter inside the theory." } ] },
+          { "type": "tip", "kind": "fact", "title": "Did you know?", "aside": { "type": "image", "src": "images/lake.png", "alt": "A lake", "size": "small" },
+            "blocks": [ { "type": "text", "text": "A fact." } ] },
+          { "type": "tip", "kind": "culture", "blocks": [ { "type": "text", "text": "A custom." } ] },
+          { "type": "table", "head": ["Word", "Meaning"], "rows": [["a", "b"], ["c", "d"], ["e", "f"]],
+            "appearance": { "widthOfTable": "onlyAsWideAsContent", "background": "none", "headerRow": "highlighted", "linesBetweenRows": false } },
+          { "type": "dialogue", "look": "bubbles",
+            "portraits": [ { "who": "Anna", "image": { "src": "images/anna.png", "alt": "Anna" } }, { "who": "Pavel", "image": { "src": "images/pavel.png", "alt": "Pavel" } } ],
+            "lines": [ { "who": "Anna", "text": "Hello!" }, { "who": "Pavel", "text": "Hi!", "translation": "Привет!" } ] } ] }
+    """.trimIndent()
+
     /** Section A of a textbook unit, using every block type. */
     val theory = """
         { "format": "blocks", "blocks": [

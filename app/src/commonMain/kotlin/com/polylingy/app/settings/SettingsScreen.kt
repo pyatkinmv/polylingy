@@ -1,5 +1,22 @@
 package com.polylingy.app.settings
 
+import com.polylingy.content.compose.Palettes
+import com.polylingy.content.compose.Palette
+import com.polylingy.content.compose.InlineText
+import com.polylingy.content.compose.ContentView
+import com.polylingy.content.compose.ContentTheme
+import com.polylingy.content.compose.ContentColors
+import com.polylingy.content.Inline
+import com.polylingy.content.CourseStyle
+import com.polylingy.content.Content
+import com.polylingy.content.Cell
+import com.polylingy.content.Block
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -121,6 +138,7 @@ fun SettingsScreen(viewModel: SettingsViewModel, today: LocalDate, go: Navigator
             ComesBack(draft.scheduler!!, viewModel.plan(if (draft.scheduler is SchedulerSpec.Sm2) 4 else 6), today, viewModel)
             HorizontalDivider(color = Look.Line)
             WhatComesNext(draft.picker!!, viewModel)
+            CourseLookCard(draft.display ?: DisplaySpec(), viewModel)
             HowItLooks(draft.display ?: DisplaySpec(), viewModel.typing, viewModel)
             Recount(viewModel.recounts, viewModel.before, after)
         }
@@ -280,6 +298,149 @@ private fun HowItLooks(display: DisplaySpec, typing: Pair<Int, Int>, viewModel: 
         )
     }
 }
+
+/**
+ * How the course looks: its palette and its style, and under them a preview that follows the choice. This changes only how the course
+ * is drawn, never what is learned, so it is not one of the four questions and never recounts progress.
+ */
+@Composable
+private fun CourseLookCard(display: DisplaySpec, viewModel: SettingsViewModel) {
+    val shape = RoundedCornerShape(14.dp)
+    val palette = Palettes.byId(display.palette)
+    Column(
+        Modifier.fillMaxWidth().background(Look.Card, shape).border(1.dp, Look.Line, shape).padding(horizontal = 22.dp, vertical = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("How the course looks", Modifier.weight(1f), fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+            Text("look", color = Look.Faint, fontSize = 12.sp)
+        }
+        Text("Colours and style of the theory and the exercises. This changes only how the course is drawn, never what you learn.", color = Look.Muted, fontSize = 13.sp)
+
+        Text("Palette", fontWeight = FontWeight.SemiBold)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            for (option in Palettes.all) PaletteOption(option, option.id == palette.id) { viewModel.palette(option.id) }
+        }
+
+        Text("Style", Modifier.padding(top = 4.dp), fontWeight = FontWeight.SemiBold)
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            StyleOption("Soft", "Marks sit on a coloured background.", CourseStyle.SOFT, display.style, palette.colors, Modifier.weight(1f)) { viewModel.style(CourseStyle.SOFT) }
+            StyleOption("Strict", "Marks are underlined, with no background.", CourseStyle.STRICT, display.style, palette.colors, Modifier.weight(1f)) { viewModel.style(CourseStyle.STRICT) }
+        }
+        Text("More styles — sharper or rounder corners — can be added here later.", color = Look.Faint, fontSize = 12.sp)
+
+        Text("Preview", Modifier.padding(top = 4.dp), fontWeight = FontWeight.SemiBold)
+        ContentTheme(palette.colors, style = display.style) {
+            Row(Modifier.semantics { contentDescription = "Preview of the course look" }, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                MiniScreen("Theory", palette.colors, Modifier.weight(1f), previewTheory())
+                MiniScreen("Remarks", palette.colors, Modifier.weight(1f), previewRemarks())
+                MiniScreen("Dialogue and table", palette.colors, Modifier.weight(1f), previewDialogue())
+            }
+        }
+    }
+}
+
+/** A palette to choose: its name and five of its colours. */
+@Composable
+private fun PaletteOption(palette: Palette, chosen: Boolean, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(10.dp)
+    val colors = palette.colors
+    Column(
+        Modifier
+            .width(170.dp)
+            .clip(shape)
+            .background(if (chosen) Chosen else Look.Card, shape)
+            .border(if (chosen) 2.dp else 1.dp, if (chosen) Look.Green else Look.LineHover, shape)
+            .clickable(role = Role.RadioButton, onClick = onClick)
+            .semantics { contentDescription = "Palette ${palette.name}" }
+            .padding(horizontal = 14.dp, vertical = 11.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(palette.name, Modifier.weight(1f), fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+            if (chosen) Text("✓", color = Look.Green, fontWeight = FontWeight.Bold)
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            for (swatch in listOf(colors.background, colors.accent, colors.accentSoft, colors.marks[0].fill, colors.marks[1].fill)) {
+                Box(Modifier.size(20.dp).background(swatch, RoundedCornerShape(5.dp)).border(1.dp, Color(0x24000000), RoundedCornerShape(5.dp)))
+            }
+        }
+    }
+}
+
+/** A style to choose: its name, what it does and a line of text drawn in it with the palette's colours. */
+@Composable
+private fun StyleOption(title: String, about: String, style: CourseStyle, chosen: CourseStyle, colors: ContentColors, modifier: Modifier, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(10.dp)
+    val on = style == chosen
+    Column(
+        modifier
+            .clip(shape)
+            .background(if (on) Chosen else Look.Card, shape)
+            .border(if (on) 2.dp else 1.dp, if (on) Look.Green else Look.LineHover, shape)
+            .clickable(role = Role.RadioButton, onClick = onClick)
+            .semantics { contentDescription = "Style $title" }
+            .padding(horizontal = 14.dp, vertical = 11.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(title, Modifier.weight(1f), fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+            if (on) Text("✓", color = Look.Green, fontWeight = FontWeight.Bold)
+        }
+        Text(about, color = Look.Muted, fontSize = 13.sp)
+        ContentTheme(colors, style = style) { InlineText(Inline("корень Москва и окончание ==һаа=="), style = TextStyle(fontSize = 16.sp)) }
+    }
+}
+
+/** A small screen of the course drawn with the real blocks, shrunk to fit: [blocks] on the palette's background. */
+@Composable
+private fun MiniScreen(title: String, colors: ContentColors, modifier: Modifier, blocks: List<Block>) {
+    val shape = RoundedCornerShape(12.dp)
+    Column(modifier.height(280.dp).clip(shape).background(colors.background, shape).border(1.dp, colors.line, shape)) {
+        Text(title, Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 6.dp), color = colors.muted, fontSize = 10.sp)
+        Box(Modifier.fillMaxWidth().height(1.dp).background(colors.line))
+        BoxWithConstraints(Modifier.fillMaxSize().clipToBounds()) {
+            val design = 420.dp
+            val scale = maxWidth / design
+            Box(Modifier.wrapContentSize(Alignment.TopStart, unbounded = true).width(design).graphicsLayer(scaleX = scale, scaleY = scale, transformOrigin = TransformOrigin(0f, 0f)).padding(14.dp)) {
+                ContentView(Content.Blocks(blocks))
+            }
+        }
+    }
+}
+
+private fun text(markup: String, role: Block.Text.Role? = null) = Block.Text(Inline(markup), role)
+private fun cell(markup: String) = Cell(Inline(markup))
+
+private fun previewTheory(): List<Block> = listOf(
+    Block.Text(Inline("Родительный падеж отвечает на вопрос ==хэнэй?== (чей?)"), Block.Text.Role.LEAD),
+    Block.Tip(listOf(text("После краткой гласной: ==-ын==, ==-иин==. Дарима — Дарим=={2}ын==.")), Block.Tip.Kind.RULE),
+    Block.Table(
+        head = listOf(Inline("Слово"), Inline("Форма")),
+        rows = listOf(listOf(cell("багша"), cell("багш==ын==")), listOf(cell("Дарима"), cell("Дарим==ын==")), listOf(cell("малгай"), cell("малгай==н=="))),
+    ),
+)
+
+private fun previewRemarks(): List<Block> = listOf(
+    Block.Tip(listOf(text("=={4}хэн?== — только о людях, =={4}юун?== — обо всём остальном.")), Block.Tip.Kind.WARNING),
+    Block.Tip(listOf(text("Слово **далай** значит и «море», и «большое озеро».")), Block.Tip.Kind.FACT),
+    Block.Tip(listOf(text("Проходя мимо кучи камней — **обо** — оставляют подношение.")), Block.Tip.Kind.CULTURE, title = Inline("Обо")),
+)
+
+private fun previewDialogue(): List<Block> = listOf(
+    Block.Dialogue(
+        lines = listOf(
+            Block.Line(Inline("Дарима"), Inline("Аюр, ши ==хаанаһаа== ерээбши?")),
+            Block.Line(Inline("Аюр"), Inline("=={2}Шэтэһээ==.")),
+        ),
+        look = Block.Dialogue.Style.BUBBLES,
+    ),
+    Block.Table(
+        head = listOf(Inline("Слово"), Inline("Окончание"), Inline("Форма")),
+        rows = listOf(listOf(cell("Москва"), cell("һаа"), cell("Москва==һаа==")), listOf(cell("Шэтэ"), cell("һээ"), cell("Шэтэ==һээ=="))),
+        appearance = Block.Table.Appearance(headerRow = Block.Table.Appearance.HeaderRow.HIGHLIGHTED, highlightedColumns = listOf(0), stripedRows = true),
+    ),
+)
 
 /** The example under a question: it follows the answer. */
 @Composable

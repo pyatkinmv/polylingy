@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://polylingy.app/schema/course-5.json",
-  "title": "Polylingy course, format 6",
+  "title": "Polylingy course, format 9",
   "description": "The shape of course.json. The app checks more than this schema can say (markup, blanks per item, links pointing at real sections, model answers passing their keys): run ./gradlew :app:checkCourse. See docs/content-format.md.",
   "$ref": "#/$defs/course",
   "$defs": {
@@ -16,7 +16,7 @@
       "format": "date-time"
     },
     "inline": {
-      "description": "Text with markup: **bold**, *italic*, line breaks \\n, annotated words [word](annotation) shown with the annotation over them; in exercises blanks {{answer|other variant}}. \\\\ makes the next * { } | [ ] \\\\ literal. See content-format.md, section 3.",
+      "description": "Text with markup: **bold**, *italic*, a highlight ==marked== (=={2}second== style: after the opening == the number of the palette's mark in braces, 1 to 5; none means 1), line breaks \\n, annotated words [word](annotation) shown with the annotation over them; in exercises blanks {{answer|other variant}}. \\\\ makes the next * = { } | [ ] \\\\ literal. See content-format.md, section 3.",
       "type": "string",
       "minLength": 1
     },
@@ -68,8 +68,8 @@
       "type": "object",
       "properties": {
         "formatVersion": {
-          "description": "The format this file is written in. This schema describes 8.",
-          "const": 8
+          "description": "The format this file is written in. This schema describes 9.",
+          "const": 9
         },
         "id": {
           "$ref": "#/$defs/uuid"
@@ -262,7 +262,7 @@
       "additionalProperties": false
     },
     "display": {
-      "description": "How exercises look: annotations over words shown (default true); avoid exercises that need typing when a topic has others (default false).",
+      "description": "How the course looks and how exercises are shown: annotations over words shown (default true); avoid exercises that need typing when a topic has others (default false); the palette (an id from the app's list, see content-format.md; left out: the app's default) and the style (soft, the default: marks on a coloured background; strict: marks underlined).",
       "type": "object",
       "properties": {
         "annotations": {
@@ -270,6 +270,19 @@
         },
         "avoidTyping": {
           "type": "boolean"
+        },
+        "palette": {
+          "description": "The id of the colour palette: softGreen, paperAndInk, blue, terracotta, pine or plum. An id this version does not know is drawn in the default palette.",
+          "type": "string",
+          "minLength": 1
+        },
+        "style": {
+          "description": "soft (default): marks on a coloured background; strict: marks underlined, no background.",
+          "enum": [
+            "soft",
+            "strict"
+          ],
+          "default": "soft"
         }
       },
       "additionalProperties": false
@@ -498,6 +511,9 @@
         },
         {
           "$ref": "#/$defs/block.seeAlso"
+        },
+        {
+          "$ref": "#/$defs/block.grid"
         }
       ]
     },
@@ -580,6 +596,10 @@
             "plain"
           ],
           "default": "card"
+        },
+        "frame": {
+          "description": "The frame of an exercise's text (an email, an article, a newspaper clipping) drawn around the situation.",
+          "$ref": "#/$defs/look"
         }
       },
       "required": [
@@ -698,6 +718,9 @@
             }
           },
           "minItems": 1
+        },
+        "appearance": {
+          "$ref": "#/$defs/table.appearance"
         }
       },
       "required": [
@@ -787,6 +810,21 @@
             "$ref": "#/$defs/line"
           },
           "minItems": 1
+        },
+        "look": {
+          "description": "Lines in a column with the names on the left (default), or speech bubbles: the first speaker on the left, the second on the right.",
+          "enum": [
+            "lines",
+            "bubbles"
+          ],
+          "default": "lines"
+        },
+        "portraits": {
+          "description": "A picture for each speaker; shown next to the bubbles.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/portrait"
+          }
         }
       },
       "required": [
@@ -905,13 +943,23 @@
           "minItems": 1
         },
         "kind": {
-          "description": "The sort of remark; default tip.",
+          "description": "The sort of remark; default tip. fact is \"Did you know?\", culture a custom or a tradition.",
           "enum": [
             "tip",
             "note",
             "rule",
-            "warning"
+            "warning",
+            "fact",
+            "culture"
           ]
+        },
+        "title": {
+          "description": "A heading instead of the kind's caption.",
+          "$ref": "#/$defs/inline"
+        },
+        "aside": {
+          "description": "A block (usually a picture) beside the remark.",
+          "$ref": "#/$defs/block"
         }
       },
       "required": [
@@ -1814,6 +1862,101 @@
       "required": [
         "text"
       ],
+      "additionalProperties": false
+    },
+    "portrait": {
+      "description": "A speaker's picture; who is the name as written in the lines' who.",
+      "type": "object",
+      "properties": {
+        "who": {
+          "type": "string",
+          "minLength": 1
+        },
+        "image": {
+          "$ref": "#/$defs/image"
+        }
+      },
+      "required": [
+        "who",
+        "image"
+      ],
+      "additionalProperties": false
+    },
+    "block.grid": {
+      "description": "Blocks side by side in 2 to 4 columns; on a narrow window one under another.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "grid"
+        },
+        "columns": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 4,
+          "default": 2
+        },
+        "blocks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/block"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "type",
+        "blocks"
+      ],
+      "additionalProperties": false
+    },
+    "table.appearance": {
+      "description": "How the table is drawn. Every field is optional; with none of them the table is as wide as its place, in a soft card, with thin lines between the rows, a plain header and no highlighted columns.",
+      "type": "object",
+      "properties": {
+        "widthOfTable": {
+          "description": "fullWidth (default): the columns share the whole width of the page; onlyAsWideAsContent: every column is as wide as its text.",
+          "enum": [
+            "fullWidth",
+            "onlyAsWideAsContent"
+          ],
+          "default": "fullWidth"
+        },
+        "background": {
+          "description": "card (default): a soft card with an edge round the table; none: the table stands straight on the page.",
+          "enum": [
+            "card",
+            "none"
+          ],
+          "default": "card"
+        },
+        "headerRow": {
+          "description": "plain (default): header text in the accent colour over a line; highlighted: the header row is filled with the accent's soft tint.",
+          "enum": [
+            "plain",
+            "highlighted"
+          ],
+          "default": "plain"
+        },
+        "highlightedColumns": {
+          "description": "Numbers of columns, the first is 0, drawn bold on a soft background.",
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "uniqueItems": true
+        },
+        "stripedRows": {
+          "description": "Every other body row on a soft background.",
+          "type": "boolean",
+          "default": false
+        },
+        "linesBetweenRows": {
+          "description": "Thin lines between the body rows.",
+          "type": "boolean",
+          "default": true
+        }
+      },
       "additionalProperties": false
     }
   }

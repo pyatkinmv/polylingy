@@ -274,7 +274,7 @@ private fun PreviewCard(
         }
         val shownCourse = check?.course ?: course
         val links = remember(shownCourse) { CourseLinks(shownCourse) }
-        ContentTheme(ContentColors.forAccent(null), images, links.names) {
+        ContentTheme(null, images, links.names) {
             val theory = edited.theory
             val exercise = preview.shown
             val response = preview.response

@@ -69,15 +69,17 @@ sealed interface Block {
 
     /**
      * An example situation, with an optional [aside] (usually a picture) next to it. A [look] says how it is set off from the text:
-     * a soft card (the default) or no frame at all, for a picture that simply stands beside a paragraph.
+     * a soft card (the default) or no frame at all, for a picture that simply stands beside a paragraph. A [frame] is the frame of an
+     * exercise's text (an email, an article, a newspaper clipping, see [Look]) drawn around the situation: a letter in the theory.
      */
     @Serializable
     @SerialName("situation")
-    data class Situation(val blocks: List<Block>, val aside: Block? = null, val look: Style? = null) : Block {
+    data class Situation(val blocks: List<Block>, val aside: Block? = null, val look: Style? = null, val frame: Look? = null) : Block {
         override fun validate(at: Path) = checks {
             require(blocks.isNotEmpty(), at / "blocks", "needs at least one block")
             blocks(blocks, at / "blocks")
             aside?.let { nested(it.validate(at / "aside")) }
+            frame?.let { nested(it.validate(at / "frame")) }
         }
 
         @Serializable
@@ -100,7 +102,45 @@ sealed interface Block {
 
     @Serializable
     @SerialName("table")
-    data class Table(val head: List<Inline> = emptyList(), val rows: List<List<Cell>>) : Block {
+    data class Table(val head: List<Inline> = emptyList(), val rows: List<List<Cell>>, val appearance: Appearance? = null) : Block {
+        /**
+         * How the table is drawn. Every field is optional. With none of them (or without `appearance`) the table is as wide as its place,
+         * in a soft card, with thin lines between the rows, a plain header and no highlighted columns.
+         */
+        @Serializable
+        data class Appearance(
+            /** `fullWidth` (default): the columns share the whole width of the page; `onlyAsWideAsContent`: every column is as wide as its text. */
+            val widthOfTable: WidthOfTable = WidthOfTable.FULL_WIDTH,
+            /** `card` (default): a soft card with an edge round the table; `none`: the table stands straight on the page. */
+            val background: Background = Background.CARD,
+            /** `plain` (default): header text in the accent colour over a line; `highlighted`: the header row is filled with the accent's soft tint. */
+            val headerRow: HeaderRow = HeaderRow.PLAIN,
+            /** Numbers of columns, the first is 0, drawn bold on a soft background: e.g. the word of each row. */
+            val highlightedColumns: List<Int> = emptyList(),
+            /** Every other body row on a soft background (default false). */
+            val stripedRows: Boolean = false,
+            /** Thin lines between the body rows (default true). */
+            val linesBetweenRows: Boolean = true,
+        ) {
+            @Serializable
+            enum class WidthOfTable {
+                @SerialName("fullWidth") FULL_WIDTH,
+                @SerialName("onlyAsWideAsContent") ONLY_AS_WIDE_AS_CONTENT,
+            }
+
+            @Serializable
+            enum class Background {
+                @SerialName("card") CARD,
+                @SerialName("none") NONE,
+            }
+
+            @Serializable
+            enum class HeaderRow {
+                @SerialName("plain") PLAIN,
+                @SerialName("highlighted") HIGHLIGHTED,
+            }
+        }
+
         override fun validate(at: Path) = checks {
             head.forEachIndexed { i, cell -> text(cell, (at / "head")[i], mayBeEmpty = true) }
             require(rows.isNotEmpty(), at / "rows", "needs at least one row")
@@ -125,15 +165,39 @@ sealed interface Block {
                 require(rowWidth == width, rowAt, "has $rowWidth columns, expected $width")
                 spans = next
             }
+            val columns = width
+            appearance?.highlightedColumns?.forEachIndexed { i, column ->
+                require(column >= 0 && (columns == null || column < columns), (at / "appearance" / "highlightedColumns")[i], "must be the number of a column, counting from 0")
+            }
+            appearance?.highlightedColumns?.let { numbers ->
+                require(numbers.size == numbers.toSet().size, at / "appearance" / "highlightedColumns", "a column may be named once")
+            }
         }
     }
 
     /** A conversation: one line per remark, the speaker's name on the left, each line with its own optional sound. */
     @Serializable
     @SerialName("dialogue")
-    data class Dialogue(val lines: List<Line>) : Block {
+    data class Dialogue(val lines: List<Line>, val look: Style? = null, val portraits: List<Portrait> = emptyList()) : Block {
+        /** Lines in a column with the names on the left (the default), or speech bubbles, the first speaker on the left, the second on the right. */
+        @Serializable
+        enum class Style {
+            @SerialName("lines") LINES,
+            @SerialName("bubbles") BUBBLES,
+        }
+
+        /** A speaker's picture: [who] is the name as written in the lines' `who`. */
+        @Serializable
+        data class Portrait(val who: String, val image: Image)
+
         override fun validate(at: Path) = checks {
             require(lines.isNotEmpty(), at / "lines", "needs at least one line")
+            portraits.forEachIndexed { i, p ->
+                val pAt = (at / "portraits")[i]
+                require(p.who.isNotBlank(), pAt / "who", "must not be empty")
+                nested(p.image.validate(pAt / "image"))
+            }
+            require(portraits.map { it.who }.let { it.size == it.toSet().size }, at / "portraits", "each speaker may have one picture")
             lines.forEachIndexed { i, line ->
                 val lineAt = (at / "lines")[i]
                 text(line.who, lineAt / "who")
@@ -225,16 +289,33 @@ sealed interface Block {
     /** A remark set apart from the text. [kind] says what sort of remark it is; the app gives each its icon and caption. */
     @Serializable
     @SerialName("tip")
-    data class Tip(val blocks: List<Block>, val kind: Kind = Kind.TIP) : Block {
+    data class Tip(val blocks: List<Block>, val kind: Kind = Kind.TIP, val title: Inline? = null, val aside: Block? = null) : Block {
         @Serializable
         enum class Kind {
             @SerialName("tip") TIP,
             @SerialName("note") NOTE,
             @SerialName("rule") RULE,
             @SerialName("warning") WARNING,
+            /** "Did you know?": a fact that is nice to know. */
+            @SerialName("fact") FACT,
+            /** A custom or a tradition: the culture behind the language. */
+            @SerialName("culture") CULTURE,
         }
 
         override fun validate(at: Path) = checks {
+            require(blocks.isNotEmpty(), at / "blocks", "needs at least one block")
+            text(title, at / "title")
+            blocks(blocks, at / "blocks")
+            aside?.let { nested(it.validate(at / "aside")) }
+        }
+    }
+
+    /** [columns] blocks side by side (2 to 4); on a narrow window they stand one under another. Any blocks may be put in it. */
+    @Serializable
+    @SerialName("grid")
+    data class Grid(val columns: Int = 2, val blocks: List<Block>) : Block {
+        override fun validate(at: Path) = checks {
+            require(columns in 2..4, at / "columns", "must be 2, 3 or 4")
             require(blocks.isNotEmpty(), at / "blocks", "needs at least one block")
             blocks(blocks, at / "blocks")
         }

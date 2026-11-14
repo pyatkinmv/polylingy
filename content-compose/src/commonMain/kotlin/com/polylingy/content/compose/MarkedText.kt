@@ -34,7 +34,7 @@ internal fun MarkedText(inline: Inline, modifier: Modifier = Modifier, style: Te
     if (piece == null || inline.hasAnnotations) return InlineText(inline, modifier, style)
     val highlight = SpanStyle(background = colors.accent.copy(alpha = 0.3f))
     Text(
-        mark(inline.annotated(), piece, highlight),
+        mark(inline.annotated(rememberMarkPaint()), piece, highlight),
         modifier,
         style = style.copy(textDirection = if (inline.runsRightToLeft()) TextDirection.Rtl else TextDirection.Ltr),
     )
