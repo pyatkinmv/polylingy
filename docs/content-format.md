@@ -497,7 +497,7 @@ data class ItemCheck(val result: ItemResult, val rightAnswer: String, val reason
 | 6 | `tip.kind` (`tip`, `note`, `rule`, `warning`), `text.role` (`lead`), `examples.numbered`, `choice` пункт `mark`, `generated` у упражнения, `image.size` (`small`, `medium`, `large`), `situation.look` (`card`, `plain`). Только добавления: файл версии 5 читается как есть |
 | 7 | `extraKeys` у курса (клавиши над полем ввода); тип `sort` (разложить по группам); `audio` у пункта `choice`. Только добавления: файл версии 6 читается как есть |
 | 8 | `description` и `made` у картинки (блок `image`, `image` в `aside`, в пункте и в паре): что именно нарисовано и как картинка сделана; для редакторов и инструментов, приложение их не показывает. Только добавления: файл версии 7 читается как есть |
-| 9 | блок `grid` (колонки из любых блоков); у `tip` — `kind` `fact` и `culture`, `title` и `aside`; `situation.frame` (рамка письма, статьи, вырезки в теории); разметка выделения `==текст==` и `=={g}текст==` в `Inline`; `table.appearance` (ширина, карточка, шапка, выделенные колонки, полосы, линии); `dialogue.look` (`lines`, `bubbles`) и `dialogue.portraits`. Только добавления: файл версии 8 читается как есть |
+| 9 | блок `grid` (колонки из любых блоков); у `tip` — `kind` `fact` и `culture`, `title` и `aside`; `situation.frame` (рамка письма, статьи, вырезки в теории); разметка выделения `==текст==` и `=={2}текст==` (номер метки палитры, 1–5) в `Inline`; `table.appearance` (ширина, карточка, шапка, выделенные колонки, полосы, линии); `dialogue.look` (`lines`, `bubbles`) и `dialogue.portraits`. Только добавления: файл версии 8 читается как есть |
 
 ## 10. Тесты
 

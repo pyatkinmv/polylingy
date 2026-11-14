@@ -107,7 +107,26 @@ object Palettes {
     )
 
 
-    val all: List<Palette> = listOf(softGreen, paperAndInk, blue, terracotta, pine, plum)
+    /** A dark palette, to see how a course looks on a dark page; a test one, it may change. */
+    val midnight = Palette(
+        id = "midnight", name = "Midnight (test)",
+        colors = ContentColors(
+            accent = Color(0xFF7CC9A3), accentSoft = Color(0xFF243A33), ink = Color(0xFFE8ECEF), muted = Color(0xFFA3AEB6), line = Color(0xFF333C44), card = Color(0xFF232930),
+            panel = Color(0xFF2A323A), background = Color(0xFF1B1F24), head = Color(0xFF2D4A3F), column = Color(0xFF28322F), stripe = Color(0xFF20262C), separator = Color(0xFF3E4C55),
+            typo = Color(0xFFE6C27A), typoBg = Color(0xFF3A3020), info = Color(0xFF8FC1EB), infoBg = Color(0xFF1F3345), culture = Color(0xFFE3A07A), cultureBg = Color(0xFF3B2A20),
+            marks = listOf(
+                MarkColor(Color(0xFF4A3626), Color(0xFFF0B27F)),
+                MarkColor(Color(0xFF264A3B), Color(0xFF86D3AB)),
+                MarkColor(Color(0xFF26405A), Color(0xFF8FC1EB)),
+                MarkColor(Color(0xFF52302D), Color(0xFFF09A92)),
+                MarkColor(Color(0xFF4A4025), Color(0xFFE6CB7A)),
+            ),
+            onAccent = Color(0xFF10231B),
+            correct = Color(0xFF86D3AB), correctBg = Color(0xFF1F3A2D), wrong = Color(0xFFF09A92), wrongBg = Color(0xFF44262A),
+        ),
+    )
+
+    val all: List<Palette> = listOf(softGreen, paperAndInk, blue, terracotta, pine, plum, midnight)
 
     /** The palette a course without its own choice is drawn in. */
     val default: Palette = softGreen

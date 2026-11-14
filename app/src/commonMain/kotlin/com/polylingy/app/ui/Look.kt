@@ -1,5 +1,7 @@
 package com.polylingy.app.ui
 
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.runtime.CompositionLocalProvider
 import com.polylingy.content.compose.ContentColors
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.animation.animateColorAsState
@@ -148,14 +150,16 @@ fun Page(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> U
     val sheet = LocalCourseSheet.current
     val shape = RoundedCornerShape(16.dp)
     Box(Modifier.fillMaxWidth().then(if (sheet != null) Modifier.padding(horizontal = 16.dp, vertical = 20.dp) else Modifier), contentAlignment = Alignment.TopCenter) {
-        Column(
-            Modifier.widthIn(max = 860.dp).fillMaxWidth()
-                .then(if (sheet != null) Modifier.clip(shape).background(sheet.background, shape).border(1.dp, sheet.line, shape) else Modifier)
-                .then(modifier)
-                .padding(horizontal = 32.dp, vertical = 28.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp),
-            content = content,
-        )
+        CompositionLocalProvider(LocalContentColor provides (sheet?.ink ?: LocalContentColor.current)) {
+            Column(
+                Modifier.widthIn(max = 860.dp).fillMaxWidth()
+                    .then(if (sheet != null) Modifier.clip(shape).background(sheet.background, shape).border(1.dp, sheet.line, shape) else Modifier)
+                    .then(modifier)
+                    .padding(horizontal = 32.dp, vertical = 28.dp),
+                verticalArrangement = Arrangement.spacedBy(18.dp),
+                content = content,
+            )
+        }
     }
 }
 

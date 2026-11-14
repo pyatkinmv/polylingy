@@ -1,5 +1,6 @@
 package com.polylingy.app.study
 
+import com.polylingy.app.ui.LocalCourseSheet
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -80,7 +81,7 @@ fun TheoryScreen(
                 )
             }
             if (onStart != null) {
-                HorizontalDivider(color = Look.Line)
+                HorizontalDivider(color = LocalCourseSheet.current?.line ?: Look.Line)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                     Button(onClick = onStart, colors = ButtonDefaults.buttonColors(containerColor = accent), shape = RoundedCornerShape(8.dp)) {
                         Text("Start exercises →")

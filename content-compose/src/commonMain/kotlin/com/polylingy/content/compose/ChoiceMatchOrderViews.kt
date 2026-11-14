@@ -157,7 +157,7 @@ private fun SideCard(side: Side, badge: PairMark?, selected: Boolean, result: It
         val cardShape = RoundedCornerShape(12.dp)
         Box(
             Modifier.size(PictureCard).clip(cardShape).background(bg, cardShape)
-                .border(if (selected) 2.dp else 1.dp, if (selected) BlankFocus else colors.line, cardShape)
+                .border(if (selected) 2.dp else 1.dp, if (selected) colors.ink else colors.line, cardShape)
                 .semantics { this.selected = selected }
                 .clickable(remember { MutableInteractionSource() }, indication = null, enabled = enabled, onClick = onClick),
         ) {
@@ -173,7 +173,7 @@ private fun SideCard(side: Side, badge: PairMark?, selected: Boolean, result: It
         Modifier.fillMaxWidth().heightIn(min = minHeight)
             .clip(shape)
             .background(bg, shape)
-            .border(if (selected) 1.5.dp else 1.dp, if (selected) BlankFocus else colors.line, shape)
+            .border(if (selected) 1.5.dp else 1.dp, if (selected) colors.ink else colors.line, shape)
             .semantics { this.selected = selected }
             .clickable(remember { MutableInteractionSource() }, indication = null, enabled = enabled, onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 8.dp),
@@ -274,7 +274,7 @@ private fun Slot(next: Boolean) {
         Modifier
             .widthIn(min = 60.dp).height(36.dp)
             .background(if (next) colors.card else colors.panel.copy(alpha = 0.5f), shape)
-            .then(if (next) Modifier.border(1.5.dp, BlankFocus, shape) else Modifier.dashedBorder(SlotEdge, 10.dp)),
+            .then(if (next) Modifier.border(1.5.dp, colors.ink, shape) else Modifier.dashedBorder(SlotEdge, 10.dp)),
     )
 }
 

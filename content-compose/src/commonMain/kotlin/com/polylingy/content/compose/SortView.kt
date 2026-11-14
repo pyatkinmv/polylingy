@@ -61,7 +61,7 @@ internal fun SortView(exercise: Exercise.Sort, response: Response.Sort, checks: 
             Column(
                 modifier
                     .clip(shape).background(colors.card, shape)
-                    .border(if (ready) 1.5.dp else 1.dp, if (ready) BlankFocus else colors.line, shape)
+                    .border(if (ready) 1.5.dp else 1.dp, if (ready) colors.ink else colors.line, shape)
                     .semantics { contentDescription = "Group ${g + 1}" }
                     .clickable(enabled = ready) { selected?.let { place(it, g); selected = null } }
                     .padding(12.dp),

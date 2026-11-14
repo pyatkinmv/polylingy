@@ -60,7 +60,7 @@ internal fun Framed(look: Look?, aside: Aside?, body: @Composable () -> Unit) {
             Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 look.source?.let { Text(it.uppercase(), color = colors.muted, style = MaterialTheme.typography.labelSmall, letterSpacing = 1.sp) }
                 Direction(look.headline.runsRightToLeft()) {
-                    Box(Modifier.fillMaxWidth().background(NewsPaper).dottedEdge(colors.muted).padding(horizontal = 18.dp, vertical = 14.dp)) {
+                    Box(Modifier.fillMaxWidth().background(newsPaper(colors)).dottedEdge(colors.muted).padding(horizontal = 18.dp, vertical = 14.dp)) {
                         // One weight for every script: a heavy cut turns scripts with joined letters and dots (Arabic) into a smear, so the
                         // headline gets its weight from size and the serif face, and its line height follows the text.
                         MarkedText(
@@ -86,8 +86,8 @@ internal fun Framed(look: Look?, aside: Aside?, body: @Composable () -> Unit) {
     }
 }
 
-/** The paper of a clipping: a little greyer than the page. */
-private val NewsPaper = androidx.compose.ui.graphics.Color(0xFFF1EDE2)
+/** The paper of a clipping: the card of the palette, a little towards the muted colour, so it is a little greyer than the page on a light palette and lighter on a dark one. */
+private fun newsPaper(colors: ContentColors) = androidx.compose.ui.graphics.lerp(colors.card, colors.muted, 0.08f)
 
 /** A dotted line around the clipping, as if it were cut out. */
 private fun Modifier.dottedEdge(colour: androidx.compose.ui.graphics.Color) = drawBehind {

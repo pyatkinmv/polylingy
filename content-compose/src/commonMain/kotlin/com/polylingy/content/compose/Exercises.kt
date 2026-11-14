@@ -189,7 +189,7 @@ internal fun BlankField(
     val shape = RoundedCornerShape(8.dp)
     val edge = when {
         full -> BlankFull
-        focused -> BlankFocus
+        focused -> colors.ink
         else -> BlankEdge
     }
     val shown = maxOf(value.length, placeholder?.length ?: 0, minChars)
@@ -240,7 +240,7 @@ private fun KeysBubble(keys: List<String>, onKey: (String) -> Unit) {
     val shape = RoundedCornerShape(10.dp)
     Popup(alignment = Alignment.TopStart, offset = IntOffset(0, -lift), properties = PopupProperties(focusable = false)) {
         Row(
-            Modifier.shadow(3.dp, shape).background(Color.White.copy(alpha = 0.94f), shape).border(1.dp, colors.line, shape).padding(4.dp),
+            Modifier.shadow(3.dp, shape).background(colors.card.copy(alpha = 0.97f), shape).border(1.dp, colors.line, shape).padding(4.dp),
             horizontalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             for (key in keys) Text(
