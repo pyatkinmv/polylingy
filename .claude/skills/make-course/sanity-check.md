@@ -68,3 +68,6 @@ app), and every exercise of a topic touches at least 60% of the topic's facts (t
 
 Meaning alarms (warnings): theory wording without a criterion is checked by the author with the "meaning gate" in `SKILL.md` (section 2a); `sanity.py` additionally warns about
 learned words in units 1–6 (`артикуляция`, `орфография`…), bold theory words that no exercise of the unit uses, and matrix rows "partly" or "skipped" without a reason.
+
+Dialogue and hero warnings (`sanity_variety.py`): a `dialogue` inside a `grid`, a bubble dialogue without portraits of two speakers, a line without a translation, a hero (Сэсэг, Баяр, Дарима)
+with a portrait other than the course-wide one, an `examples` item without a translation (units 6+). The rules are in `SKILL.md`, sections 2b and 2c.

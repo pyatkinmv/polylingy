@@ -18,6 +18,7 @@ anything outside it is an import error. Do not invent fields, types or values.
 | The source has pictures, or the course needs some | `pictures.md` |
 | The course uses videos from the internet (explainers, songs, speech) | `video.md` (roles, where they live, the theory a song needs) |
 | A course was generated or changed | `sanity-check.md`, then the skill `review-course` (isolated reviewers), then `handover.md` |
+| Revising an existing course in batches of units | `revision-playbook.md` (the path, the layers) and the course's `revision-log.md` (state, decisions) |
 
 ## Working with the user
 
@@ -88,6 +89,29 @@ A paragraph, rule or table is not carried over because it is in the book. For ea
 - **No history for a beginner.** Old spellings, etymology and "why it is written so" are left out unless they change what the learner reads or writes; at most one line of reference.
 - Terms the learner does not know (diphthong, articulation, orthography…) are explained when first used or not used at all; test with the learner's eyes, not the author's.
 - Cheap alarms in `sanity.py`: learned words in the early units, theory words that never appear in an exercise, matrix rows "partly" without a reason.
+
+## 2b. Dialogues and heroes
+
+A `dialogue` is a conversation of people, not a list of question–answer pairs.
+- **Heroes run through the whole course:** two main ones (here Сэсэг, a girl, and Баяр), a third (Дарима) when a third voice is needed. One portrait file per hero, used in every dialogue
+  (`portraits`: the same `src` everywhere; people pictures go into `pictures_approved.json`, in the style of `SETTING.md`). Other names in examples and exercises may stay.
+- **Lines come from the sources and from the course** (book dialogues, the course's own question–answer examples). A line built by a pattern from a book line (`Сэлмэг хаанаб?` by
+  `бэшэг хаанаб?`) is allowed but marked in the notes; a free new Buryat sentence is not. Every line has a translation.
+- **Full width, one dialogue per section** (never inside `grid`: bubbles shrink to their text and scatter), 2–8 lines, bubbles, with a one-line scene caption in a `text` block when the
+  situation is not obvious ("Сэсэг листает фотографии, Баяр отвечает:").
+- **No leftovers:** every example of the section either goes into the dialogue (or a second dialogue with its own caption) or stays a self-contained example with a translation and a
+  caption. A phrase with no speaker and no context ("Сэлмэг там.") is a defect.
+- **When a dialogue does not fit:** two short lines with no natural speakers stay as an `examples` list; a dialogue that would need dozens of words the unit has not taught (a cafe)
+  waits for its own topic with its own vocabulary.
+- `sanity.py` warns about a dialogue inside `grid`, a bubble dialogue without two portraits, a line without a translation, a hero with a different portrait, an example without a translation.
+
+## 2c. Changing a course: how to work
+
+- **Change it in the generator** (`c2_pass4.py` or the unit's `c2_uN.py`), never in the finished `course.json`; rebuild, then run `checkCourse`, `lint.py`, `sanity.py`.
+- **Show the change as before/after screenshots of exactly that place** (`ShotsUiTest` with `SHOTS_SPEC`, scripts in `build-notes/<course>/shots/`: take the `before` shots from the current zip,
+  change, rebuild, take the `after` shots, join). One picture per fix, **«было» on the left and «стало» on the right** (side by side, not stacked).
+- **Answer what was asked:** a question "why" or "explain" gets an explanation, not a change; ask before changing something nobody asked about.
+- Import a rebuilt course into the app only when asked; replacing a course loses its journal.
 
 ## 3. Theory elements and the look of a course (format 9)
 
