@@ -25,6 +25,7 @@ update it at the end of every batch.** The older `review-decisions.md` is linked
 | Exercises | every exercise covers the whole topic (the picker is random); variety of types; wall size; distractors; no answer on view; a picture beside an exercise is `top` and `large` (see `pictures.md`); no ambiguous keys; an introduction in each topic | `SKILL.md` §2, §"Size of a unit", `sanity-check.md` |
 | Words | learned words only (units introduced earlier), every theory word used in an exercise of its topic, nothing used before its topic | `sanity.py` warnings "введено в юните…" |
 | Dialogues and heroes | full width, not in `grid`, two portraits (Сэсэг, Баяр, Дарима in unit 17), a translation on every line, no orphan examples | `SKILL.md` §2b |
+| Look at the screenshot's edges | before sending a before/after picture, look at its right edge and at every grid: a table with three or more columns in a two-column grid is cut off on the right (`sanity.py` fails on it); read the cells, do not only see that the picture is there |
 | Checks | `checkCourse`, `lint.py`, `sanity.py` (+ `sanity_variety.py`), `image_info.json` (description, made), `pictures_approved.json` | `sanity-check.md` |
 | Independent review | new subagents with no history, one per unit, second round after the fixes | skill `review-course` |
 
