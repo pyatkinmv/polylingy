@@ -2,7 +2,7 @@
 
 The path for reviewing an existing course unit by unit, so that it is the same every time and survives a lost context. It ties together the other documents; it does
 not replace them. The state of the work (which units are done, what was decided, what is postponed) lives in `build-notes/<course>/revision-log.md`: **read it first,
-update it at the end of every batch.**
+update it at the end of every batch.** The older `review-decisions.md` is linked from it and is no longer extended; the log holds the single list "For the native speaker" and the open questions.
 
 ## Principles (the user's, do not renegotiate)
 
