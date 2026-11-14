@@ -58,6 +58,15 @@ book. A reviewer that has only the page cannot. So:
 > Report a concise list ordered by severity. For each real problem: where (topic, exercise number, item), what is wrong, and a concrete fix. Separate "certain"
 > from "unsure". Under 800 words. Do not modify any file.
 
+## Purpose pass (add to the prompt)
+
+> Third pass, only for the theory. For every section of the unit: (1) say in your own words what a learner can do after reading it that they could not before; if you cannot, say
+> "no purpose found" and quote the passage; (2) restate each rule in one sentence and check it against the examples of the same unit: name any example that breaks it;
+> (3) mark every word or term a beginner would not know; (4) mark passages that explain how things came to be (history, old spellings) without changing what the learner
+> reads or writes. Do not suggest redesigns; only report what you could not understand.
+
+A "no purpose found" from a reviewer is almost always real: fix it by cutting to a reference note or by rewriting, and write the one-sentence purpose into the notes.
+
 ## What the reviewers do well, and what they get wrong
 
 - Good: keys with two right answers, forms and spellings, words from letters not taught yet, hints that give the answer, technical glitches, wrong or

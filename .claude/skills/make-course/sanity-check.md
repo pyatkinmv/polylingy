@@ -55,3 +55,16 @@ It cannot verify a language you or the subagent do not read. Say so, and write t
 
 - **Is any exercise trivial?** An exercise is trivial when the answer can be read off the exercise itself without knowing the material: the answer is written in the item text, one part of a pair is contained in the other (a word and the same word with a suffix, a letter that is visible in the word it sorts), the options give it away. Look for it, and rewrite or replace such an exercise with a typed one (the learner has to produce the form, not spot it).
 - **Is there typing?** From unit 2 on (unit 1 is a light introduction; the letters of the alphabet are exempt) **every topic has at least one exercise where the learner types** (gaps, table, pictures, expand, fix) and, where the material allows, two. Recognising and producing are different skills: a learner who can choose the right word often cannot write it. Do not repeat the same material in the two typed exercises. Prefer turning a choice into typing over adding one more exercise.
+
+## 3. Automatic variety and length warnings (`sanity_variety.py`)
+
+Besides the errors, `sanity.py` writes warnings (never errors) that keep a course varied and full: the unit's theory has at least 4 kinds of elements
+(table, scheme, picture, card, remark, columns, marks, examples, video, sound, dialogue); no section made only of text and tables, no three tables in a row,
+tables under 40% of the blocks; every unit has a remark (`tip`), and a unit about letters, sounds or forms has marks `==…==`; every unit has at least
+3 sections, 4 topics, 12 exercises; a language unit has sound or video; long theory has a picture or scheme. Exercises: no wall of more than 10 items
+(14 is a wall), no set of distractors reused so that the answer is remembered by place, no option longer than 40 characters (it breaks into letters in the
+app), and every exercise of a topic touches at least 60% of the topic's facts (the rule from `docs/learning-model.md`). Fix a warning or knowingly leave it; the report
+(`sanity-report.md`) also lists the kinds of elements per unit.
+
+Meaning alarms (warnings): theory wording without a criterion is checked by the author with the "meaning gate" in `SKILL.md` (section 2a); `sanity.py` additionally warns about
+learned words in units 1–6 (`артикуляция`, `орфография`…), bold theory words that no exercise of the unit uses, and matrix rows "partly" or "skipped" without a reason.

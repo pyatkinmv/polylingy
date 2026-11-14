@@ -69,10 +69,25 @@ If the material has a format none of these covers, do not approximate it with ma
 propose either the nearest existing type or a format change (code, schema, tests and docs — see CLAUDE.md).
 
 Rules that catch most mistakes:
+- **every exercise of a topic covers the whole topic on its own** (all its words, all its facts): the picker shows a random exercise and a topic counts as learned after a few passes in a row, so material that sits in only one exercise may never be seen. Make several complete exercises of different forms; never split the material of a topic between exercises. Splitting a long exercise is fine only when each part still covers everything (or the topic itself is split into smaller topics);
 - every `{{…}}` variant ≤ 60 characters (expand answers ≤ 150); `choice` with `options` has exactly one blank;
 - an `expand` model answer must itself contain its `keys` in order;
 - pictures: `src` is `https://…` or `images/…` inside the zip; `alt` is required;
 - ids may be left out (import adds them); `formatVersion` is `9`.
+
+## 2a. Meaning gate: before carrying anything from a source
+
+A paragraph, rule or table is not carried over because it is in the book. For each one write **one sentence: what the learner can do after this that they could not before**
+(read, write, say or recognise something). Keep the sentences in `build-notes/<course>/` (like `review-decisions.md`).
+- No sentence: do not carry it, or make it a one-line reference note (`tip` kind `note`, title "Справка"), with no exercise of its own.
+- **All the examples, or marked "for example".** If the source gives a list of examples for a rule, carry the whole list, or say "for example" and say it is part of a longer
+  list. Never take a random part and present it as the whole rule. If the source says "and for other reasons" without giving them, do not make a rule out of it: say what
+  the learner can rely on ("learn these words").
+- **Contradiction check.** Before writing a rule with "some words" or "usually", look through the unit's own examples for words that break it, and say so ("not like this: …").
+  A rule the learner cannot apply (no criterion, no list) is a list of words to learn, not a rule.
+- **No history for a beginner.** Old spellings, etymology and "why it is written so" are left out unless they change what the learner reads or writes; at most one line of reference.
+- Terms the learner does not know (diphthong, articulation, orthography…) are explained when first used or not used at all; test with the learner's eyes, not the author's.
+- Cheap alarms in `sanity.py`: learned words in the early units, theory words that never appear in an exercise, matrix rows "partly" without a reason.
 
 ## 3. Theory elements and the look of a course (format 9)
 
