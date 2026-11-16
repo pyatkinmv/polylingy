@@ -16,12 +16,13 @@ import kotlin.uuid.Uuid
  * 2. [wordBank] — words to use, a read-only reference; only gaps, pictures and expand have one;
  * 3. [audio] — a sound to listen to, its play button above the frame;
  * 4. [video] — a video to watch, its card above the frame;
- * 5. [look] — a frame with a header (an email, an article, a newspaper clipping) around 6 and 7; no look, no frame;
- * 6. [aside] — one picture next to the body: inside the frame when there is a look;
- * 7. the body — the type's own items: the only layer a type draws;
- * 8. [explanation] — after the exercise is checked.
+ * 5. [passage] — a page of blocks to read first (a dialogue, a story, a letter), drawn exactly as in a unit's theory, above the frame;
+ * 6. [look] — a frame with a header (an email, an article, a newspaper clipping) around 7 and 8; no look, no frame;
+ * 7. [aside] — one picture next to the body: inside the frame when there is a look;
+ * 8. the body — the type's own items: the only layer a type draws;
+ * 9. [explanation] — after the exercise is checked.
  *
- * Layers 1–6 and 8 are fields of every type and know nothing of each other or of the body, so any type combines with
+ * Layers 1–7 and 9 are fields of every type and know nothing of each other or of the body, so any type combines with
  * any sound, look and aside. A type's own fields only shape its body.
  *
  * Adding a type touches exactly: a class here with validate() and [needsKeyboard], its body view, its checker, a sample
@@ -34,6 +35,13 @@ sealed interface Exercise {
 
     /** Shown under the exercise after it is checked. */
     val explanation: Content?
+
+    /**
+     * A page of blocks the exercise is about, shown above the frame in the same way as in a unit's theory (a dialogue with portraits, a story,
+     * a letter): the learner reads it and answers from it, so the exercise stands on its own. Only the original text: a translation would give the answers away.
+     * Null — none.
+     */
+    val passage: Content?
 
     /** The frame around the body; null — none. */
     val look: Look?
@@ -69,6 +77,7 @@ sealed interface Exercise {
         override val id: Uuid,
         override val instruction: Inline? = null,
         override val explanation: Content? = null,
+        override val passage: Content? = null,
         override val look: Look? = null,
         override val aside: Aside? = null,
         override val audio: String? = null,
@@ -111,6 +120,7 @@ sealed interface Exercise {
         override val id: Uuid,
         override val instruction: Inline? = null,
         override val explanation: Content? = null,
+        override val passage: Content? = null,
         override val look: Look? = null,
         override val aside: Aside? = null,
         override val audio: String? = null,
@@ -184,6 +194,7 @@ sealed interface Exercise {
         override val id: Uuid,
         override val instruction: Inline? = null,
         override val explanation: Content? = null,
+        override val passage: Content? = null,
         override val look: Look? = null,
         override val aside: Aside? = null,
         override val audio: String? = null,
@@ -217,6 +228,7 @@ sealed interface Exercise {
         override val id: Uuid,
         override val instruction: Inline? = null,
         override val explanation: Content? = null,
+        override val passage: Content? = null,
         override val look: Look? = null,
         override val aside: Aside? = null,
         override val audio: String? = null,
@@ -249,6 +261,7 @@ sealed interface Exercise {
         override val id: Uuid,
         override val instruction: Inline? = null,
         override val explanation: Content? = null,
+        override val passage: Content? = null,
         override val look: Look? = null,
         override val aside: Aside? = null,
         override val audio: String? = null,
@@ -287,6 +300,7 @@ sealed interface Exercise {
         override val id: Uuid,
         override val instruction: Inline? = null,
         override val explanation: Content? = null,
+        override val passage: Content? = null,
         override val look: Look? = null,
         override val aside: Aside? = null,
         override val audio: String? = null,
@@ -354,6 +368,7 @@ sealed interface Exercise {
         override val id: Uuid,
         override val instruction: Inline? = null,
         override val explanation: Content? = null,
+        override val passage: Content? = null,
         override val look: Look? = null,
         override val aside: Aside? = null,
         override val audio: String? = null,
@@ -402,6 +417,7 @@ sealed interface Exercise {
         override val id: Uuid,
         override val instruction: Inline? = null,
         override val explanation: Content? = null,
+        override val passage: Content? = null,
         override val look: Look? = null,
         override val aside: Aside? = null,
         override val audio: String? = null,
@@ -449,6 +465,7 @@ sealed interface Exercise {
         override val id: Uuid,
         override val instruction: Inline? = null,
         override val explanation: Content? = null,
+        override val passage: Content? = null,
         override val look: Look? = null,
         override val aside: Aside? = null,
         override val audio: String? = null,
@@ -522,6 +539,7 @@ sealed interface Exercise {
             get() = (raw["id"] as? JsonPrimitive)?.content?.let { runCatching { Uuid.parse(it) }.getOrNull() } ?: Uuid.NIL
         override val instruction: Inline? get() = null
         override val explanation: Content? get() = null
+        override val passage: Content? get() = null
         override val itemCount get() = 0
         override fun validate(at: Path) = checks { unknownType(at, "exercise type", type) }
     }
@@ -534,10 +552,11 @@ const val MAX_SORT_ITEMS = 24
 
 internal fun words(sentence: String): List<String> = sentence.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }
 
-/** The layers every type has: instruction, word bank, look, aside and explanation. */
+/** The layers every type has: instruction, word bank, passage, look, aside and explanation. */
 private fun Checks.common(exercise: Exercise, at: Path) {
     text(exercise.instruction, at / "instruction")
     exercise.wordBank.forEachIndexed { i, word -> notBlank(word, (at / "wordBank")[i]) }
+    exercise.passage?.let { nested(it.validate(at / "passage")) }
     exercise.look?.let { nested(it.validate(at / "look")) }
     exercise.aside?.let { nested(it.validate(at / "aside")) }
     audio(exercise.audio, at / "audio")

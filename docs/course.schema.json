@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://polylingy.app/schema/course-5.json",
-  "title": "Polylingy course, format 9",
+  "title": "Polylingy course, format 10",
   "description": "The shape of course.json. The app checks more than this schema can say (markup, blanks per item, links pointing at real sections, model answers passing their keys): run ./gradlew :app:checkCourse. See docs/content-format.md.",
   "$ref": "#/$defs/course",
   "$defs": {
@@ -68,8 +68,8 @@
       "type": "object",
       "properties": {
         "formatVersion": {
-          "description": "The format this file is written in. This schema describes 9.",
-          "const": 9
+          "description": "The format this file is written in. This schema describes 10.",
+          "const": 10
         },
         "id": {
           "$ref": "#/$defs/uuid"
@@ -1205,6 +1205,10 @@
         "explanation": {
           "$ref": "#/$defs/content"
         },
+        "passage": {
+          "description": "A page of blocks the exercise is about (a dialogue, a story, a letter), shown above the frame as in the unit theory; original text only.",
+          "$ref": "#/$defs/content"
+        },
         "look": {
           "$ref": "#/$defs/look"
         },
@@ -1281,6 +1285,10 @@
           "$ref": "#/$defs/inline"
         },
         "explanation": {
+          "$ref": "#/$defs/content"
+        },
+        "passage": {
+          "description": "A page of blocks the exercise is about (a dialogue, a story, a letter), shown above the frame as in the unit theory; original text only.",
           "$ref": "#/$defs/content"
         },
         "look": {
@@ -1363,6 +1371,10 @@
         "explanation": {
           "$ref": "#/$defs/content"
         },
+        "passage": {
+          "description": "A page of blocks the exercise is about (a dialogue, a story, a letter), shown above the frame as in the unit theory; original text only.",
+          "$ref": "#/$defs/content"
+        },
         "look": {
           "$ref": "#/$defs/look"
         },
@@ -1435,6 +1447,10 @@
           "$ref": "#/$defs/inline"
         },
         "explanation": {
+          "$ref": "#/$defs/content"
+        },
+        "passage": {
+          "description": "A page of blocks the exercise is about (a dialogue, a story, a letter), shown above the frame as in the unit theory; original text only.",
           "$ref": "#/$defs/content"
         },
         "look": {
@@ -1514,6 +1530,10 @@
         "explanation": {
           "$ref": "#/$defs/content"
         },
+        "passage": {
+          "description": "A page of blocks the exercise is about (a dialogue, a story, a letter), shown above the frame as in the unit theory; original text only.",
+          "$ref": "#/$defs/content"
+        },
         "look": {
           "$ref": "#/$defs/look"
         },
@@ -1569,6 +1589,10 @@
           "$ref": "#/$defs/inline"
         },
         "explanation": {
+          "$ref": "#/$defs/content"
+        },
+        "passage": {
+          "description": "A page of blocks the exercise is about (a dialogue, a story, a letter), shown above the frame as in the unit theory; original text only.",
           "$ref": "#/$defs/content"
         },
         "look": {
@@ -1661,6 +1685,10 @@
         "explanation": {
           "$ref": "#/$defs/content"
         },
+        "passage": {
+          "description": "A page of blocks the exercise is about (a dialogue, a story, a letter), shown above the frame as in the unit theory; original text only.",
+          "$ref": "#/$defs/content"
+        },
         "look": {
           "$ref": "#/$defs/look"
         },
@@ -1729,6 +1757,10 @@
           "$ref": "#/$defs/inline"
         },
         "explanation": {
+          "$ref": "#/$defs/content"
+        },
+        "passage": {
+          "description": "A page of blocks the exercise is about (a dialogue, a story, a letter), shown above the frame as in the unit theory; original text only.",
           "$ref": "#/$defs/content"
         },
         "look": {
@@ -1816,6 +1848,10 @@
           "$ref": "#/$defs/inline"
         },
         "explanation": {
+          "$ref": "#/$defs/content"
+        },
+        "passage": {
+          "description": "A page of blocks the exercise is about (a dialogue, a story, a letter), shown above the frame as in the unit theory; original text only.",
           "$ref": "#/$defs/content"
         },
         "look": {

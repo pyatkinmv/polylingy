@@ -25,7 +25,7 @@ class ValidationTest {
     @Test fun itemCounts() {
         val counts = Samples.exercises.mapValues { exercise(it.value).itemCount }
         assertEquals(mapOf("gaps" to 4, "choice" to 2, "pictures" to 2, "table" to 4, "match" to 3, "order" to 2,
-            "choiceInText" to 2, "expand" to 2, "fix" to 4, "layers" to 2, "article" to 2, "listen" to 1, "annotatedOrder" to 1, "orderParts" to 1, "newspaper" to 2, "watch" to 1), counts)
+            "choiceInText" to 2, "expand" to 2, "fix" to 4, "layers" to 2, "article" to 2, "listen" to 1, "annotatedOrder" to 1, "orderParts" to 1, "newspaper" to 2, "watch" to 1, "passage" to 1), counts)
     }
 
     @Test fun orderOfParts() {

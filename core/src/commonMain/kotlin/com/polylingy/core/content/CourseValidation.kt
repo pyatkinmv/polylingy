@@ -66,6 +66,7 @@ fun Course.validate(): List<Problem> = buildList {
             val exerciseAt = (at / "exercises")[e]
             addAll(exercise.validate(exerciseAt))
             if (exercise is Exercise.Expand) modelAnswers(exercise, exerciseAt)
+            exercise.passage?.let { pages += exerciseAt / "passage" to it }
             exercise.explanation?.let { pages += exerciseAt / "explanation" to it }
         }
     }

@@ -53,14 +53,14 @@ fun Content.audios(at: Path): List<Pair<Path, String>> = walk(at).flatMap { (pat
     }
 }
 
-/** Every sound of this exercise, its explanation included, with its path. */
+/** Every sound of this exercise, its passage and explanation included, with its path. */
 fun Exercise.audios(at: Path): List<Pair<Path, String>> {
     val ofItems = (this as? Exercise.Choice)?.items.orEmpty()
         .mapIndexedNotNull { i, item -> item.audio?.let { (at / "items")[i] / "audio" to it } }
-    return listOfNotNull(audio?.let { at / "audio" to it }) + ofItems + explanation?.audios(at / "explanation").orEmpty()
+    return listOfNotNull(audio?.let { at / "audio" to it }) + ofItems + passage?.audios(at / "passage").orEmpty() + explanation?.audios(at / "explanation").orEmpty()
 }
 
-/** Every picture of this exercise, its explanation included, with the path of its `src`. */
+/** Every picture of this exercise, its passage and explanation included, with the path of its `src`. */
 fun Exercise.images(at: Path): List<Pair<Path, Image>> {
     val own = when (this) {
         is Exercise.Pictures -> items.mapIndexed { i, item -> (at / "items")[i] / "image" / "src" to item.image }
@@ -74,7 +74,7 @@ fun Exercise.images(at: Path): List<Pair<Path, Image>> {
         is Exercise.Unknown -> emptyList()
     }
     val aside = aside?.let { listOf(at / "aside" / "image" / "src" to it.image) }.orEmpty()
-    return aside + own + explanation?.images(at / "explanation").orEmpty()
+    return aside + own + passage?.images(at / "passage").orEmpty() + explanation?.images(at / "explanation").orEmpty()
 }
 
 /** The same exercise under another id, e.g. when an imported course becomes a copy. */
@@ -107,16 +107,16 @@ private fun Block.mapLinks(transform: (Block.Link) -> Block.Link): Block = when 
     is Block.Text, is Block.Picture, is Block.Table, is Block.Examples, is Block.Words, is Block.Dialogue, is Block.Track, is Block.Video, is Block.Unknown -> this
 }
 
-/** This exercise with the links of its explanation passed through [transform]. */
+/** This exercise with the links of its passage and explanation passed through [transform]. */
 fun Exercise.mapLinks(transform: (Block.Link) -> Block.Link): Exercise = when (this) {
-    is Exercise.Gaps -> copy(explanation = explanation?.mapLinks(transform))
-    is Exercise.Choice -> copy(explanation = explanation?.mapLinks(transform))
-    is Exercise.Pictures -> copy(explanation = explanation?.mapLinks(transform))
-    is Exercise.Table -> copy(explanation = explanation?.mapLinks(transform))
-    is Exercise.Match -> copy(explanation = explanation?.mapLinks(transform))
-    is Exercise.Order -> copy(explanation = explanation?.mapLinks(transform))
-    is Exercise.Sort -> copy(explanation = explanation?.mapLinks(transform))
-    is Exercise.Expand -> copy(explanation = explanation?.mapLinks(transform))
-    is Exercise.Fix -> copy(explanation = explanation?.mapLinks(transform))
+    is Exercise.Gaps -> copy(explanation = explanation?.mapLinks(transform), passage = passage?.mapLinks(transform))
+    is Exercise.Choice -> copy(explanation = explanation?.mapLinks(transform), passage = passage?.mapLinks(transform))
+    is Exercise.Pictures -> copy(explanation = explanation?.mapLinks(transform), passage = passage?.mapLinks(transform))
+    is Exercise.Table -> copy(explanation = explanation?.mapLinks(transform), passage = passage?.mapLinks(transform))
+    is Exercise.Match -> copy(explanation = explanation?.mapLinks(transform), passage = passage?.mapLinks(transform))
+    is Exercise.Order -> copy(explanation = explanation?.mapLinks(transform), passage = passage?.mapLinks(transform))
+    is Exercise.Sort -> copy(explanation = explanation?.mapLinks(transform), passage = passage?.mapLinks(transform))
+    is Exercise.Expand -> copy(explanation = explanation?.mapLinks(transform), passage = passage?.mapLinks(transform))
+    is Exercise.Fix -> copy(explanation = explanation?.mapLinks(transform), passage = passage?.mapLinks(transform))
     is Exercise.Unknown -> this
 }

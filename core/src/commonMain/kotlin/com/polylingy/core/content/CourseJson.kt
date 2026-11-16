@@ -66,6 +66,8 @@ object CourseJson {
      * 3 → 4: only additions (sounds, dialogues, annotations `[word](note)`, display settings): the number alone changes.
      * 4 → 5: only additions (blocks `track` and `video`): the number alone changes.
      * 5 → 6: only additions (`tip.kind`, `text.role`, `examples.numbered`): the number alone changes.
+     * 6 → 9: only additions (blocks of format 9, styles, palettes); a document of them is read as it is.
+     * 9 → 10: only an addition (the exercise layer `passage`); a document of 9 is read as it is.
      */
     internal fun upgrade(root: JsonObject): JsonObject {
         val version = (root["formatVersion"] as? JsonPrimitive)?.takeUnless { it.isString }?.intOrNull ?: return root

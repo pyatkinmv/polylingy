@@ -38,7 +38,7 @@ class CourseJsonTest {
         assertEquals("English Grammar in Use", course.name)
         assertEquals("Units on *present* tenses.", course.description?.text)
         assertEquals("#2F6B5E", course.theme?.accent)
-        assertEquals(9, course.formatVersion, "a file of format 1 is brought up to 9")
+        assertEquals(10, course.formatVersion, "a file of format 1 is brought up to 10")
         assertEquals(RulesSpec(Preset.SM2, grading = GradingSpec.Threshold(0.75, typos = false)), course.rules, "settings.allowTypos became grading.typos")
         val unit = course.units.single()
         assertEquals(Uuid.parse(UNIT_ID), unit.id)
@@ -89,9 +89,9 @@ class CourseJsonTest {
     @Test fun notAnObject() = assertEquals(listOf("$: a course file must be a JSON object"), problems("[]"))
 
     @Test fun formatVersionIsRequiredAndWholeNumber() {
-        assertEquals(listOf("formatVersion: missing; this app writes 9"), problems("""{ "name": "X", "topics": [] }"""))
+        assertEquals(listOf("formatVersion: missing; this app writes 10"), problems("""{ "name": "X", "topics": [] }"""))
         for (bad in listOf("\"1\"", "1.5", "0", "null")) {
-            assertEquals(listOf("formatVersion: must be a whole number like 9"), problems("""{ "formatVersion": $bad, "name": "X" }"""), bad)
+            assertEquals(listOf("formatVersion: must be a whole number like 10"), problems("""{ "formatVersion": $bad, "name": "X" }"""), bad)
         }
     }
 
@@ -196,7 +196,7 @@ class CourseJsonTest {
     @Test fun formatsTwoToFiveAreReadAsSix() {
         for (old in 2..5) {
             val file = flatWithExercise("""{ "type": "gaps", "items": [ { "text": "{{a}}" } ] }""").replace("\"formatVersion\": 1", "\"formatVersion\": $old")
-            assertEquals(9, read(file).course.formatVersion, "$old")
+            assertEquals(10, read(file).course.formatVersion, "$old")
         }
     }
 
@@ -256,14 +256,14 @@ class CourseJsonTest {
     // newer format
 
     private val newer = CourseSamples.units
-        .replace("\"formatVersion\": 1", "\"formatVersion\": 10, \"level\": \"B1\"")
+        .replace("\"formatVersion\": 1", "\"formatVersion\": 11, \"level\": \"B1\"")
         .replace("\"type\": \"order\"", "\"type\": \"dictation\"")
         .replace("{ \"type\": \"text\", \"text\": \"He**’s cycling**.\" }", "{ \"type\": \"hologram\", \"src\": \"v.mp4\" }")
 
     @Test fun aNewerFileIsReadLenientlyWithWarnings() {
         val (course, warnings) = read(newer)
         assertTrue(course.studyOnly)
-        assertEquals(10, course.formatVersion)
+        assertEquals(11, course.formatVersion)
         assertEquals(
             listOf(
                 "units[0].theory.blocks[0].blocks[0]: unknown block type \"hologram\"",
@@ -277,7 +277,7 @@ class CourseJsonTest {
     }
 
     @Test fun aNewerFileStillFailsOnRealErrors() =
-        assertEquals(listOf("topics[0].title: must not be empty"), problems(flatWith("""{ "title": "", "exercises": [ { "type": "x" } ] }""").replace("\"formatVersion\": 1", "\"formatVersion\": 10")))
+        assertEquals(listOf("topics[0].title: must not be empty"), problems(flatWith("""{ "title": "", "exercises": [ { "type": "x" } ] }""").replace("\"formatVersion\": 1", "\"formatVersion\": 11")))
 
     @Test fun aStudyOnlyCourseIsWrittenAsItCameWithNewIdsAndName() {
         val course = read(newer).course
@@ -307,7 +307,7 @@ class CourseJsonTest {
 
     @Test fun writtenFilesStartWithTheFormatVersion() {
         val written = CourseJson.write(read(CourseSamples.flat).course)
-        assertTrue(written.lines()[1].trim() == "\"formatVersion\": 9,", written.lines()[1])
+        assertTrue(written.lines()[1].trim() == "\"formatVersion\": 10,", written.lines()[1])
     }
 
     @Test fun storedDocumentsAreReadWithoutChecks() {

@@ -39,7 +39,7 @@ class StudyServiceTest {
               { "title": "U1", "theory": { "format": "blocks", "blocks": [ { "type": "text", "text": "Theory" } ] },
                 "topics": [ { "title": "1.1", "exercises": [ ${gaps("a")} ] },
                             { "title": "1.2", "exercises": [ ${gaps("b")}, ${gaps("c")}, { "type": "dictation" } ] } ] },
-              { "title": "U2", "topics": [ { "title": "2.1", "exercises": [ ${gaps("d")} ] } ] } ] }""".replace("formatVersion\": 1", "formatVersion\": 10"),
+              { "title": "U2", "topics": [ { "title": "2.1", "exercises": [ ${gaps("d")} ] } ] } ] }""".replace("formatVersion\": 1", "formatVersion\": 11"),
         clock.now().instant,
     ).course
 

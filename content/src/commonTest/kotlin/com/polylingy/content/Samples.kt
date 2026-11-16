@@ -95,6 +95,14 @@ object Samples {
           "items": [ { "text": "I {{was waiting}} for the tram when a man {{dropped}} his phone." } ] }
     """.trimIndent()
 
+    /** A passage to read first, drawn as in the theory (here a dialogue with no translation), and a question about it. */
+    val passage = """
+        { "id": "$ID", "type": "choice", "instruction": "Read the dialogue and choose the right word.",
+          "passage": { "format": "blocks", "blocks": [
+            { "type": "dialogue", "lines": [ { "who": "Ana", "text": "Where is the tram stop?" }, { "who": "Theo", "text": "It is next to the bank." } ] } ] },
+          "items": [ { "text": "The tram stop is {{next to the bank|behind the school}}." } ] }
+    """.trimIndent()
+
     val article = """
         { "id": "$ID", "type": "fix",
           "look": { "type": "article", "title": "Five minutes with our new head of design", "source": "Staff magazine" },
@@ -147,7 +155,7 @@ object Samples {
     val exercises = mapOf(
         "gaps" to gaps, "choice" to choice, "pictures" to pictures, "table" to table, "match" to match, "order" to order,
         "choiceInText" to choiceInText, "expand" to expand, "fix" to fix, "layers" to layers, "article" to article,
-        "listen" to listen, "annotatedOrder" to annotatedOrder, "orderParts" to orderParts, "newspaper" to newspaper, "watch" to watch,
+        "listen" to listen, "annotatedOrder" to annotatedOrder, "orderParts" to orderParts, "newspaper" to newspaper, "watch" to watch, "passage" to passage,
     )
 
     /** One sample of each type, to put any look or aside on. */

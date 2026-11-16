@@ -152,6 +152,17 @@ class LayersUiTest {
         }
     }
 
+    @Test fun aPassageIsShownAboveTheExerciseAsInTheTheory() = showcase(exercise("""
+        { "id": "6f1c2b8e-3d4a-4f5b-9c6d-7e8f9a0b1c2d", "type": "choice", "instruction": "Read the dialogue and choose the right word.",
+          "passage": { "format": "blocks", "blocks": [
+            { "type": "dialogue", "lines": [ { "who": "Ana", "text": "Where is the tram stop?" }, { "who": "Theo", "text": "It is next to the bank." } ] } ] },
+          "items": [ { "text": "The tram stop is {{next to the bank|behind the school}}." } ] }
+    """)) {
+        onNodeWithText("Where is the tram stop?").assertIsDisplayed()
+        onNodeWithText("It is next to the bank.").assertIsDisplayed()
+        screenshot("layers-passage")
+    }
+
     @Test fun newspaperLookFramesAHeadline() = showcase(clipping) {
         onNodeWithContentDescription("Newspaper").assertIsDisplayed()
         screenshot("layers-newspaper")
