@@ -48,4 +48,17 @@ class BuryatUnitShotsUiTest {
             }
         }
     }
+
+    // The admin page of the unit (all its theory and all its exercises) in one tall picture.
+    @Test fun adminPage() {
+        if (unit == null) return
+        val zip = File(System.getenv("BURYAT_ZIP") ?: "../build-notes/buryat/course2/buryat-course.zip").readBytes()
+        appTest({ it.library.import("buryat-course.zip", zip) }, width = 1000, height = 14000) {
+            click(courseName)
+            test.onNodeWithText(unit).performScrollTo().performClick()
+            test.waitForIdle()
+            click("Admin")
+            screenshot("$prefix-admin")
+        }
+    }
 }

@@ -24,6 +24,7 @@ import com.polylingy.app.edit.EditorScreen
 import com.polylingy.app.edit.EditorViewModel
 import com.polylingy.app.study.StudyScreen
 import com.polylingy.app.study.StudyViewModel
+import com.polylingy.app.study.AdminScreen
 import com.polylingy.app.study.TheoryScreen
 import com.polylingy.app.ui.AppTheme
 import androidx.compose.foundation.layout.Box
@@ -79,6 +80,10 @@ internal data class StudyRoute(val courseId: String, val unitId: String? = null,
 @Serializable
 internal data class EditorRoute(val courseId: String, val unit: Boolean, val unitId: String? = null, val topicId: String? = null)
 
+/** A unit's theory and all its exercises on one page, for reviewing a course; nothing is recorded. */
+@Serializable
+internal data class AdminRoute(val courseId: String, val unitId: String)
+
 /** The study settings of a course. */
 @Serializable
 internal data class SettingsRoute(val courseId: String)
@@ -127,6 +132,8 @@ class Navigator internal constructor(private val nav: NavHostController) {
             is CoursePart.Topic -> EditorRoute(courseId.toString(), unit = false, unitId = part.unitId?.toString(), topicId = part.topicId?.toString())
         },
     )
+
+    fun admin(courseId: Uuid, unitId: Uuid) = go(AdminRoute(courseId.toString(), unitId.toString()))
 
     fun settings(courseId: Uuid) = go(SettingsRoute(courseId.toString()))
 
@@ -188,6 +195,13 @@ fun App(container: AppContainer, text: TextStyle = TextStyle.Default) {
                     onBack = if (route.back) go::back else null,
                     go = go,
                 ) }
+            }
+            composable<AdminRoute> { entry ->
+                val route = entry.toRoute<AdminRoute>()
+                val course = container.storage.courses.get(Uuid.parse(route.courseId))
+                if (course != null) CourseLooked(container, course.id) {
+                    AdminScreen(course, Uuid.parse(route.unitId), container.study, container.images(course.id), go)
+                }
             }
             composable<EditorRoute> { entry ->
                 val route = entry.toRoute<EditorRoute>()

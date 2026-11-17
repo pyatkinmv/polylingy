@@ -156,6 +156,7 @@ fun UnitScreen(viewModel: CourseViewModel, unitId: Uuid, clock: Clock, go: Navig
     Column(Modifier.fillMaxSize()) {
         TopBar(listOf("Courses" to go::courses, course.name to { go.backToCourse(course.id) }, "Unit ${index + 1}" to null)) {
             if (unit.unit.theory != null) TheoryButton(Look.Green) { go.theory(course.id, unitId) }
+            AdminButton(Look.Green) { go.admin(course.id, unitId) }
         }
         Page(Modifier.verticalScroll(rememberScrollState())) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -332,6 +333,17 @@ fun TheoryButton(accent: Color, onClick: () -> Unit) {
         border = androidx.compose.foundation.BorderStroke(1.5.dp, accent),
         colors = ButtonDefaults.outlinedButtonColors(contentColor = accent),
     ) { Text("Theory", maxLines = 1, softWrap = false) }
+}
+
+/** Opens the unit's theory and all its exercises on one page, for reviewing a course (no access control yet). */
+@Composable
+fun AdminButton(accent: Color, onClick: () -> Unit) {
+    OutlinedButton(
+        onClick = onClick,
+        shape = RoundedCornerShape(8.dp),
+        border = androidx.compose.foundation.BorderStroke(1.5.dp, accent),
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = accent),
+    ) { Text("Admin", maxLines = 1, softWrap = false) }
 }
 
 @Composable

@@ -8,6 +8,7 @@ import com.polylingy.content.ItemResult.TYPO
 import com.polylingy.content.ItemResult.WRONG
 import com.polylingy.content.Response
 import com.polylingy.content.emptyResponse
+import com.polylingy.content.solvedResponse
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -160,4 +161,15 @@ class ExerciseCheckerTest {
     @Test fun aWordLeftInThePileIsWrong() = assertEquals(
         WRONG, Checking.check(sort, Response.Sort(listOf(0, 0, null)))[2].result,
     )
+
+    @Test fun theAnswerKeyOfEveryTypeIsCheckedAllCorrect() {
+        val choice = exercise("choice", """"items": [ { "text": "It {{’s raining}}.", "options": ["rains", "’s raining"] }, { "text": "I {{a|b}} and {{c|d}}." } ]""")
+        val table = exercise("table", """"rows": [ ["I", "I {{am}} working", "{{Am}} I working?"] ]""")
+        val match = exercise("match", """"pairs": [ ["one", "uno"], ["two", "dos"], ["three", "tres"] ]""")
+        val order = exercise("order", """"items": [ { "answer": "She is reading." }, { "parts": ["a", "b", "c"] } ]""")
+        for (e in listOf(gaps, table, choice, match, order, sort, expand, fix)) {
+            val checks = Checking.check(e, e.solvedResponse())
+            assertEquals(List(e.itemCount) { CORRECT }, checks.map { it.result }, "the key of ${e::class.simpleName}")
+        }
+    }
 }

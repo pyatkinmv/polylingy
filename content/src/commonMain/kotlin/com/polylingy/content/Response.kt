@@ -55,6 +55,20 @@ fun Exercise.emptyResponse(): Response = when (this) {
     is Exercise.Unknown -> throw IllegalArgumentException("an exercise of unknown type \"$type\" can't be answered")
 }
 
+/**
+ * The answer key as a response: what a learner would enter to get every item right (the first variant of each blank, the right option,
+ * pair, order and group). For previews and review pages; never stored.
+ */
+fun Exercise.solvedResponse(): Response = when (this) {
+    is Exercise.Fix -> Response.Blanks(marks.map { if (it.wrong) it.fixes.first() else "" })
+    is Exercise.Gaps, is Exercise.Pictures, is Exercise.Table, is Exercise.Expand -> Response.Blanks(blanks.map { it.answer })
+    is Exercise.Choice -> Response.Choice(places.map { it.answer })
+    is Exercise.Match -> Response.Match(pairs.indices.toList())
+    is Exercise.Order -> Response.Order(items.map { it.words })
+    is Exercise.Sort -> Response.Sort(entries.map { it.group })
+    is Exercise.Unknown -> throw IllegalArgumentException("an exercise of unknown type \"$type\" has no answer key")
+}
+
 /** All blanks of an exercise answered with [Response.Blanks], in reading order; its `values` follow it. */
 val Exercise.blanks: List<InlineNode.Blank>
     get() = when (this) {
