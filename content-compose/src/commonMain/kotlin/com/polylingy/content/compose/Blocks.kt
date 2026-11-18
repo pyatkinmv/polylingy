@@ -492,7 +492,7 @@ internal fun place(rows: List<List<Cell>>): List<List<CellPlace>> {
 
 /**
  * A theory table; a cell may span rows. How it is drawn is [appearance] (see [Block.Table.Appearance]). By default the table is as wide as its
- * place, in a soft card; its columns share the width in proportion to their text. A table too wide for its place scrolls sideways.
+ * place, in a soft card; its columns share the width in proportion to their text. A table too wide for its place is narrowed: the widest columns wrap their text.
  */
 @Composable
 private fun CellTable(head: List<Inline>, rows: List<List<Cell>>, appearance: Block.Table.Appearance) {
@@ -565,6 +565,20 @@ private fun CellTable(head: List<Inline>, rows: List<List<Cell>>, appearance: Bl
                 val columns = (all.maxOfOrNull { it.first.column } ?: -1) + 1
                 val widths = IntArray(columns)
                 measurables.forEachIndexed { i, m -> val col = all[i].first.column; widths[col] = maxOf(widths[col], m.maxIntrinsicWidth(Constraints.Infinity)) }
+                // A table wider than its place is narrowed, not scrolled: the widest columns give up width first and their text wraps, down to the
+                // longest word of each column (only when even that does not fit, the table scrolls sideways as a last resort).
+                if (widths.sum() > available) {
+                    val least = IntArray(columns)
+                    measurables.forEachIndexed { i, m -> val col = all[i].first.column; least[col] = maxOf(least[col], m.minIntrinsicWidth(Constraints.Infinity)) }
+                    fun total(limit: Int) = widths.indices.sumOf { maxOf(least[it], minOf(widths[it], limit)) }
+                    var low = 0
+                    var high = widths.max()
+                    while (low < high) {                // the largest column width limit whose table still fits
+                        val mid = (low + high + 1) / 2
+                        if (total(mid) <= available) low = mid else high = mid - 1
+                    }
+                    for (c in widths.indices) widths[c] = maxOf(least[c], minOf(widths[c], low))
+                }
                 // A table that is to fill its place shares the spare width among the columns in proportion to their text.
                 val natural = widths.sum()
                 if (fullWidth && natural in 1 until available) {
