@@ -102,12 +102,12 @@ private fun SortWord(word: String, chosen: Boolean, onClick: () -> Unit) {
     Text(
         word,
         Modifier
-            .clip(shape).background(if (chosen) colors.accentSoft else colors.card, shape)
-            .border(if (chosen) 2.dp else 1.dp, if (chosen) colors.accent else WordEdge, shape)
+            .clip(shape).background(if (chosen) colors.correct else colors.card, shape)
+            .border(if (chosen) 2.dp else 1.dp, if (chosen) colors.correct else WordEdge, shape)
             .semantics { this.selected = chosen }
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 6.dp),
-        color = colors.ink,
+        color = if (chosen) colors.onAccent else colors.ink,
         fontWeight = FontWeight.Medium,
     )
 }

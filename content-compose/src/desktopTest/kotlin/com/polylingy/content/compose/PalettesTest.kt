@@ -45,6 +45,7 @@ class PalettesTest {
             check(id, "muted on card", c.muted, c.card, 4.5)
             for ((name, fill) in listOf("background" to c.background, "card" to c.card, "accentSoft" to c.accentSoft, "head" to c.head)) check(id, "accent on $name", c.accent, fill, 4.5)
             check(id, "white on accent", c.onAccent, c.accent, 4.5)
+            check(id, "text on the chosen option (the green of a right answer)", c.onAccent, c.correct, 4.5)
             // a selected text: the accent as a veil over the card or the background (see Selectable)
             for ((name, base) in listOf("card" to c.card, "background" to c.background, "panel" to c.panel)) {
                 val veiled = Color(

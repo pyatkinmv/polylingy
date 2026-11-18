@@ -65,11 +65,17 @@ internal fun resultColors(result: ItemResult?, colors: ContentColors): Pair<Colo
  */
 @Composable
 private fun Option(text: String, selected: Boolean, result: ItemResult?, enabled: Boolean, right: Boolean = false, onClick: () -> Unit) {
+    // One green for the chosen option and for the checked one: the outline stays, the inside only gets paler (or turns red / amber).
     val (fg, bg) = when {
         result != null && selected -> resultColors(result, colors)
         right -> colors.correct to colors.correctBg
-        selected -> colors.onAccent to colors.accent
+        selected -> colors.onAccent to colors.correct
         else -> colors.ink to colors.card
+    }
+    val edge = when {
+        result != null && selected -> fg
+        right || selected -> colors.correct
+        else -> colors.line
     }
     DisableSelection {
     InlineText(
@@ -77,7 +83,7 @@ private fun Option(text: String, selected: Boolean, result: ItemResult?, enabled
         Modifier
             .clip(RoundedCornerShape(50))
             .background(bg, RoundedCornerShape(50))
-            .border(if (right) 2.dp else 1.5.dp, if (right) colors.correct else if (selected) bg else colors.line, RoundedCornerShape(50))
+            .border(if (right || selected) 2.dp else 1.5.dp, edge, RoundedCornerShape(50))
             .semantics { this.selected = selected }
             .clickable(enabled = enabled, role = Role.RadioButton, onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 4.dp),
@@ -160,7 +166,7 @@ private fun SideCard(side: Side, badge: PairMark?, selected: Boolean, result: It
         val cardShape = RoundedCornerShape(12.dp)
         Box(
             Modifier.size(PictureCard).clip(cardShape).background(bg, cardShape)
-                .border(if (selected) 2.dp else 1.dp, if (selected) colors.ink else colors.line, cardShape)
+                .border(if (selected) 2.dp else 1.dp, if (selected) colors.correct else colors.line, cardShape)
                 .semantics { this.selected = selected }
                 .clickable(remember { MutableInteractionSource() }, indication = null, enabled = enabled, onClick = onClick),
         ) {
@@ -176,7 +182,7 @@ private fun SideCard(side: Side, badge: PairMark?, selected: Boolean, result: It
         Modifier.fillMaxWidth().heightIn(min = minHeight)
             .clip(shape)
             .background(bg, shape)
-            .border(if (selected) 1.5.dp else 1.dp, if (selected) colors.ink else colors.line, shape)
+            .border(if (selected) 2.dp else 1.dp, if (selected) colors.correct else colors.line, shape)
             .semantics { this.selected = selected }
             .clickable(remember { MutableInteractionSource() }, indication = null, enabled = enabled, onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 8.dp),
