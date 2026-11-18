@@ -131,3 +131,24 @@ class InlineTest {
         assertEquals("a **b**", Inline("a **b**").toString())
     }
 }
+
+class InlineHintTest {
+    @Test fun aBlankTakesAHintRightAfterIt() {
+        val inline = Inline("If he {{hadn't missed|had not missed}}[[not miss]] it, he {{would have been}}[[be]] there and {{on}} time.")
+        assertEquals(listOf("not miss", "be", null), inline.blanks.map { it.hint })
+        assertEquals(listOf("hadn't missed", "had not missed"), inline.blanks[0].variants)
+        assertEquals(emptyList(), inline.problems)
+        assertEquals("If he hadn't missed it, he would have been there and on time.", inline.plainText())
+    }
+
+    @Test fun aBracketNotAfterABlankIsPlainText() {
+        val inline = Inline("see [[this]] and {{a}} [[not a hint]]")
+        assertEquals(listOf(null), inline.blanks.map { it.hint })
+        assertEquals(emptyList(), inline.problems)
+    }
+
+    @Test fun aBrokenHintIsReported() {
+        assertEquals(listOf("[[ at 6 is not closed"), Inline("{{a}}[[oops").problems)
+        assertEquals(listOf("the hint [[…]] at 6 must be one line of text"), Inline("{{a}}[[ ]]").problems)
+    }
+}

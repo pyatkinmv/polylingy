@@ -74,7 +74,7 @@ data class DisplaySpec(
     val annotations: Boolean = true,
     val avoidTyping: Boolean = false,
     val palette: String? = null,
-    val style: CourseStyle = CourseStyle.SOFT,
+    val style: CourseStyle = CourseStyle.STRICT,
 )
 
 /** Ready sets of grading, mastery and scheduler (docs/learning-model.md, section 4); each comes with the conveyor picker. */

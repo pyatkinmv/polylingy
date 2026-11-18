@@ -32,8 +32,8 @@ import com.polylingy.content.Response
 internal fun offsets(texts: List<Inline>): List<Int> = texts.runningFold(0) { acc, text -> acc + text.blanks.size }
 
 /**
- * [text] with its blanks — fields to type into, or the checked answers — numbered from [offset]. [hint] shows
- * inside the last empty field of the text (the verb to use, say), where it doesn't push the sentence apart.
+ * [text] with its blanks — fields to type into, or the checked answers — numbered from [offset]. A blank's hint
+ * (the verb to use, say) shows in grey inside its empty field, where it doesn't push the sentence apart.
  */
 @Composable
 private fun BlankText(
@@ -43,14 +43,12 @@ private fun BlankText(
     checks: List<ItemCheck>?,
     onChange: (Response) -> Unit,
     onSubmit: () -> Unit,
-    hint: String? = null,
 ) {
     InlineFlow(text) { blank: InlineNode.Blank ->
         val index = offset + blank.index
         val given = response.values[index]
         if (checks == null) {
-            val placeholder = hint.takeIf { blank.index == text.blanks.lastIndex }
-            BlankField(given, { onChange(Response.Blanks(response.values.toMutableList().also { list -> list[index] = it })) }, "Blank ${index + 1}", onSubmit, placeholder)
+            BlankField(given, { onChange(Response.Blanks(response.values.toMutableList().also { list -> list[index] = it })) }, "Blank ${index + 1}", onSubmit, blank.hint)
         } else {
             CheckedAnswer(given, checks[index])
         }
@@ -69,8 +67,8 @@ internal fun GapsView(exercise: Exercise.Gaps, response: Response.Blanks, checks
         }
         exercise.items.forEachIndexed { i, item ->
             Item(numberOf(i, exercise.items.size), item.note, showNote = checks != null) {
-                BlankText(item.text, offsets[i], response, checks, onChange, onSubmit, hint = item.hint)
-                if (checks != null) item.hint?.let { Text("($it)", color = colors.muted, style = MaterialTheme.typography.bodySmall) }
+                BlankText(item.text, offsets[i], response, checks, onChange, onSubmit)
+                if (checks != null) item.text.blanks.mapNotNull { it.hint }.takeIf { it.isNotEmpty() }?.let { Text("(${it.joinToString(" / ")})", color = colors.muted, style = MaterialTheme.typography.bodySmall) }
             }
         }
     }

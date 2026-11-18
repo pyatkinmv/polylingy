@@ -30,10 +30,12 @@ class StudyUiTest {
               { "type": "section", "id": "$sectionB", "label": "B", "title": "Started, not finished",
                 "blocks": [ { "type": "text", "text": "**I am doing** something = I’ve started it, and I haven’t finished." } ] } ] },
             "topics": [
-              { "title": "Things happening now", "exercises": [ { "type": "gaps", "instruction": "Complete the sentences.",
+              { "title": "Things happening now",
+                "explanation": { "format": "blocks", "blocks": [ { "type": "text", "text": "The topic rule: **am / is / are + -ing** for what is happening now." } ] },
+                "exercises": [ { "type": "gaps", "instruction": "Complete the sentences.",
                 "items": [
-                  { "text": "Listen! Somebody {{is singing}}.", "hint": "sing" },
-                  { "text": "I {{’m not reading|am not reading}} it now.", "hint": "not / read", "note": "Negative: am / is / are + **not** + -ing." } ],
+                  { "text": "Listen! Somebody {{is singing}}[[sing]]." },
+                  { "text": "I {{’m not reading|am not reading}}[[not / read]] it now.", "note": "Negative: am / is / are + **not** + -ing." } ],
                 "explanation": { "format": "blocks", "blocks": [
                   { "type": "text", "text": "Negatives keep **-ing**: I’m not reading, she isn’t reading." },
                   { "type": "seeAlso", "links": [ { "section": "$sectionB" } ] } ] } } ] },
@@ -62,6 +64,7 @@ class StudyUiTest {
         click("Start exercises →")
 
         text("Complete the sentences.").assertIsDisplayed()
+        screenshot("exercise-empty")   // Check is not yet available: paler than when enabled, but visible
         fill(1, "is singing")
         fill(2, "don’t read")
         screenshot("exercise")
@@ -83,6 +86,8 @@ class StudyUiTest {
         text("All correct").assertIsDisplayed()
         text("Topic passed — next review tomorrow").assertIsDisplayed()
         text("Negatives keep -ing: I’m not reading, she isn’t reading.").assertIsDisplayed()
+        // the topic's explanation follows the exercise's own one
+        text("The topic rule: am / is / are + -ing for what is happening now.").assertIsDisplayed()
         screenshot("exercise-passed")
 
         click("Next →")

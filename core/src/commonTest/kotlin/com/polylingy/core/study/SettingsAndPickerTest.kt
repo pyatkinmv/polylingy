@@ -210,7 +210,7 @@ class SettingsAndPickerTest {
         assertFailsWith<IllegalArgumentException> { study.saveSettings(course.id, RulesSpec(picker = PickerSpec.Conveyor(newPerDay = 0))) }
         assertFailsWith<IllegalArgumentException> { study.saveSettings(Uuid.random(), RulesSpec()) }
         val newer = CourseJson.read(
-            """{ "formatVersion": 11, "name": "N", "topics": [ { "title": "A", "exercises": [ ${gaps("a")} ] } ] }""",
+            """{ "formatVersion": 12, "name": "N", "topics": [ { "title": "A", "exercises": [ ${gaps("a")} ] } ] }""",
             clock.now().instant,
         ).course.also(courses::save)
         assertFailsWith<IllegalArgumentException> { study.saveSettings(newer.id, RulesSpec()) }

@@ -127,7 +127,7 @@ class DockTitle {
 }
 
 internal val LocalContentColors = staticCompositionLocalOf { ContentColors.Default }
-internal val LocalCourseStyle = staticCompositionLocalOf { CourseStyle.SOFT }
+internal val LocalCourseStyle = staticCompositionLocalOf { CourseStyle.STRICT }
 internal val LocalImageLoader = staticCompositionLocalOf { ImageLoader { null } }
 internal val LocalLinkNames = staticCompositionLocalOf { LinkNames { null } }
 internal val LocalAudioPlayer = staticCompositionLocalOf { AudioPlayer {} }
@@ -173,7 +173,7 @@ fun CourseContent(
     annotations: Boolean,
     dockTitle: DockTitle = remember { DockTitle() },
     colors: ContentColors = ContentColors.Default,
-    style: CourseStyle = CourseStyle.SOFT,
+    style: CourseStyle = CourseStyle.STRICT,
     content: @Composable () -> Unit,
 ) {
     CompositionLocalProvider(

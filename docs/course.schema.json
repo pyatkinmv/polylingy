@@ -68,8 +68,8 @@
       "type": "object",
       "properties": {
         "formatVersion": {
-          "description": "The format this file is written in. This schema describes 10.",
-          "const": 10
+          "description": "The format this file is written in. This schema describes 11.",
+          "const": 11
         },
         "id": {
           "$ref": "#/$defs/uuid"
@@ -277,12 +277,12 @@
           "minLength": 1
         },
         "style": {
-          "description": "soft (default): marks on a coloured background; strict: marks underlined, no background.",
+          "description": "strict (default): marks underlined, no background; soft: marks on a coloured background.",
           "enum": [
             "soft",
             "strict"
           ],
-          "default": "soft"
+          "default": "strict"
         }
       },
       "additionalProperties": false
@@ -1251,16 +1251,11 @@
       "additionalProperties": false
     },
     "gapItem": {
-      "description": "text has at least one blank {{answer|variant}} (each variant at most 60 characters); hint shows in brackets, note under a wrong answer.",
+      "description": "text has at least one blank {{answer|variant}} (each variant at most 60 characters), which may carry a hint {{answer}}[[hint]] shown in grey in the empty field; note under a wrong answer.",
       "type": "object",
       "properties": {
         "text": {
           "$ref": "#/$defs/inline"
-        },
-        "hint": {
-          "type": "string",
-          "minLength": 1,
-          "pattern": "\\S"
         },
         "note": {
           "$ref": "#/$defs/inline"

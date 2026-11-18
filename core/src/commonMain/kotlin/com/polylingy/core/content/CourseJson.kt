@@ -68,14 +68,42 @@ object CourseJson {
      * 5 → 6: only additions (`tip.kind`, `text.role`, `examples.numbered`): the number alone changes.
      * 6 → 9: only additions (blocks of format 9, styles, palettes); a document of them is read as it is.
      * 9 → 10: only an addition (the exercise layer `passage`); a document of 9 is read as it is.
+     * 10 → 11: the hint of a gaps item (`hint`, one for the sentence) moved into the sentence, after the blank it was shown in
+     * (the last one): `{{answer}}[[hint]]`; every older document gets the same change.
      */
     internal fun upgrade(root: JsonObject): JsonObject {
         val version = (root["formatVersion"] as? JsonPrimitive)?.takeUnless { it.isString }?.intOrNull ?: return root
-        return when (version) {
-            1 -> numbered(to2(root))
-            2, 3, 4, 5 -> numbered(root)
-            else -> root
+        return if (version < 1 || version >= FORMAT_VERSION) root else numbered(hintsInSentences(if (version == 1) to2(root) else root))
+    }
+
+    /** Moves the `hint` of every gaps item into its text, after the last blank (where the app used to show it). */
+    private fun hintsInSentences(root: JsonObject): JsonObject {
+        fun item(item: JsonElement): JsonElement {
+            val o = item as? JsonObject ?: return item
+            val hint = (o["hint"] as? JsonPrimitive)?.takeIf { it.isString }?.content ?: return item
+            val text = (o["text"] as? JsonPrimitive)?.takeIf { it.isString }?.content ?: return JsonObject(o - "hint")
+            val end = text.lastIndexOf("}}")
+            val moved = if (end < 0 || hint.isBlank()) text else text.substring(0, end + 2) + "[[" + hint.trim() + "]]" + text.substring(end + 2)
+            return JsonObject(o - "hint" + ("text" to JsonPrimitive(moved)))
         }
+        fun exercise(e: JsonElement): JsonElement {
+            val o = e as? JsonObject ?: return e
+            if ((o["type"] as? JsonPrimitive)?.content != "gaps") return e
+            val items = o["items"] as? JsonArray ?: return e
+            return JsonObject(o + ("items" to JsonArray(items.map(::item))))
+        }
+        fun topic(t: JsonElement): JsonElement {
+            val o = t as? JsonObject ?: return t
+            val exercises = o["exercises"] as? JsonArray ?: return t
+            return JsonObject(o + ("exercises" to JsonArray(exercises.map(::exercise))))
+        }
+        fun unit(u: JsonElement): JsonElement {
+            val o = u as? JsonObject ?: return u
+            val topics = o["topics"] as? JsonArray ?: return u
+            return JsonObject(o + ("topics" to JsonArray(topics.map(::topic))))
+        }
+        val units = root["units"] as? JsonArray ?: return root
+        return JsonObject(root + ("units" to JsonArray(units.map(::unit))))
     }
 
     /** Versions 2 → 3 → 4 → 5 → 6 only added things: a document of them reads as it is under the current number. */

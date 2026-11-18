@@ -24,6 +24,7 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -132,15 +133,15 @@ fun AdminScreen(course: Course, unitId: Uuid, study: StudyService, images: Image
                                 onLink = onLink,
                                 seed = exercise.id.hashCode(),
                             )
-                            // The topic's explanation stands in for an exercise that has none of its own, as in the lessons.
+                            // The topic's explanation follows the exercise's own one, as in the lessons.
                             val explanation = topic.explanation
-                            if (checks != null && exercise.explanation == null && explanation != null) ExplanationView(explanation, onLink)
+                            if (checks != null && explanation != null) ExplanationView(explanation, onLink, title = topic.title)
                             if (!showKey) Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                                 if (checked[exercise.id] == null) {
                                     Button(
                                         onClick = { checked[exercise.id] = study.preview(course.id, exercise, response) },
                                         enabled = exercise.isComplete(response),
-                                        colors = ButtonDefaults.buttonColors(containerColor = Look.Green),
+                                        colors = Look.buttonColors(),
                                         shape = RoundedCornerShape(8.dp),
                                     ) { Text("Check") }
                                 } else {

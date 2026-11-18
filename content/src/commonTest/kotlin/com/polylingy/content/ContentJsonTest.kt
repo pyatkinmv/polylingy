@@ -115,7 +115,9 @@ class ContentJsonTest {
         assertEquals(Uuid.parse(Samples.ID), gaps.id)
         assertEquals("Complete the sentences. Use the present continuous.", gaps.instruction?.text)
         assertEquals(listOf("sing", "wear", "get"), gaps.wordBank)
-        assertEquals("not / read", gaps.items[2].hint)
+        assertEquals(listOf("sing"), gaps.items[0].text.blanks.map { it.hint })
+        assertEquals(listOf("be", "wear"), gaps.items[1].text.blanks.map { it.hint })
+        assertEquals("not / read", gaps.items[2].text.blanks.single().hint)
         assertEquals(listOf("’m not reading", "am not reading"), gaps.items[2].text.blanks.single().variants)
         assertIs<Content.Blocks>(gaps.explanation)
         val match = exercise(Samples.match) as Exercise.Match
@@ -129,7 +131,7 @@ class ContentJsonTest {
     }
 
     @Test fun aMissingFieldIsAnError() {
-        val problem = failure("""{ "id": "${Samples.ID}", "type": "gaps", "items": [{ "hint": "x" }] }""")
+        val problem = failure("""{ "id": "${Samples.ID}", "type": "gaps", "items": [{ "note": "x" }] }""")
         assertEquals("items[0]", problem.path.text)
         assertEquals("Field 'text' is required for type with serial name 'com.polylingy.content.Exercise.GapItem', but it was missing", problem.message)
     }

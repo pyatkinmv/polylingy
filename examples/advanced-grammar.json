@@ -1,5 +1,5 @@
 {
-  "formatVersion": 10,
+  "formatVersion": 11,
   "name": "Advanced Grammar: Units 1–3",
   "description": "Present and past at C1 level, unit by unit after *Advanced Grammar in Use* (4th ed.): own explanations and exercises.",
   "theme": { "accent": "#1F6B45" },
@@ -54,12 +54,12 @@
           "exercises": [
             { "type": "gaps", "instruction": "Use the present continuous if you can; otherwise the present simple.",
               "items": [
-                { "text": "These boots {{don’t fit|do not fit}} me any more — my feet must have grown.", "hint": "not / fit" },
-                { "text": "Why {{are you measuring}} the window? Are you buying new curtains?", "hint": "you / measure" },
-                { "text": "The living room {{measures}} about five metres by four.", "hint": "measure" },
-                { "text": "I {{’m having|am having}} lunch with a client, so I can’t talk now.", "hint": "have", "note": "**have** = eat: an action, so it can be continuous." },
-                { "text": "Your idea {{sounds}} great to me.", "hint": "sound" },
-                { "text": "The panel {{consists of}} three judges and a chairman.", "hint": "consist of", "note": "**consist of** is almost never continuous." } ] },
+                { "text": "These boots {{don’t fit|do not fit}}[[not / fit]] me any more — my feet must have grown." },
+                { "text": "Why {{are you measuring}}[[you / measure]] the window? Are you buying new curtains?" },
+                { "text": "The living room {{measures}}[[measure]] about five metres by four." },
+                { "text": "I {{’m having|am having}}[[have]] lunch with a client, so I can’t talk now.", "note": "**have** = eat: an action, so it can be continuous." },
+                { "text": "Your idea {{sounds}}[[sound]] great to me." },
+                { "text": "The panel {{consists of}}[[consist of]] three judges and a chairman.", "note": "**consist of** is almost never continuous." } ] },
             { "type": "choice", "instruction": "Choose the better form.",
               "items": [
                 { "text": "Quiet, please — I {{’m thinking}} about what to say.", "options": ["think", "’m thinking"] },
@@ -69,12 +69,12 @@
                 { "text": "I {{see}} what you mean now.", "options": ["see", "’m seeing"] } ] },
             { "type": "gaps", "instruction": "Each pair uses the same verb. Present continuous or present simple?",
               "items": [
-                { "text": "The assistant {{is weighing|’s weighing}} the cheese for me.", "hint": "weigh" },
-                { "text": "This suitcase {{weighs}} over twenty kilos!", "hint": "weigh" },
-                { "text": "We {{’re expecting|are expecting}} a delivery this morning.", "hint": "expect", "note": "**expect** = wait for: an action." },
-                { "text": "I {{expect}} you’re tired after the flight.", "hint": "expect", "note": "**expect** = suppose: a state." },
-                { "text": "How {{are you feeling|do you feel}} today?", "hint": "you / feel" },
-                { "text": "I {{feel}} that we should wait a little longer.", "hint": "feel", "note": "**feel** = believe: a state." } ] }
+                { "text": "The assistant {{is weighing|’s weighing}}[[weigh]] the cheese for me." },
+                { "text": "This suitcase {{weighs}}[[weigh]] over twenty kilos!" },
+                { "text": "We {{’re expecting|are expecting}}[[expect]] a delivery this morning.", "note": "**expect** = wait for: an action." },
+                { "text": "I {{expect}}[[expect]] you’re tired after the flight.", "note": "**expect** = suppose: a state." },
+                { "text": "How {{are you feeling|do you feel}}[[you / feel]] today?" },
+                { "text": "I {{feel}}[[feel]] that we should wait a little longer.", "note": "**feel** = believe: a state." } ] }
           ]
         },
         {
@@ -93,11 +93,11 @@
                 { "text": "I {{apologise}} for the delay.", "options": ["apologise", "’m apologising"] } ] },
             { "type": "gaps", "instruction": "Complete with the verbs in brackets.",
               "items": [
-                { "text": "I {{suggest}} we leave before the traffic gets bad.", "hint": "suggest" },
-                { "text": "He {{’s considering|is considering}} a complete change of career.", "hint": "consider" },
-                { "text": "I {{prefer}} trains to planes.", "hint": "prefer" },
-                { "text": "We {{would advise}} you to book early.", "hint": "would / advise", "note": "A modal makes the advice more polite." },
-                { "text": "I {{don’t deny|’m not denying|do not deny|am not denying}} that I made a mistake.", "hint": "not / deny" } ] },
+                { "text": "I {{suggest}}[[suggest]] we leave before the traffic gets bad." },
+                { "text": "He {{’s considering|is considering}}[[consider]] a complete change of career." },
+                { "text": "I {{prefer}}[[prefer]] trains to planes." },
+                { "text": "We {{would advise}}[[would / advise]] you to book early.", "note": "A modal makes the advice more polite." },
+                { "text": "I {{don’t deny|’m not denying|do not deny|am not denying}}[[not / deny]] that I made a mistake." } ] },
             { "type": "match", "instruction": "What does each speaker do by saying it?",
               "pairs": [
                 [ "I apologise for being late.", "says sorry" ],
@@ -160,11 +160,11 @@
           "exercises": [
             { "type": "gaps", "instruction": "Present simple or present continuous? Use the verbs in brackets.",
               "items": [
-                { "text": "So I’m standing at the bus stop when this man {{walks}} up to me and {{asks}} for my umbrella.", "hint": "walk / ask" },
-                { "text": "It {{’s pouring|is pouring}} with rain, and everyone {{’s hurrying|is hurrying}} home.", "hint": "pour / hurry" },
-                { "text": "Okafor {{takes}} the ball down the left and {{crosses}} it into the box.", "hint": "take / cross" },
-                { "text": "The fans {{’re singing|are singing}} — they {{’re enjoying|are enjoying}} every minute of this.", "hint": "sing / enjoy" },
-                { "text": "I was walking home last night when all of a sudden a fox {{runs}} across the road.", "hint": "run" } ] },
+                { "text": "So I’m standing at the bus stop when this man {{walks}} up to me and {{asks}}[[walk / ask]] for my umbrella." },
+                { "text": "It {{’s pouring|is pouring}} with rain, and everyone {{’s hurrying|is hurrying}}[[pour / hurry]] home." },
+                { "text": "Okafor {{takes}} the ball down the left and {{crosses}}[[take / cross]] it into the box." },
+                { "text": "The fans {{’re singing|are singing}} — they {{’re enjoying|are enjoying}}[[sing / enjoy]] every minute of this." },
+                { "text": "I was walking home last night when all of a sudden a fox {{runs}}[[run]] across the road." } ] },
             { "type": "choice", "instruction": "Choose the form a storyteller or commentator would use.",
               "items": [
                 { "text": "A man {{walks}} into a library and asks for a book about paranoia.", "options": ["walks", "is walking"] },
@@ -196,11 +196,11 @@
           "exercises": [
             { "type": "gaps", "instruction": "Complete each sentence with a phrase for passing on news.",
               "items": [
-                { "text": "{{I hear|I gather|I understand}} you’re moving to Canada.", "hint": "I + hear / gather / understand" },
-                { "text": "Marco {{tells me}} the meeting has been cancelled.", "hint": "tell + me" },
-                { "text": "{{It says here|It says}} that the museum is free on Sundays.", "hint": "it / say / here" },
-                { "text": "{{They say}} it’s going to be a cold winter.", "hint": "they / say" },
-                { "text": "{{I see}} the price of petrol has gone up again.", "hint": "I / see", "note": "**I see** = I’ve read or noticed." } ] },
+                { "text": "{{I hear|I gather|I understand}}[[I + hear / gather / understand]] you’re moving to Canada." },
+                { "text": "Marco {{tells me}}[[tell + me]] the meeting has been cancelled." },
+                { "text": "{{It says here|It says}}[[it / say / here]] that the museum is free on Sundays." },
+                { "text": "{{They say}}[[they / say]] it’s going to be a cold winter." },
+                { "text": "{{I see}}[[I / see]] the price of petrol has gone up again.", "note": "**I see** = I’ve read or noticed." } ] },
             { "type": "choice", "instruction": "Choose the natural phrase.",
               "items": [
                 { "text": "{{I gather}} you two have met before.", "options": ["I gather", "I’m gathering"] },
@@ -217,11 +217,11 @@
           "exercises": [
             { "type": "gaps", "instruction": "Use the words in brackets and the present or past continuous.",
               "items": [
-                { "text": "You {{’re always losing|are always losing}} your keys!", "hint": "always / lose" },
-                { "text": "My neighbour {{’s constantly complaining|is constantly complaining}} about the noise.", "hint": "constantly / complain" },
-                { "text": "They {{’re forever arguing|are forever arguing}} about money.", "hint": "forever / argue" },
-                { "text": "Jo {{’s always helping|is always helping}} other people — she’s so kind.", "hint": "always / help" },
-                { "text": "When we shared a flat, he {{was always borrowing}} my bike.", "hint": "always / borrow" } ] },
+                { "text": "You {{’re always losing|are always losing}}[[always / lose]] your keys!" },
+                { "text": "My neighbour {{’s constantly complaining|is constantly complaining}}[[constantly / complain]] about the noise." },
+                { "text": "They {{’re forever arguing|are forever arguing}}[[forever / argue]] about money." },
+                { "text": "Jo {{’s always helping|is always helping}}[[always / help]] other people — she’s so kind." },
+                { "text": "When we shared a flat, he {{was always borrowing}}[[always / borrow]] my bike." } ] },
             { "type": "order", "instruction": "Make a complaint or a comment.",
               "items": [
                 { "answer": "You’re always changing your mind." },
@@ -245,11 +245,11 @@
           "exercises": [
             { "type": "gaps", "instruction": "Present simple or present continuous?",
               "items": [
-                { "text": "Mayor {{resigns}} after funding scandal", "hint": "resign" },
-                { "text": "In chapter one, the detective {{finds}} a letter hidden in a piano.", "hint": "find" },
-                { "text": "In the film, Ruiz {{plays}} a retired pilot.", "hint": "play" },
-                { "text": "Don’t ring at eight — we {{’re usually eating|are usually eating}} then.", "hint": "usually / eat" },
-                { "text": "At half past eight I {{’m normally taking|am normally taking}} the kids to school.", "hint": "normally / take" } ] },
+                { "text": "Mayor {{resigns}}[[resign]] after funding scandal" },
+                { "text": "In chapter one, the detective {{finds}}[[find]] a letter hidden in a piano." },
+                { "text": "In the film, Ruiz {{plays}}[[play]] a retired pilot." },
+                { "text": "Don’t ring at eight — we {{’re usually eating|are usually eating}}[[usually / eat]] then." },
+                { "text": "At half past eight I {{’m normally taking|am normally taking}}[[normally / take]] the kids to school." } ] },
             { "type": "choice", "instruction": "Choose the better form.",
               "items": [
                 { "text": "Earthquake {{hits}} northern Chile", "options": ["hits", "is hitting"] },
@@ -305,11 +305,11 @@
           "exercises": [
             { "type": "gaps", "instruction": "Present perfect or past simple? Mind the time in brackets.",
               "items": [
-                { "text": "(11 a.m.) I {{haven’t had|have not had}} any coffee this morning — no wonder I’m tired.", "hint": "not / have" },
-                { "text": "(9 p.m.) I {{didn’t have|did not have}} time for breakfast this morning.", "hint": "not / have" },
-                { "text": "I {{’ve sent|have sent}} thirty emails today, and it’s only lunchtime.", "hint": "send" },
-                { "text": "(5 p.m.) I {{overslept}} this morning, so I missed the first meeting.", "hint": "oversleep" },
-                { "text": "It’s only the 20th and we {{’ve spent|have spent}} the whole budget for this month.", "hint": "spend" } ] },
+                { "text": "(11 a.m.) I {{haven’t had|have not had}}[[not / have]] any coffee this morning — no wonder I’m tired." },
+                { "text": "(9 p.m.) I {{didn’t have|did not have}}[[not / have]] time for breakfast this morning." },
+                { "text": "I {{’ve sent|have sent}}[[send]] thirty emails today, and it’s only lunchtime." },
+                { "text": "(5 p.m.) I {{overslept}}[[oversleep]] this morning, so I missed the first meeting." },
+                { "text": "It’s only the 20th and we {{’ve spent|have spent}}[[spend]] the whole budget for this month." } ] },
             { "type": "choice", "instruction": "Choose the better form.",
               "items": [
                 { "text": "(10 a.m.) I {{haven’t seen}} Tom this morning.", "options": ["didn’t see", "haven’t seen"] },
@@ -326,11 +326,11 @@
           "exercises": [
             { "type": "gaps", "instruction": "Present perfect or past simple? Use the verbs in brackets.",
               "items": [
-                { "text": "Prices {{have risen|’ve risen}} sharply since the new tax {{came}} in.", "hint": "rise / come" },
-                { "text": "She {{hasn’t driven|has not driven}} since she {{had}} the accident.", "hint": "not drive / have" },
-                { "text": "A lot {{has changed|’s changed}} since I last {{wrote}} to you.", "hint": "change / write" },
-                { "text": "Since he {{started}} running, he {{’s felt|has felt}} much healthier.", "hint": "start / feel" },
-                { "text": "Have you {{made}} any friends since you {{’ve lived|have lived}} here?", "hint": "make / live", "note": "You still live here, so **since you’ve lived**." } ] },
+                { "text": "Prices {{have risen|’ve risen}} sharply since the new tax {{came}}[[rise / come]] in." },
+                { "text": "She {{hasn’t driven|has not driven}} since she {{had}}[[not drive / have]] the accident." },
+                { "text": "A lot {{has changed|’s changed}} since I last {{wrote}}[[change / write]] to you." },
+                { "text": "Since he {{started}} running, he {{’s felt|has felt}}[[start / feel]] much healthier." },
+                { "text": "Have you {{made}} any friends since you {{’ve lived|have lived}}[[make / live]] here?", "note": "You still live here, so **since you’ve lived**." } ] },
             { "type": "choice", "instruction": "Choose the better form.",
               "items": [
                 { "text": "Since I {{moved}} here, I’ve made lots of friends.", "options": ["moved", "’ve moved"] },
@@ -353,10 +353,10 @@
                 { "text": "By the time we {{got}} there, the film had started.", "options": ["got", "have got"] } ] },
             { "type": "gaps", "instruction": "Present perfect or past simple?",
               "items": [
-                { "text": "As soon as I {{’ve finished|have finished}} this report, I’ll join you.", "hint": "finish" },
-                { "text": "After he {{left}} university, he travelled for a year.", "hint": "leave" },
-                { "text": "When you {{’ve found|have found}} a seat, please wait for the announcement.", "hint": "find" },
-                { "text": "I recognised her the moment she {{spoke}}.", "hint": "speak" } ] },
+                { "text": "As soon as I {{’ve finished|have finished}}[[finish]] this report, I’ll join you." },
+                { "text": "After he {{left}}[[leave]] university, he travelled for a year." },
+                { "text": "When you {{’ve found|have found}}[[find]] a seat, please wait for the announcement." },
+                { "text": "I recognised her the moment she {{spoke}}[[speak]]." } ] },
             { "type": "fix", "instruction": "One sentence in each pair is wrong. Correct the verb in it; keep ✓ for the right one.",
               "items": [
                 { "text": "a  Once you {{signed => ’ve signed|have signed|sign}} the form, you can’t cancel the order.\nb  Once she {{signed}}, the deal was done." },
@@ -372,11 +372,11 @@
           "exercises": [
             { "type": "gaps", "instruction": "Use the verbs in brackets in the right tense.",
               "items": [
-                { "text": "A missing climber {{has been found|’s been found}} alive. Rescuers {{reached}} him early on Tuesday.", "hint": "be found / reach" },
-                { "text": "The company {{has announced|’s announced}} record profits. Sales {{rose}} by 12% last year.", "hint": "announce / rise" },
-                { "text": "This is the first time I {{’ve eaten|have eaten}} octopus.", "hint": "eat" },
-                { "text": "It will be the first time the club {{has played|’s played}} in a final.", "hint": "play" },
-                { "text": "It was the first time she {{’d flown|had flown}} alone.", "hint": "fly" } ] },
+                { "text": "A missing climber {{has been found|’s been found}} alive. Rescuers {{reached}}[[be found / reach]] him early on Tuesday." },
+                { "text": "The company {{has announced|’s announced}} record profits. Sales {{rose}}[[announce / rise]] by 12% last year." },
+                { "text": "This is the first time I {{’ve eaten|have eaten}}[[eat]] octopus." },
+                { "text": "It will be the first time the club {{has played|’s played}}[[play]] in a final." },
+                { "text": "It was the first time she {{’d flown|had flown}}[[fly]] alone." } ] },
             { "type": "choice", "instruction": "Choose the better form.",
               "items": [
                 { "text": "This is the first time I {{’ve been}} to Rome.", "options": ["was", "’ve been"] },

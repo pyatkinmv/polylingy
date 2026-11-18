@@ -62,7 +62,7 @@ internal class MarkPaint(private val marks: List<MarkColor>, private val style: 
     }
 
     companion object {
-        val Default = MarkPaint(Palettes.default.colors.marks, CourseStyle.SOFT)
+        val Default = MarkPaint(Palettes.default.colors.marks, CourseStyle.STRICT)
     }
 }
 

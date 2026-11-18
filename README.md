@@ -50,7 +50,7 @@ it isn't checked for now.
         { "title": "Things happening now",
           "exercises": [
             { "type": "gaps", "instruction": "Complete the sentences.",
-              "items": [ { "text": "Listen! Somebody {{’s singing|is singing}}.", "hint": "sing" } ] } ] } ]
+              "items": [ { "text": "Listen! Somebody {{’s singing|is singing}}[[sing]]." } ] } ] } ]
     }
   ]
 }

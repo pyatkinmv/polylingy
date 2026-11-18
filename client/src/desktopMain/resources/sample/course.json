@@ -1,5 +1,5 @@
 {
-  "formatVersion": 1,
+  "formatVersion": 11,
   "id": "5a3f1e2d-7b6c-4d8e-9f00-1a2b3c4d5e01",
   "name": "English Grammar Sampler",
   "description": "A short sample course: one unit with a page of theory and one exercise of every kind.",
@@ -198,20 +198,16 @@
               "example": "Please be quiet. I**’m working**. (work)",
               "items": [
                 {
-                  "text": "Listen! Somebody {{is singing}} next door.",
-                  "hint": "sing"
+                  "text": "Listen! Somebody {{is singing}}[[sing]] next door."
                 },
                 {
-                  "text": "Why {{are}} you {{wearing}} a coat? It’s warm.",
-                  "hint": "wear"
+                  "text": "Why {{are}} you {{wearing}}[[wear]] a coat? It’s warm."
                 },
                 {
-                  "text": "The weather {{’s getting|is getting}} warmer.",
-                  "hint": "get"
+                  "text": "The weather {{’s getting|is getting}}[[get]] warmer."
                 },
                 {
-                  "text": "I {{’m not reading|am not reading}} this book now.",
-                  "hint": "not / read",
+                  "text": "I {{’m not reading|am not reading}}[[not / read]] this book now.",
                   "note": "Negative: am / is / are + **not** + -ing."
                 }
               ],

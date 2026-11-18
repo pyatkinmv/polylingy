@@ -107,9 +107,9 @@ object Palettes {
     )
 
 
-    /** A dark palette, to see how a course looks on a dark page; a test one, it may change. */
+    /** A dark palette: how a course looks on a dark page. */
     val midnight = Palette(
-        id = "midnight", name = "Midnight (test)",
+        id = "midnight", name = "Midnight",
         colors = ContentColors(
             accent = Color(0xFF7CC9A3), accentSoft = Color(0xFF243A33), ink = Color(0xFFE8ECEF), muted = Color(0xFFA3AEB6), line = Color(0xFF333C44), card = Color(0xFF232930),
             panel = Color(0xFF2A323A), background = Color(0xFF1B1F24), head = Color(0xFF2D4A3F), column = Color(0xFF28322F), stripe = Color(0xFF20262C), separator = Color(0xFF3E4C55),

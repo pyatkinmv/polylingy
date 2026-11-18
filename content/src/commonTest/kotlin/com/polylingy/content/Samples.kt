@@ -11,9 +11,9 @@ object Samples {
           "example": "Please be quiet. I **’m working**. (work)",
           "wordBank": ["sing", "wear", "get"],
           "items": [
-            { "text": "Listen! Somebody {{is singing}} next door.", "hint": "sing" },
-            { "text": "Why {{are}} you {{wearing}} a coat?", "hint": "wear" },
-            { "text": "I {{’m not reading|am not reading}} it now.", "hint": "not / read",
+            { "text": "Listen! Somebody {{is singing}}[[sing]] next door." },
+            { "text": "Why {{are}}[[be]] you {{wearing}}[[wear]] a coat?" },
+            { "text": "I {{’m not reading|am not reading}}[[not / read]] it now.",
               "note": "Negative: am / is / are + **not** + -ing." } ],
           "explanation": { "format": "blocks", "blocks": [
             { "type": "text", "text": "Negatives and questions keep **-ing**:" },

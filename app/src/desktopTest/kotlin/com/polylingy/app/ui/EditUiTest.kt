@@ -24,7 +24,7 @@ class EditUiTest {
             "topics": [
               { "title": "Things happening now", "exercises": [
                 { "type": "gaps", "instruction": "Complete the sentences.",
-                  "items": [ { "text": "Listen! Somebody {{is singing}}.", "hint": "sing" } ] },
+                  "items": [ { "text": "Listen! Somebody {{is singing}}[[sing]]." } ] },
                 { "type": "choice", "items": [ { "text": "Shh! The baby {{is sleeping}}.", "options": ["sleeps", "is sleeping"] } ] } ] },
               { "title": "Questions", "exercises": [ { "type": "choice",
                 "items": [ { "text": "What {{are you doing}}?", "options": ["do you do", "are you doing"] } ] } ] } ] },
@@ -227,7 +227,7 @@ class EditUiTest {
         screenshot("edit-flat-course")
     }
 
-    @Test fun aCourseFromANewerVersionCantBeChanged() = appTest({ it.seedCourse(course.replace("\"formatVersion\": 1", "\"formatVersion\": 11")) }) {
+    @Test fun aCourseFromANewerVersionCantBeChanged() = appTest({ it.seedCourse(course.replace("\"formatVersion\": 1", "\"formatVersion\": 12")) }) {
         click("Grammar in Use")
         assertTrue(test.onAllNodesWithText("＋ Add unit").fetchSemanticsNodes().isEmpty())
         assertTrue(test.onAllNodesWithText("⋯").fetchSemanticsNodes().isEmpty())

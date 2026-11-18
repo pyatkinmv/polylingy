@@ -9,7 +9,7 @@ import kotlinx.serialization.encoding.Encoder
 
 /**
  * A text with a little markup: `**bold**`, `*italic*`, a highlight `==marked==` (`=={2}second==`: after the opening `==`
- * the number of the palette's mark in braces, 1 to 5, see [MarkTone]; none means 1), blanks `{{answer|other variant}}`, annotations
+ * the number of the palette's mark in braces, 1 to 5, see [MarkTone]; none means 1), blanks `{{answer|other variant}}` (with an optional hint `{{answer}}[[hint]]` straight after them), annotations
  * `[base](annotation)` — small text over a word, like how to read it — and line breaks.
  * `\` makes the next `*`, `=`, `{`, `}`, `|`, `[`, `]` or `\` literal; a `[` not followed by `…](…)` is plain text. Malformed markup doesn't throw: it is shown as plain
  * text and reported in [problems], so import can list every mistake at once.
@@ -90,8 +90,11 @@ sealed interface InlineNode {
     /** A passage drawn on a coloured background, e.g. the ending of a word. */
     data class Marked(val children: List<InlineNode>, val tone: MarkTone) : InlineNode
 
-    /** A blank to fill in; [variants] are all accepted answers, the first one is shown as the right answer. */
-    data class Blank(val index: Int, val variants: List<String>) : InlineNode {
+    /**
+     * A blank to fill in; [variants] are all accepted answers, the first one is shown as the right answer. [hint] is what the empty
+     * field says in grey (the word to put in the right form, say): `{{had missed}}[[miss]]`.
+     */
+    data class Blank(val index: Int, val variants: List<String>, val hint: String? = null) : InlineNode {
         val answer: String get() = variants.first()
     }
 
@@ -227,9 +230,20 @@ private class InlineParser(private val s: String) {
         if ("{{" in body) problems += "{{ at ${at + 1} has another {{ inside"
         val variants = body.split('|').map { it.trim() }
         if (variants.any { it.isEmpty() }) problems += "{{…}} at ${at + 1} has an empty answer"
+        var next = end + 2
+        var hint: String? = null
+        if (s.startsWith("[[", next)) {
+            val close = s.indexOf("]]", next + 2)
+            val written = if (close < 0) null else s.substring(next + 2, close)
+            when {
+                written == null -> problems += "[[ at ${next + 1} is not closed"
+                written.isBlank() || '\n' in written || "[[" in written -> problems += "the hint [[…]] at ${next + 1} must be one line of text"
+                else -> { hint = written.trim(); next = close + 2 }
+            }
+        }
         flush()
-        stack.last().children += InlineNode.Blank(blankCount++, variants.filter { it.isNotEmpty() }.ifEmpty { listOf("") })
-        return end + 2
+        stack.last().children += InlineNode.Blank(blankCount++, variants.filter { it.isNotEmpty() }.ifEmpty { listOf("") }, hint)
+        return next
     }
 
     private companion object {

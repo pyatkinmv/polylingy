@@ -97,16 +97,15 @@ sealed interface Exercise {
             require(items.isNotEmpty(), at / "items", "needs at least one item")
             items.forEachIndexed { i, item ->
                 val itemAt = (at / "items")[i]
-                text(item.text, itemAt / "text", BlankRule.AT_LEAST_ONE)
-                notBlank(item.hint, itemAt / "hint")
+                text(item.text, itemAt / "text", BlankRule.AT_LEAST_ONE, hints = true)
                 text(item.note, itemAt / "note")
             }
         }
     }
 
-    /** [hint] is shown in brackets after the sentence, [note] under it when the answer is wrong. */
+    /** A sentence with blanks (each may carry a hint `{{answer}}[[hint]]`); [note] is shown under it when the answer is wrong. */
     @Serializable
-    data class GapItem(val text: Inline, val hint: String? = null, val note: Inline? = null)
+    data class GapItem(val text: Inline, val note: Inline? = null)
 
     /**
      * Sentences where an option is picked in each place. A place is written in one of two ways:

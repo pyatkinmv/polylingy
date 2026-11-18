@@ -119,14 +119,14 @@ private fun ExerciseBody(
                 onLink = onLink,
                 seed = state.seed,
             )
-            // The topic's explanation stands in for an exercise that has none of its own (content-format.md, explanations).
+            // The topic's explanation follows the exercise's own one, headed by the topic's title (content-format.md, explanations).
             val topicExplanation = state.next.topic.explanation
-            if (state.outcome != null && state.next.exercise.explanation == null && topicExplanation != null) {
-                ExplanationView(topicExplanation, onLink)
+            if (state.outcome != null && topicExplanation != null) {
+                ExplanationView(topicExplanation, onLink, title = state.next.topic.title)
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            val colors = ButtonDefaults.buttonColors(containerColor = accent)
+            val colors = Look.buttonColors(accent)
             if (state.outcome == null) {
                 val complete = state.next.exercise.isComplete(state.response)
                 Button(onClick = viewModel::check, enabled = complete, colors = colors, shape = RoundedCornerShape(8.dp)) { Text("Check") }

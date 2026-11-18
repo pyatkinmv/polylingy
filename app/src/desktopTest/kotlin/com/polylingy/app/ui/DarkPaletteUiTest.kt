@@ -21,7 +21,7 @@ class DarkPaletteUiTest {
                 { "type": "table", "head": ["Subject", "Form"], "rows": [ ["I", "am doing"], ["he", "is doing"], ["they", "are doing"] ],
                   "appearance": { "highlightedColumns": [0], "stripedRows": true, "headerRow": "highlighted" } } ] } ] },
             "topics": [ { "title": "Things happening now", "exercises": [ { "type": "gaps", "instruction": "Complete the sentences.",
-              "items": [ { "text": "Listen! Somebody {{is singing}}.", "hint": "sing" }, { "text": "I {{am not reading}} it now.", "hint": "not / read" } ] } ] } ] } ] }"""
+              "items": [ { "text": "Listen! Somebody {{is singing}}[[sing]]." }, { "text": "I {{am not reading}}[[not / read]] it now." } ] } ] } ] } ] }"""
 
     @Test fun aCourseInTheDarkPalette() = appTest({ it.seedCourse(course) }, height = 1700) {
         click("Dark course")
@@ -32,6 +32,7 @@ class DarkPaletteUiTest {
         screenshot("dark-theory")
         click("Start exercises →")
         text("Complete the sentences.").assertIsDisplayed()
+        screenshot("dark-exercise-empty")   // the Check button is still disabled: it must stay visible
         fill(1, "is singing")
         fill(2, "do not read")
         click("Check")

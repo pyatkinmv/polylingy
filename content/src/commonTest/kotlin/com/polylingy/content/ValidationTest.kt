@@ -216,12 +216,17 @@ class ValidationTest {
 
     @Test fun gapsCheckMarkupHintNoteExampleAndWordBank() = assertProblems(
         ex("gaps", """"example": "I {{am}}", "wordBank": [" "],
-            "items": [{ "text": "a **{{b}}", "hint": "", "note": "{{x}}" }]"""),
+            "items": [{ "text": "a **{{b}}[[ ]]", "note": "{{x}}" }]"""),
         "exercises[0].wordBank[0]: must not be empty",
         "exercises[0].example: blanks {{…}} are only allowed in exercises",
+        "exercises[0].items[0].text: the hint [[…]] at 10 must be one line of text",
         "exercises[0].items[0].text: ** at 3 is not closed",
-        "exercises[0].items[0].hint: must not be empty",
         "exercises[0].items[0].note: blanks {{…}} are only allowed in exercises",
+    )
+
+    @Test fun aHintAfterABlankIsOnlyForGaps() = assertProblems(
+        ex("choice", """"items": [{ "text": "x {{a|b}}[[hint]]" }]"""),
+        "exercises[0].items[0].text: a hint [[…]] after a blank is only for the sentences of a gaps exercise",
     )
 
     @Test fun instructionAndExplanationAreChecked() = assertProblems(

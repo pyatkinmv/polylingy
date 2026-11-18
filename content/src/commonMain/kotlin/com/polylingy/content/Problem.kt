@@ -54,9 +54,9 @@ internal class Checks(private val out: MutableList<Problem>) {
 
     /**
      * Checks markup and blanks; [mayBeEmpty] is for table cells, which are often left empty. Every variant of a blank must
-     * fit [maxBlank]; null — the caller checks lengths itself.
+     * fit [maxBlank]; null — the caller checks lengths itself. [hints]: whether `{{…}}[[hint]]` is allowed (typed blanks of `gaps`).
      */
-    fun text(inline: Inline?, at: Path, blanks: BlankRule = BlankRule.NONE, mayBeEmpty: Boolean = false, maxBlank: Int? = MAX_BLANK_LENGTH) {
+    fun text(inline: Inline?, at: Path, blanks: BlankRule = BlankRule.NONE, mayBeEmpty: Boolean = false, maxBlank: Int? = MAX_BLANK_LENGTH, hints: Boolean = false) {
         if (inline == null) return
         require(mayBeEmpty || inline.text.isNotBlank(), at, "must not be empty")
         inline.problems.forEach { error(at, it) }
@@ -67,6 +67,7 @@ internal class Checks(private val out: MutableList<Problem>) {
             BlankRule.AT_LEAST_ONE -> require(count >= 1, at, "needs at least one blank {{…}}")
             BlankRule.EXACTLY_ONE -> require(count == 1, at, "needs exactly one blank {{…}}, found $count")
         }
+        if (!hints) require(inline.blanks.none { it.hint != null }, at, "a hint [[…]] after a blank is only for the sentences of a gaps exercise")
         if (maxBlank != null) for (blank in inline.blanks) for (variant in blank.variants) {
             require(variant.length <= maxBlank, at, "answer \"$variant\" is longer than $maxBlank characters")
         }

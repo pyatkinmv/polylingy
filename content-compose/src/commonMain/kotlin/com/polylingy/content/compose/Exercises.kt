@@ -114,14 +114,14 @@ fun ExerciseView(
     }
 }
 
-/** The explanation under a checked exercise: a free page of blocks. */
+/** The explanation under a checked exercise: a free page of blocks. [title] is the small heading above it. */
 @Composable
-fun ExplanationView(content: com.polylingy.content.Content, onLink: (Block.Link) -> Unit = {}) {
+fun ExplanationView(content: com.polylingy.content.Content, onLink: (Block.Link) -> Unit = {}, title: String = "Explanation") {
     Column(
         Modifier.fillMaxWidth().background(colors.card, RoundedCornerShape(10.dp)).padding(18.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Text("Explanation", style = MaterialTheme.typography.labelLarge, color = colors.muted)
+        Text(title, style = MaterialTheme.typography.labelLarge, color = colors.muted)
         ContentView(content, onLink = onLink)
     }
 }
