@@ -1,5 +1,6 @@
 package com.polylingy.content.compose
 
+import androidx.compose.foundation.text.selection.DisableSelection
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -89,11 +90,12 @@ fun ExerciseView(
     }
     val focus = LocalFocusManager.current
     CompositionLocalProvider(LocalMarked provides marked) {
+    Selectable {
     Column(modifier.pointerInput(Unit) { detectTapGestures { focus.clearFocus() } }, verticalArrangement = Arrangement.spacedBy(18.dp)) {
         exercise.instruction?.let { InlineText(it, style = MaterialTheme.typography.titleMedium) }
         WordBank(exercise.wordBank)
         exercise.audio?.let { Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { PlayButton(it, large = true) } }
-        exercise.video?.let { VideoView(it) }
+        exercise.video?.let { DisableSelection { VideoView(it) } }
         exercise.passage?.let { ContentView(it, onLink = onLink) }
         Framed(exercise.look, exercise.aside) {
             when (exercise) {
@@ -101,15 +103,16 @@ fun ExerciseView(
                 is Exercise.Pictures -> PicturesView(exercise, response as Response.Blanks, checks, onChange, onSubmit)
                 is Exercise.Table -> TableView(exercise, response as Response.Blanks, checks, onChange, onSubmit)
                 is Exercise.Choice -> ChoiceView(exercise, response as Response.Choice, checks, onChange, seed, marked) { marked = it }
-                is Exercise.Match -> MatchView(exercise, response as Response.Match, checks, onChange, seed)
-                is Exercise.Order -> OrderView(exercise, response as Response.Order, checks, onChange, seed)
-                is Exercise.Sort -> SortView(exercise, response as Response.Sort, checks, onChange, seed)
+                is Exercise.Match -> DisableSelection { MatchView(exercise, response as Response.Match, checks, onChange, seed) }
+                is Exercise.Order -> DisableSelection { OrderView(exercise, response as Response.Order, checks, onChange, seed) }
+                is Exercise.Sort -> DisableSelection { SortView(exercise, response as Response.Sort, checks, onChange, seed) }
                 is Exercise.Expand -> ExpandView(exercise, response as Response.Blanks, checks, onChange, onSubmit)
                 is Exercise.Fix -> FixView(exercise, response as Response.Blanks, checks, onChange, onSubmit)
                 is Exercise.Unknown -> Text("This exercise needs a newer version of Polylingy.", color = colors.muted)
             }
         }
         if (checks != null) exercise.explanation?.let { ExplanationView(it, onLink) }
+    }
     }
     }
 }
@@ -194,6 +197,7 @@ internal fun BlankField(
         else -> BlankEdge
     }
     val shown = maxOf(value.length, placeholder?.length ?: 0, minChars)
+    DisableSelection {
     Box {
         BasicTextField(
             value = field,
@@ -228,6 +232,7 @@ internal fun BlankField(
             },
         )
         if (focused && keys.isNotEmpty()) KeysBubble(keys, ::insert)
+    }
     }
 }
 

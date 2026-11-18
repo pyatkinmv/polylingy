@@ -1,5 +1,6 @@
 package com.polylingy.content.compose
 
+import androidx.compose.foundation.text.selection.DisableSelection
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -118,6 +119,7 @@ private fun Marked(word: String, crossed: Boolean) {
 @Composable
 private fun Tick(kept: Boolean, label: String, onClick: () -> Unit) {
     val shape = RoundedCornerShape(7.dp)
+    DisableSelection {
     Text(
         "✓",
         Modifier.clip(shape)
@@ -129,6 +131,7 @@ private fun Tick(kept: Boolean, label: String, onClick: () -> Unit) {
         color = if (kept) colors.correct else colors.muted,
         fontWeight = FontWeight.Bold,
     )
+    }
 }
 
 /** A checked word that was kept: "✓ word" in the colour of its result. */

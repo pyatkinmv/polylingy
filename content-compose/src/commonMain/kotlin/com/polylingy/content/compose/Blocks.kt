@@ -1,5 +1,6 @@
 package com.polylingy.content.compose
 
+import androidx.compose.foundation.text.selection.DisableSelection
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -88,9 +89,11 @@ internal fun pictureMaxWidth(size: com.polylingy.content.Aside.Size?): Dp = when
 @Composable
 fun ContentView(content: Content, modifier: Modifier = Modifier, onLink: (Block.Link) -> Unit = {}, highlight: Uuid? = null) {
     CompositionLocalProvider(LocalHighlight provides highlight) {
-        when (content) {
-            is Content.Blocks -> Blocks(content.blocks, modifier, onLink)
-            is Content.Unknown -> NewerVersion(modifier)
+        Selectable {
+            when (content) {
+                is Content.Blocks -> Blocks(content.blocks, modifier, onLink)
+                is Content.Unknown -> NewerVersion(modifier)
+            }
         }
     }
 }
@@ -153,7 +156,7 @@ fun BlockView(block: Block, onLink: (Block.Link) -> Unit = {}) {
             null -> InlineText(block.text)
         }
         is Block.Track -> TrackView(block)
-        is Block.Video -> VideoView(block)
+        is Block.Video -> DisableSelection { VideoView(block) }
         is Block.Situation -> {
             val card = block.look != Block.Situation.Style.PLAIN
             // A thumbnail stands before the text, like an avatar; a bigger picture stands after it.
@@ -269,15 +272,17 @@ fun BlockView(block: Block, onLink: (Block.Link) -> Unit = {}) {
                 }
             }
         }
-        is Block.SeeAlso -> FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(LocalContentStrings.current.seeAlso, color = colors.muted)
-            val names = LocalLinkNames.current
-            for (link in block.links) Text(
-                names.name(link) ?: LocalContentStrings.current.theory,
-                Modifier.clickable { onLink(link) },
-                color = colors.accent,
-                fontWeight = FontWeight.Medium,
-            )
+        is Block.SeeAlso -> DisableSelection {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(LocalContentStrings.current.seeAlso, color = colors.muted)
+                val names = LocalLinkNames.current
+                for (link in block.links) Text(
+                    names.name(link) ?: LocalContentStrings.current.theory,
+                    Modifier.clickable { onLink(link) },
+                    color = colors.accent,
+                    fontWeight = FontWeight.Medium,
+                )
+            }
         }
         is Block.Unknown -> NewerVersion()
     }

@@ -1,5 +1,6 @@
 package com.polylingy.content.compose
 
+import androidx.compose.foundation.text.selection.DisableSelection
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -146,7 +147,7 @@ fun InlineFlow(inline: Inline, modifier: Modifier = Modifier, style: TextStyle =
                                 is Piece.Words -> Text(piece.text)
                                 // A little room on both sides keeps the annotations of neighbouring words apart.
                                 is Piece.Note -> Column(Modifier.padding(horizontal = if (annotations) 2.dp else 0.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                                    if (annotations) Text(piece.annotation, style = style.copy(fontSize = style.fontSize * 0.7f, color = colors.muted, fontWeight = FontWeight.Normal, fontStyle = FontStyle.Normal, letterSpacing = 0.02.em))
+                                    if (annotations) DisableSelection { Text(piece.annotation, style = style.copy(fontSize = style.fontSize * 0.7f, color = colors.muted, fontWeight = FontWeight.Normal, fontStyle = FontStyle.Normal, letterSpacing = 0.02.em)) }
                                     Text(piece.base)
                                 }
                                 is Piece.Gap -> Box(Modifier.weight(1f, fill = false)) { blank(piece.blank) }

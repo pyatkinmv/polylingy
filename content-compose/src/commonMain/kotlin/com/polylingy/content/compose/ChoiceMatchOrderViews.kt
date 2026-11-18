@@ -1,5 +1,6 @@
 package com.polylingy.content.compose
 
+import androidx.compose.foundation.text.selection.DisableSelection
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -70,6 +71,7 @@ private fun Option(text: String, selected: Boolean, result: ItemResult?, enabled
         selected -> colors.onAccent to colors.accent
         else -> colors.ink to colors.card
     }
+    DisableSelection {
     InlineText(
         Inline(if (right && !selected) "✓ $text" else text),
         Modifier
@@ -81,6 +83,7 @@ private fun Option(text: String, selected: Boolean, result: ItemResult?, enabled
             .padding(horizontal = 14.dp, vertical = 4.dp),
         style = LocalTextStyle.current.copy(color = fg),
     )
+    }
 }
 
 /**
