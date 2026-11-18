@@ -10,7 +10,7 @@ import kotlin.time.Instant
 import kotlin.uuid.Uuid
 
 /** The course file format this app reads and writes; see docs/content-format.md, section 9. */
-const val FORMAT_VERSION = 11
+const val FORMAT_VERSION = 12
 
 /** At most this many extra keys, each at most this long (docs/content-format.md). */
 const val MAX_EXTRA_KEYS = 12
@@ -28,6 +28,12 @@ data class Course(
     val description: Inline? = null,
     val createdAt: Instant,
     val revision: Int = 0,
+    /**
+     * The version of the course's content, set by whoever makes the file (1, 2, 3…; 0 when the file has none). Unlike [revision],
+     * which counts saves inside the app, it comes from the file and is kept on import: a file of the same course
+     * updates the stored one only when its version is higher ([CourseService.update]).
+     */
+    @EncodeDefault val courseVersion: Int = 0,
     val updatedAt: Instant,
     val theme: Theme? = null,
     /**

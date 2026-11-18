@@ -34,6 +34,38 @@ class CourseService(private val courses: CourseRepository, private val settings:
     }
 
     /**
+     * Throws [CourseUpdateException] unless [incoming] may replace the stored course [courseId]: it must be the same course
+     * (same id), carry a higher [Course.courseVersion], and not use an id of any other course.
+     */
+    fun checkUpdate(courseId: Uuid, incoming: Course) {
+        val stored = course(courseId)
+        if (incoming.id != courseId) {
+            throw CourseUpdateException("The file is another course: its id is ${incoming.id}, \"${stored.name}\" has $courseId")
+        }
+        if (incoming.courseVersion <= stored.courseVersion) {
+            throw CourseUpdateException("The file's version is ${incoming.courseVersion}, \"${stored.name}\" is already at ${stored.courseVersion}; the file must be newer")
+        }
+        val others = courses.all().filter { it.id != courseId }.flatMapTo(mutableSetOf()) { it.ids() }
+        incoming.ids().firstOrNull { it in others }?.let {
+            throw CourseUpdateException("The file uses an id ($it) that belongs to another course")
+        }
+    }
+
+    /**
+     * Replaces the content of the stored course with the same id by the file's course, which must have a higher
+     * [Course.courseVersion] ([checkUpdate]). Progress stays: it hangs on the ids of topics and exercises, so what keeps its id
+     * keeps its progress, what is new starts fresh, and answers to what the file no longer has stay in the journal unused.
+     * The course's settings stay as they are; its name may change; each update is a new [Course.revision].
+     */
+    fun update(courseId: Uuid, incoming: Course): Course {
+        checkUpdate(courseId, incoming)
+        val stored = course(courseId)
+        val saved = save(incoming.copy(name = uniqueName(incoming.name, except = courseId), createdAt = stored.createdAt, revision = stored.revision))
+        log.info { "Updated course $courseId \"${saved.name}\" to version ${saved.courseVersion} (revision ${saved.revision}): ${saved.allTopics.size} topics" }
+        return saved
+    }
+
+    /**
      * Changes a course's name and description. A name another course has gets a number, like on import;
      * a blank description removes it. Bad markup in the description is an [IllegalArgumentException] with the problem.
      * Not for a course from a newer format: it is written back as it came.
@@ -113,6 +145,9 @@ class CourseService(private val courses: CourseRepository, private val settings:
         }
     }
 }
+
+/** A file can't update the course; the message says why and is meant to be shown. */
+class CourseUpdateException(message: String) : IllegalArgumentException(message)
 
 /** Ids of the course, its units, topics and exercises. */
 fun Course.ids(): List<Uuid> =

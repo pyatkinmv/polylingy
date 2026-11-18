@@ -68,8 +68,8 @@
       "type": "object",
       "properties": {
         "formatVersion": {
-          "description": "The format this file is written in. This schema describes 11.",
-          "const": 11
+          "description": "The format this file is written in. This schema describes 12.",
+          "const": 12
         },
         "id": {
           "$ref": "#/$defs/uuid"
@@ -86,6 +86,11 @@
           "$ref": "#/$defs/instant"
         },
         "revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "courseVersion": {
+          "description": "The version of the course's content, set by whoever makes the file: a file of a course already in the app updates it only when this is higher than the stored one. Without it, 0.",
           "type": "integer",
           "minimum": 0
         },

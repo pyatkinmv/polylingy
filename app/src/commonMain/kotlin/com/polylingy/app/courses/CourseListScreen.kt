@@ -56,6 +56,7 @@ import kotlin.uuid.Uuid
 private sealed interface CourseDialog {
     data class Edit(val course: Course, val error: String? = null) : CourseDialog
     data class Remove(val id: Uuid, val name: String) : CourseDialog
+    data class Update(val course: Course) : CourseDialog
     data class Message(val title: String, val text: String) : CourseDialog
 }
 
@@ -81,6 +82,7 @@ fun CourseListScreen(viewModel: CourseListViewModel, files: CourseFiles, today: 
                     dialog = when (val outcome = viewModel.import(file)) {
                         is ImportOutcome.Failed -> CourseDialog.Message("Couldn't import ${outcome.fileName}", problemList(outcome.problems))
                         is ImportOutcome.Imported -> importedMessage(outcome)
+                        is ImportOutcome.Refused -> CourseDialog.Message("Couldn't import ${outcome.fileName}", outcome.reason)
                     }
                 }
             }
@@ -93,6 +95,7 @@ fun CourseListScreen(viewModel: CourseListViewModel, files: CourseFiles, today: 
                         today,
                         onOpen = { onOpen(row.course.id) },
                         onEdit = { dialog = CourseDialog.Edit(row.course) },
+                        onUpdate = { dialog = CourseDialog.Update(row.course) },
                         onSettings = { onSettings(row.course.id) },
                         onExport = {
                             viewModel.export(row.course.id)
@@ -131,12 +134,29 @@ fun CourseListScreen(viewModel: CourseListViewModel, files: CourseFiles, today: 
             onConfirm = { viewModel.delete(d.id); close() },
             onDismiss = close,
         )
+        is CourseDialog.Update -> ConfirmDialog(
+            "Update course",
+            "Pick a newer file of \"${d.course.name}\" (now version ${d.course.courseVersion}). Your progress stays on every topic and exercise " +
+                "that keeps its id in the file; changes you made to the course inside the app are replaced by the file.",
+            onConfirm = {
+                val file = files.open()
+                dialog = if (file == null) null else when (val outcome = viewModel.update(d.course.id, file)) {
+                    is ImportOutcome.Failed -> CourseDialog.Message("Couldn't update \"${d.course.name}\" from ${outcome.fileName}", problemList(outcome.problems))
+                    is ImportOutcome.Refused -> CourseDialog.Message("Couldn't update \"${d.course.name}\" from ${outcome.fileName}", outcome.reason)
+                    is ImportOutcome.Imported -> CourseDialog.Message(
+                        "Updated \"${outcome.course.name}\"",
+                        "Now at version ${outcome.course.courseVersion}." + if (outcome.warnings.isEmpty()) "" else "\n\n${problemList(outcome.warnings)}",
+                    )
+                }
+            },
+            onDismiss = close,
+        )
         is CourseDialog.Message -> MessageDialog(d.title, d.text, onDismiss = close)
     }
 }
 
 @Composable
-private fun CourseTile(row: CourseRow, today: LocalDate, onOpen: () -> Unit, onEdit: () -> Unit, onSettings: () -> Unit, onExport: () -> Unit, onRemove: () -> Unit) {
+private fun CourseTile(row: CourseRow, today: LocalDate, onOpen: () -> Unit, onEdit: () -> Unit, onUpdate: () -> Unit, onSettings: () -> Unit, onExport: () -> Unit, onRemove: () -> Unit) {
     val course = row.course
     Tile(onClick = onOpen) {
         CourseMark(course.name, course.markColour())
@@ -151,6 +171,7 @@ private fun CourseTile(row: CourseRow, today: LocalDate, onOpen: () -> Unit, onE
         MoreMenu(
             listOf(
                 MenuItem("Edit name and description…", enabled = !course.studyOnly, action = onEdit),
+                MenuItem("Update from file…", action = onUpdate),
                 MenuItem("Study settings…", enabled = !course.studyOnly, action = onSettings),
                 MenuItem("Export", enabled = !course.studyOnly, action = onExport),
                 MenuItem("Remove", danger = true, action = onRemove),

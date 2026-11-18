@@ -227,7 +227,7 @@ class EditUiTest {
         screenshot("edit-flat-course")
     }
 
-    @Test fun aCourseFromANewerVersionCantBeChanged() = appTest({ it.seedCourse(course.replace("\"formatVersion\": 1", "\"formatVersion\": 12")) }) {
+    @Test fun aCourseFromANewerVersionCantBeChanged() = appTest({ it.seedCourse(course.replace("\"formatVersion\": 1", "\"formatVersion\": 13")) }) {
         click("Grammar in Use")
         assertTrue(test.onAllNodesWithText("＋ Add unit").fetchSemanticsNodes().isEmpty())
         assertTrue(test.onAllNodesWithText("⋯").fetchSemanticsNodes().isEmpty())

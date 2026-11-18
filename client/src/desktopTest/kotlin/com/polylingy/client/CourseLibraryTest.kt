@@ -73,6 +73,29 @@ class CourseLibraryTest {
         assertEquals(course, storage.courses.get(course.id))
     }
 
+    @Test fun aNewerFileUpdatesTheCourseAndAddsItsPictures() {
+        val first = library.import("cat.zip", CourseArchive.zip(course("images/cat.png"), mapOf("images/cat.png" to png))).course
+        val newer = com.polylingy.core.content.CourseJson.write(storage.courses.get(first.id)!!)
+            .replace("\"courseVersion\": 0", "\"courseVersion\": 2").replace("images/cat.png", "images/dog.png")
+        val dog = byteArrayOf(4, 5)
+        val archive = CourseArchive.zip(newer, mapOf("images/dog.png" to dog))
+        val updated = library.update(first.id, "dog.zip", archive).course
+        assertEquals(first.id, updated.id)
+        assertEquals(2, updated.courseVersion)
+        assertEquals(first.revision + 1, updated.revision)
+        assertContentEquals(dog, library.image(first.id, "images/dog.png"))
+        assertContentEquals(png, library.image(first.id, "images/cat.png"), "pictures of earlier versions stay")
+        assertEquals(1, storage.courses.all().size, "an update is not a copy")
+        assertFailsWith<com.polylingy.core.content.CourseUpdateException> { library.update(first.id, "dog.zip", archive) }
+    }
+
+    @Test fun anUpdateWithABadFileChangesNothing() {
+        val first = library.import("cat.zip", CourseArchive.zip(course("images/cat.png"), mapOf("images/cat.png" to png))).course
+        val broken = com.polylingy.core.content.CourseJson.write(storage.courses.get(first.id)!!).replace("\"courseVersion\": 0", "\"courseVersion\": 2")
+        assertFailsWith<CourseFormatException> { library.update(first.id, "broken.zip", CourseArchive.zip(broken.replace("images/cat.png", "images/missing.png"), emptyMap())) }
+        assertEquals(first, storage.courses.get(first.id))
+    }
+
     @Test fun theArabicExampleImportsWithItsTracks() {
         val zip = java.io.File("../examples/arabic-sample.zip").readBytes()
         val result = library.import("arabic-sample.zip", zip)
@@ -142,7 +165,7 @@ class CourseLibraryTest {
     }
 
     @Test fun formatErrorsAreReportedAndNothingIsSaved() {
-        assertEquals(listOf("formatVersion: missing; this app writes 11"), problems(CourseSource("x.json", """{ "name": "X" }""")))
+        assertEquals(listOf("formatVersion: missing; this app writes 12"), problems(CourseSource("x.json", """{ "name": "X" }""")))
         assertEquals(emptyList(), storage.courses.all())
     }
 
@@ -166,7 +189,7 @@ class CourseLibraryTest {
 
         storage.courseSettings.save(course.id, settings.copy(picker = PickerSpec.Alternate(newPerDay = 7)), Instant.parse("2026-11-02T10:00:00Z"))
         val exported = library.export(course.id).bytes.decodeToString()
-        assertTrue("\"formatVersion\": 11" in exported, exported)
+        assertTrue("\"formatVersion\": 12" in exported, exported)
         assertTrue("\"alternate\"" in exported && "\"newPerDay\": 7" in exported, "the file carries the current settings")
         assertTrue("\"settings\"" !in exported)
         val again = library.import("old.json", exported.encodeToByteArray()).course
@@ -186,7 +209,7 @@ class CourseLibraryTest {
     }
 
     @Test fun aStudyOnlyCourseCantBeExported() {
-        val newer = """{ "formatVersion": 12, "name": "Future", "topics": [ { "title": "T", "exercises": [ { "type": "dictation" } ] } ] }"""
+        val newer = """{ "formatVersion": 13, "name": "Future", "topics": [ { "title": "T", "exercises": [ { "type": "dictation" } ] } ] }"""
         val (course, warnings) = library.import(CourseSource("future.json", newer))
         assertEquals(listOf("topics[0].exercises[0]: unknown exercise type \"dictation\""), warnings.map { it.toString() })
         assertFailsWith<IllegalArgumentException> { library.export(course.id) }

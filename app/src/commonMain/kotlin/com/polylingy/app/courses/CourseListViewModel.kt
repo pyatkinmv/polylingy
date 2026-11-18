@@ -9,6 +9,7 @@ import com.polylingy.content.Problem
 import com.polylingy.core.content.Course
 import com.polylingy.core.content.CourseFormatException
 import com.polylingy.core.content.CourseService
+import com.polylingy.core.content.CourseUpdateException
 import com.polylingy.core.ports.CourseRepository
 import com.polylingy.core.study.ProgressCounts
 import com.polylingy.core.study.StudyService
@@ -26,6 +27,9 @@ sealed interface ImportOutcome {
     data class Imported(val course: Course, val warnings: List<Problem>) : ImportOutcome
 
     data class Failed(val fileName: String, val problems: List<Problem>) : ImportOutcome
+
+    /** A good file that can't update the course (another course, not newer); [reason] is meant to be shown as it is. */
+    data class Refused(val fileName: String, val reason: String) : ImportOutcome
 }
 
 /** A course on the list with how it stands today. */
@@ -54,6 +58,22 @@ class CourseListViewModel(
             ImportOutcome.Imported(course, warnings)
         } catch (e: CourseFormatException) {
             ImportOutcome.Failed(file.name, e.problems)
+        } finally {
+            refresh()
+        }
+    }
+
+    /** Updates the course with a newer file of the same course, keeping its progress; refusals carry the message to show. */
+    fun update(courseId: Uuid, file: PickedFile): ImportOutcome {
+        log.info { "User updates course $courseId from ${file.name} (${file.bytes.size} bytes)" }
+        return try {
+            val (course, warnings) = library.update(courseId, file.name, file.bytes)
+            ImportOutcome.Imported(course, warnings)
+        } catch (e: CourseFormatException) {
+            ImportOutcome.Failed(file.name, e.problems)
+        } catch (e: CourseUpdateException) {
+            log.info { "Update of course $courseId refused: ${e.message}" }
+            ImportOutcome.Refused(file.name, e.message ?: "The file can't update this course")
         } finally {
             refresh()
         }

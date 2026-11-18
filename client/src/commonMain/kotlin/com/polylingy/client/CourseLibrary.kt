@@ -106,6 +106,34 @@ class CourseLibrary(
         }
     }
 
+    /** Reads a picked file — JSON or zip — and updates the course [courseId] with it, see [update]. */
+    fun update(courseId: Uuid, fileName: String, bytes: ByteArray): ImportResult = try {
+        update(courseId, archives.read(fileName, bytes))
+    } catch (e: CourseFormatException) {
+        log.info { "Couldn't read $fileName: ${e.problems.joinToString("; ")}" }
+        throw e
+    }
+
+    /**
+     * Checks the whole file like [import], then replaces the content of the course with the same id by it, keeping its progress
+     * ([CourseService.update]): [CourseFormatException] for a bad file, [CourseUpdateException] when the file is another course
+     * or not newer. Pictures and sounds of the file are added; nothing is changed when something fails before the update itself.
+     */
+    fun update(courseId: Uuid, source: CourseSource): ImportResult {
+        log.info { "Updating course $courseId from ${source.fileName} (${source.files.size} files besides course.json)" }
+        val read = source.check(clock.now().instant)
+        service.checkUpdate(courseId, read.course)
+        val media = read.course.media()
+        val warnings = read.warnings.toMutableList()
+        for ((at, src) in media.distinctBy { it.second }) {
+            if (src.isUrl) download(courseId, src)?.let { warnings += Problem(at, it) }
+            else images.put(courseId, src, source.files.getValue(src))
+        }
+        val course = service.update(courseId, read.course)
+        warnings.forEach { log.warn { "Update from ${source.fileName}: $it" } }
+        return ImportResult(course, warnings)
+    }
+
     /** The course as a file: a zip when it has pictures or sounds of its own, otherwise plain JSON. A study-only course can't be exported. */
     fun export(courseId: Uuid): CourseExport {
         val course = requireNotNull(courses.get(courseId)) { "No course $courseId" }

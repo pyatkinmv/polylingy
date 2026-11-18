@@ -2,6 +2,7 @@ package com.polylingy.core.content
 
 import com.polylingy.content.Block
 import com.polylingy.content.Content
+import com.polylingy.content.withId
 import com.polylingy.core.FixedClock
 import com.polylingy.core.InMemoryCourseRepository
 import com.polylingy.core.InMemoryCourseSettings
@@ -60,6 +61,57 @@ class CourseServiceTest {
         assertEquals("Other", imported.name)
     }
 
+    @Test fun aNewerFileOfTheSameCourseReplacesItsContentAndKeepsIdsAndSettings() {
+        val stored = service.import(file().copy(courseVersion = 1))
+        val settingsBefore = settings.of(stored)
+        val edited = stored.topics[0].copy(title = "Fixed title")
+        val added = stored.topics[0].copy(id = Uuid.random(), title = "A new topic", exercises = stored.topics[0].exercises.map { it.withId(Uuid.random()) })
+        val updated = service.update(stored.id, stored.copy(courseVersion = 2, name = "Spanish Basics 2", topics = listOf(edited) + stored.topics.drop(1) + added))
+        assertEquals(stored.id, updated.id)
+        assertEquals(2, updated.courseVersion)
+        assertEquals(stored.revision + 1, updated.revision, "an update is one more revision")
+        assertEquals(stored.createdAt, updated.createdAt)
+        assertEquals("Spanish Basics 2", updated.name)
+        assertEquals(stored.topics[0].id, updated.topics[0].id, "what keeps its id keeps its progress")
+        assertEquals("Fixed title", updated.topics[0].title)
+        assertEquals(stored.topics.size + 1, updated.topics.size)
+        assertEquals(updated, repository.get(stored.id))
+        assertEquals(settingsBefore, settings.of(updated), "the settings are not the file's business")
+    }
+
+    @Test fun aFileThatIsNotNewerIsRefused() {
+        val stored = service.import(file().copy(courseVersion = 3))
+        for (version in listOf(0, 2, 3)) {
+            val e = assertFailsWith<CourseUpdateException> { service.update(stored.id, stored.copy(courseVersion = version)) }
+            assertTrue("already at 3" in e.message!!, e.message)
+        }
+        assertEquals(stored, repository.get(stored.id), "a refused update changes nothing")
+    }
+
+    @Test fun aCourseWithoutAVersionCountsAsZero() {
+        val stored = service.import(file())
+        assertEquals(0, stored.courseVersion)
+        assertEquals(1, service.update(stored.id, stored.copy(courseVersion = 1)).courseVersion)
+    }
+
+    @Test fun aFileOfAnotherCourseOrWithAnotherCoursesIdsIsRefused() {
+        val first = service.import(file("First").copy(courseVersion = 1))
+        val second = service.import(file("Second").withFreshIds())
+        assertFailsWith<CourseUpdateException> { service.update(first.id, second.copy(courseVersion = 5)) }
+        val sharing = first.copy(courseVersion = 2, topics = listOf(second.topics[0]) + first.topics.drop(1))
+        val e = assertFailsWith<CourseUpdateException> { service.update(first.id, sharing) }
+        assertTrue("another course" in e.message!!, e.message)
+        assertEquals(first, repository.get(first.id))
+    }
+
+    @Test fun aVersionIsReadFromTheFileAndWrittenBack() {
+        val withVersion = CourseSamples.flat.replaceFirst("\"formatVersion\":", "\"courseVersion\": 7, \"formatVersion\":")
+        val course = CourseJson.read(withVersion, clock.now().instant).course
+        assertEquals(7, course.courseVersion)
+        assertEquals(7, CourseJson.read(CourseJson.write(course), clock.now().instant).course.courseVersion)
+        assertTrue("\"courseVersion\": 0" in CourseJson.write(file()), "an export always says the version")
+    }
+
     @Test fun namesAreComparedIgnoringCase() {
         service.import(file("French"))
         assertEquals("FRENCH (2)", service.import(file("FRENCH")).name)
@@ -94,7 +146,7 @@ class CourseServiceTest {
     }
 
     @Test fun aCourseFromANewerFormatCantBeEdited() {
-        val newer = CourseJson.read(CourseSamples.flat.replace("\"formatVersion\": 1", "\"formatVersion\": 12"), clock.now().instant).course
+        val newer = CourseJson.read(CourseSamples.flat.replace("\"formatVersion\": 1", "\"formatVersion\": 13"), clock.now().instant).course
         val course = service.import(newer)
         assertFailsWith<IllegalArgumentException> { service.editDetails(course.id, "Other", "") }
     }

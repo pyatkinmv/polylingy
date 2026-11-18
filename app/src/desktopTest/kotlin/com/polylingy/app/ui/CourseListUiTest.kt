@@ -105,6 +105,41 @@ class CourseListUiTest {
         text("Spanish Basics").assertIsDisplayed()
     }
 
+    private fun versioned(name: String, version: Int, id: String = "7d0b0e5a-1c2f-4e57-9b64-0f3a8e2d1c10") = """{ "formatVersion": 12, "id": "$id", "name": "$name", "courseVersion": $version,
+        "topics": [ { "id": "8e1c1f6b-2d30-4f68-8c75-1a4b9f3e2d21", "title": "Greetings", "exercises": [ { "type": "gaps", "items": [ { "text": "{{Hola}}!" } ] } ] } ] }"""
+
+    @Test fun aNewerFileUpdatesTheCourseAfterAskingFirst() = appTest(seed = { it.seedCourse(versioned("Spanish", 1)) }) {
+        files.open("spanish.json", versioned("Spanish, second edition", 2))
+        menu("Update from file…")
+        text("Update course").assertIsDisplayed()
+        screenshot("course-update-confirm")
+        click("OK")
+        text("Updated \"Spanish, second edition\"").assertIsDisplayed()
+        text("Now at version 2.").assertIsDisplayed()
+        screenshot("course-update-done")
+        click("OK")
+        text("Spanish, second edition").assertIsDisplayed()
+        text("Spanish").assertDoesNotExist()
+    }
+
+    @Test fun aFileThatIsNotNewerIsRefusedWithTheReason() = appTest(seed = { it.seedCourse(versioned("Spanish", 3)) }) {
+        files.open("spanish.json", versioned("Spanish again", 3))
+        menu("Update from file…")
+        click("OK")
+        text("Couldn't update \"Spanish\" from spanish.json").assertIsDisplayed()
+        test.onNodeWithText("already at 3", substring = true).assertIsDisplayed()
+        screenshot("course-update-refused")
+        click("OK")
+        text("Spanish").assertIsDisplayed()
+    }
+
+    @Test fun cancellingTheUpdateChangesNothing() = appTest(seed = { it.seedCourse(versioned("Spanish", 1)) }) {
+        menu("Update from file…")
+        click("Cancel")
+        text("Update course").assertDoesNotExist()
+        text("Spanish").assertIsDisplayed()
+    }
+
     @Test fun importingTheSameCourseAgainAddsANumberedCopy() = appTest(seed = { it.seedCourse(flat("Spanish")) }) {
         files.open("spanish.json", flat("Spanish"))
         click("＋ Import")
@@ -130,7 +165,7 @@ class CourseListUiTest {
     }
 
     @Test fun aCourseFromANewerVersionIsImportedWithANotice() = appTest {
-        files.open("future.json", """{ "formatVersion": 12, "name": "Future",
+        files.open("future.json", """{ "formatVersion": 13, "name": "Future",
             "topics": [ { "title": "T", "exercises": [ { "type": "dictation", "audio": "a.mp3" } ] } ] }""")
         click("＋ Import")
         text("\"Future\" was made with a newer Polylingy").assertIsDisplayed()

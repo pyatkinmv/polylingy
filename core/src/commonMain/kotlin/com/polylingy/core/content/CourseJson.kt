@@ -70,6 +70,7 @@ object CourseJson {
      * 9 → 10: only an addition (the exercise layer `passage`); a document of 9 is read as it is.
      * 10 → 11: the hint of a gaps item (`hint`, one for the sentence) moved into the sentence, after the blank it was shown in
      * (the last one): `{{answer}}[[hint]]`; every older document gets the same change.
+     * 11 → 12: only an addition (`courseVersion`): the number alone changes.
      */
     internal fun upgrade(root: JsonObject): JsonObject {
         val version = (root["formatVersion"] as? JsonPrimitive)?.takeUnless { it.isString }?.intOrNull ?: return root
