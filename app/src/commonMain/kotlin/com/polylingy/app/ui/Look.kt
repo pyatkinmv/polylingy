@@ -68,12 +68,12 @@ import kotlinx.datetime.daysUntil
 /** The app's "Notebook" look: warm paper, soft green. A course's own colour is only for its mark and buttons. */
 object Look {
     /**
-     * The colours of a main button. Disabled, the button is the same colour only paler (alpha), with the text in the mid grey of the hint beside it:
-     * a mid tone reads on a light page and on a dark course sheet alike, and still looks "not yet".
+     * The colours of a main button. Disabled, it is the same colour only paler (alpha, not a grey of its own) with the white text a
+     * little softer: the button stays visible on a light page and on a dark course sheet alike, and reads as "not yet".
      */
     @androidx.compose.runtime.Composable
     fun buttonColors(container: Color = Green) = androidx.compose.material3.ButtonDefaults.buttonColors(
-        containerColor = container, disabledContainerColor = container.copy(alpha = 0.22f), disabledContentColor = Faint,
+        containerColor = container, disabledContainerColor = container.copy(alpha = 0.45f), disabledContentColor = Color.White.copy(alpha = 0.85f),
     )
 
     val Paper = Color(0xFFFBF8F1)
