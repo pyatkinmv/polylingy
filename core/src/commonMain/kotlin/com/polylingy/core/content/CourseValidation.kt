@@ -29,7 +29,7 @@ fun Course.validate(): List<Problem> = buildList {
         name.isBlank() -> error(root / "name", "must not be empty")
         name.trim().length > CourseService.MAX_NAME_LENGTH -> error(root / "name", "is longer than ${CourseService.MAX_NAME_LENGTH} characters")
     }
-    if (courseVersion < 0) error(root / "courseVersion", "must be a whole number from 0 up")
+    if (version < 1) error(root / "version", "must be a whole number from 1 up")
     description?.let { addAll(it.validate(root / "description")) }
     theme?.accent?.let { if (!Accent.matches(it)) error(root / "theme" / "accent", "must be a colour like #2F6B5E") }
     if (extraKeys.size > MAX_EXTRA_KEYS) error(root / "extraKeys", "has more than $MAX_EXTRA_KEYS keys")

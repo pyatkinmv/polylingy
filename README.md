@@ -31,7 +31,7 @@ Requires a JDK to run Gradle (21+); the JDK 25 used by the project is downloaded
 Data lives in `<Documents>/polylingy/` (`polylingy.db`, course pictures, logs). A sample course is added on first launch;
 more courses to try are in `examples/` — import them with the Import button.
 
-A Windows installer can be built with `./gradlew :app:packageMsi` (into `app/build/compose/binaries/main/msi/`);
+A Windows installer can be built with `./gradlew :app:releaseMsi` (into `app/build/release/`, the version and stage in its name; see `docs/install.md`);
 it isn't checked for now.
 
 ## Course format

@@ -81,3 +81,8 @@ tasks.register<JavaExec>("checkCourse") {
     workingDir = rootDir
     args((project.findProperty("course") as String?)?.split(",").orEmpty())
 }
+
+// The full-size journal test: ./gradlew :client:desktopTest --tests "*BigJournalTest*" -Dpolylingy.perf=full -i
+tasks.withType<Test>().configureEach {
+    for (key in listOf("polylingy.perf", "polylingy.makeBaseline")) System.getProperty(key)?.let { systemProperty(key, it) }
+}

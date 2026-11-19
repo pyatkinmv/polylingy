@@ -41,6 +41,11 @@ class LocalStorage(private val driver: SqlDriver) : AutoCloseable {
             ?: Uuid.random().also { db.settingQueries.upsert(DEVICE_ID, it.toString()) }
     }
 
+    /** An installation setting (e.g. where the window was), or null when it was never saved. */
+    fun setting(key: String): String? = db.settingQueries.selectValue(key).executeAsOneOrNull()
+
+    fun saveSetting(key: String, value: String) = db.settingQueries.upsert(key, value)
+
     override fun close() = driver.close()
 
     private companion object {
@@ -55,10 +60,16 @@ class LocalStorage(private val driver: SqlDriver) : AutoCloseable {
 data class BrokenCourse(val id: Uuid, val name: String?, val problems: List<Problem>)
 
 internal class SqlCourseRepository(private val db: PolylingyDb) : CourseRepository {
+    /**
+     * Decoded courses: a big course (4 MB of JSON) takes a tenth of a second to read, and every screen and every answer asks for
+     * it. This repository is the only writer of the table in this process, so what it saved or read last is what is stored.
+     */
+    private val decoded = HashMap<String, Course>()
+
     /** Every course that reads; the others are logged and left out, see [broken]. */
-    override fun all(): List<Course> = db.courseDocumentQueries.selectAll().executeAsList().mapNotNull { row ->
+    @Synchronized override fun all(): List<Course> = db.courseDocumentQueries.selectAll().executeAsList().mapNotNull { row ->
         try {
-            decode(row.body)
+            decoded[row.id] ?: decode(row.body).also { decoded[row.id] = it }
         } catch (e: CourseFormatException) {
             log.error { "Stored course ${row.id} can't be read: ${e.problems.joinToString("; ")}" }
             null
@@ -75,16 +86,18 @@ internal class SqlCourseRepository(private val db: PolylingyDb) : CourseReposito
         }
     }
 
-    override fun get(id: Uuid): Course? =
-        db.courseDocumentQueries.selectById(id.toString()).executeAsOneOrNull()?.let(::decode)
+    @Synchronized override fun get(id: Uuid): Course? = decoded[id.toString()]
+        ?: db.courseDocumentQueries.selectById(id.toString()).executeAsOneOrNull()?.let(::decode)?.also { decoded[id.toString()] = it }
 
-    override fun save(course: Course) {
+    @Synchronized override fun save(course: Course) {
         val body = CourseJson.write(course)
-        db.courseDocumentQueries.upsert(course.id.toString(), course.revision.toLong(), course.updatedAt.toString(), body)
+        db.courseDocumentQueries.upsert(course.id.toString(), course.version.toLong(), course.updatedAt.toString(), body)
+        decoded.remove(course.id.toString())
     }
 
-    override fun delete(id: Uuid) {
+    @Synchronized override fun delete(id: Uuid) {
         db.courseDocumentQueries.deleteById(id.toString())
+        decoded.remove(id.toString())
     }
 
     private fun decode(body: String) = CourseJson.readStored(body)
@@ -111,8 +124,15 @@ internal class SqlCourseSettings(private val db: PolylingyDb) : CourseSettingsRe
     }
 }
 
+/**
+ * The journal on disk. Every screen replays all of it, and decoding tens of thousands of events costs a third of a second, so
+ * the decoded events are kept in memory after the first read and each append is added to them; this process is the only one that
+ * writes the file, and an event whose id is already in the journal is skipped here as it is in the table.
+ */
 internal class SqlEventLog(private val db: PolylingyDb) : EventLog {
-    override fun append(event: EventEnvelope) {
+    private var cache: LinkedHashMap<Uuid, EventEnvelope>? = null
+
+    @Synchronized override fun append(event: EventEnvelope) {
         val json = PolylingyJson.encodeToJsonElement(EventEnvelope.serializer(), event).jsonObject
         db.journalEventQueries.insert(
             event_id = event.eventId.toString(),
@@ -121,8 +141,18 @@ internal class SqlEventLog(private val db: PolylingyDb) : EventLog {
             type = json.getValue("event").jsonObject.getValue("type").jsonPrimitive.content,
             body = json.toString(),
         )
+        cache?.putIfAbsent(event.eventId, event)
     }
 
-    override fun all(): List<EventEnvelope> = db.journalEventQueries.selectAll().executeAsList()
-        .map { PolylingyJson.decodeFromString(EventEnvelope.serializer(), it) }
+    @Synchronized override fun all(): List<EventEnvelope> =
+        (cache ?: load().also { cache = it }).values.toList()
+
+    private fun load(): LinkedHashMap<Uuid, EventEnvelope> {
+        val events = LinkedHashMap<Uuid, EventEnvelope>()
+        for (body in db.journalEventQueries.selectAll().executeAsList()) {
+            val event = PolylingyJson.decodeFromString(EventEnvelope.serializer(), body)
+            events.putIfAbsent(event.eventId, event)
+        }
+        return events
+    }
 }

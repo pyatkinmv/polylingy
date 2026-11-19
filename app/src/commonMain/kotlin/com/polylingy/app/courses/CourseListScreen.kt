@@ -32,9 +32,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.polylingy.app.APP_VERSION
+import com.polylingy.app.APP_VERSION_LABEL
 import com.polylingy.app.CourseFiles
 import com.polylingy.app.course.markColour
+import com.polylingy.app.ui.AppTab
+import com.polylingy.app.ui.AppTabs
 import com.polylingy.app.ui.ConfirmDialog
 import com.polylingy.app.ui.CourseDetailsDialog
 import com.polylingy.app.ui.CourseMark
@@ -64,7 +66,8 @@ private sealed interface CourseDialog {
 private const val SHOWN_PROBLEMS = 15
 
 @Composable
-fun CourseListScreen(viewModel: CourseListViewModel, files: CourseFiles, today: LocalDate, onOpen: (Uuid) -> Unit, onSettings: (Uuid) -> Unit) {
+fun CourseListScreen(viewModel: CourseListViewModel, files: CourseFiles, today: LocalDate, onOpen: (Uuid) -> Unit, onSettings: (Uuid) -> Unit, onStatistics: () -> Unit = {}) {
+    val streak by viewModel.streakDays.collectAsState()
     val courses by viewModel.courses.collectAsState()
     val broken by viewModel.broken.collectAsState()
     var dialog by remember { mutableStateOf<CourseDialog?>(null) }
@@ -74,9 +77,7 @@ fun CourseListScreen(viewModel: CourseListViewModel, files: CourseFiles, today: 
 
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
-            Row(Modifier.height(58.dp).padding(horizontal = 32.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("Polylingy", color = Look.Green, fontWeight = FontWeight.Bold, fontSize = 19.sp)
-                Box(Modifier.weight(1f))
+            AppTabs(AppTab.COURSES, streak, onCourses = {}, onStatistics = onStatistics) {
                 QuietButton("＋ Import") {
                     val file = files.open() ?: return@QuietButton
                     dialog = when (val outcome = viewModel.import(file)) {
@@ -86,7 +87,6 @@ fun CourseListScreen(viewModel: CourseListViewModel, files: CourseFiles, today: 
                     }
                 }
             }
-            HorizontalDivider(color = Look.Line)
             Page(Modifier.verticalScroll(rememberScrollState())) {
                 Text("Courses", style = MaterialTheme.typography.headlineMedium)
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -112,7 +112,7 @@ fun CourseListScreen(viewModel: CourseListViewModel, files: CourseFiles, today: 
                 }
             }
         }
-        Text("$APP_VERSION", Modifier.align(Alignment.BottomStart).padding(horizontal = 32.dp, vertical = 12.dp), color = Look.Faint, fontSize = 11.sp)
+        Text(APP_VERSION_LABEL, Modifier.align(Alignment.BottomStart).padding(horizontal = 32.dp, vertical = 12.dp), color = Look.Faint, fontSize = 11.sp)
     }
 
     when (val d = dialog) {
@@ -136,7 +136,7 @@ fun CourseListScreen(viewModel: CourseListViewModel, files: CourseFiles, today: 
         )
         is CourseDialog.Update -> ConfirmDialog(
             "Update course",
-            "Pick a newer file of \"${d.course.name}\" (now version ${d.course.courseVersion}). Your progress stays on every topic and exercise " +
+            "Pick a newer file of \"${d.course.name}\" (now version ${d.course.version}). Your progress stays on every topic and exercise " +
                 "that keeps its id in the file; changes you made to the course inside the app are replaced by the file.",
             onConfirm = {
                 val file = files.open()
@@ -145,7 +145,7 @@ fun CourseListScreen(viewModel: CourseListViewModel, files: CourseFiles, today: 
                     is ImportOutcome.Refused -> CourseDialog.Message("Couldn't update \"${d.course.name}\" from ${outcome.fileName}", outcome.reason)
                     is ImportOutcome.Imported -> CourseDialog.Message(
                         "Updated \"${outcome.course.name}\"",
-                        "Now at version ${outcome.course.courseVersion}." + if (outcome.warnings.isEmpty()) "" else "\n\n${problemList(outcome.warnings)}",
+                        "Now at version ${outcome.course.version}." + if (outcome.warnings.isEmpty()) "" else "\n\n${problemList(outcome.warnings)}",
                     )
                 }
             },

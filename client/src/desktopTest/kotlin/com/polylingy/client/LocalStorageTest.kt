@@ -29,7 +29,6 @@ internal fun course(name: String = "c", createdAt: Instant = Instant.fromEpochSe
     id = Uuid.random(),
     name = name,
     createdAt = createdAt,
-    revision = 1,
     updatedAt = createdAt,
     topics = listOf(Topic(Uuid.random(), "t", exercises = listOf(Exercise.Gaps(Uuid.random(), items = listOf(Exercise.GapItem(Inline("{{x}}"))))))),
 )
@@ -62,9 +61,25 @@ class LocalStorageTest {
     @Test fun savingTheSameIdReplacesTheDocument() {
         val c = course("old")
         storage.courses.save(c)
-        storage.courses.save(c.copy(name = "new", revision = 2))
+        storage.courses.save(c.copy(name = "new", version = 2))
         assertEquals("new", storage.courses.get(c.id)!!.name)
         assertEquals(1, storage.courses.all().size)
+    }
+
+    @Test fun theJournalReadFromMemoryStaysTheSameAsTheOneOnDisk() {
+        val first = event(1)
+        storage.journal.append(first)
+        assertEquals(listOf(first), storage.journal.all(), "the first read fills the memory")
+        val second = event(2)
+        storage.journal.append(second)
+        storage.journal.append(first)
+        assertEquals(listOf(first, second), storage.journal.all(), "an appended event shows at once, a known event id is skipped")
+    }
+
+    @Test fun aJournalOnDiskIsReadAgainByANewStorage() {
+        val events = (1L..5L).map { event(it) }
+        DesktopStorage.open(tempDir).use { s -> events.forEach(s.journal::append); s.journal.all() }
+        DesktopStorage.open(tempDir).use { assertEquals(events, it.journal.all()) }
     }
 
     @Test fun deletedCourseIsGone() {
@@ -75,7 +90,7 @@ class LocalStorageTest {
     }
 
     @Test fun aStudyOnlyCourseIsStoredAsItCame() {
-        val text = """{ "formatVersion": 13, "name": "Future", "level": "C1",
+        val text = """{ "formatVersion": 14, "name": "Future", "level": "C1",
             "topics": [ { "title": "T", "exercises": [ { "type": "dictation", "audio": "a.mp3" } ] } ] }"""
         val c = CourseJson.read(text, Instant.fromEpochSeconds(0)).course
         storage.courses.save(c)
@@ -117,6 +132,7 @@ class LocalStorageTest {
         java.sql.DriverManager.getConnection("jdbc:sqlite:${tempDir.resolve("polylingy.db")}").use { connection ->
             connection.createStatement().use {
                 it.executeUpdate("DROP TABLE course_settings")
+                it.executeUpdate("ALTER TABLE course_document RENAME COLUMN course_version TO revision") // as a database of schema 1 has it
                 it.executeUpdate("PRAGMA user_version = 1")
             }
         }
@@ -168,7 +184,29 @@ class LocalStorageTest {
 
     // installation
 
-    @Test fun dataLivesInDocumentsPolylingy() = assertEquals("polylingy", DesktopStorage.defaultDataDir().fileName.toString())
+    @Test fun aRunFromTheSourcesKeepsItsDataApartFromTheInstalledApp() {
+        assertEquals(false, DesktopStorage.isInstalled())
+        assertEquals(DesktopStorage.DEV_DIR, DesktopStorage.defaultDataDir().fileName.toString())
+        assertEquals("polylingy", DesktopStorage.DEV_DIR, "the folder of the runs that existed before the installer")
+        assertEquals(DesktopStorage.documents().resolve(DesktopStorage.DEV_DIR), DesktopStorage.defaultDataDir())
+        assertNull(DesktopStorage.backupMirror())
+    }
+
+    @Test fun theInstalledAppHasItsOwnFolderAndAPropertyCanChooseAnyOther() {
+        try {
+            System.setProperty("jpackage.app-path", "C:/Polylingy/Polylingy.exe")
+            assertTrue(DesktopStorage.isInstalled())
+            assertEquals(DesktopStorage.INSTALLED_DIR, DesktopStorage.defaultDataDir().fileName.toString())
+            assertTrue(!DesktopStorage.defaultDataDir().startsWith(DesktopStorage.documents()), "the installed app's database is not in Documents (OneDrive)")
+            assertEquals(DesktopStorage.MIRROR_DIR, DesktopStorage.backupMirror()!!.fileName.toString())
+            System.setProperty("polylingy.dataDir", tempDir.resolve("elsewhere").toString())
+            assertNull(DesktopStorage.backupMirror(), "a chosen folder keeps everything inside itself")
+            assertEquals("elsewhere", DesktopStorage.defaultDataDir().fileName.toString())
+        } finally {
+            System.clearProperty("jpackage.app-path")
+            System.clearProperty("polylingy.dataDir")
+        }
+    }
 
     @Test fun deviceIdIsStable() = assertEquals(storage.deviceId, storage.deviceId)
 

@@ -15,19 +15,20 @@ import kotlin.uuid.Uuid
 private val log = KotlinLogging.logger {}
 
 /**
- * Changes course documents; every change is saved as a new [Course.revision]. A course's settings live apart from its
+ * Changes course documents; every change made in the app is saved as the next [Course.version]. A course's settings live apart from its
  * document: import starts them from the file's rules, deleting the course deletes them.
  */
 class CourseService(private val courses: CourseRepository, private val settings: CourseSettingsRepository, private val clock: Clock) {
     /**
      * Adds an imported course under a name no other course has ("Name (2)"). If any of its ids is already used
      * by a stored course, the import becomes a copy with fresh ids, so a topic never belongs to two courses.
+     * The file's [Course.version] is kept as it is.
      */
     fun import(course: Course): Course {
         val used = courses.all().flatMapTo(mutableSetOf()) { it.ids() }
         val copy = course.ids().any { it in used }
         val incoming = if (copy) course.withFreshIds() else course
-        val saved = save(incoming.copy(name = uniqueName(incoming.name, except = null), revision = 0))
+        val saved = save(incoming.copy(name = uniqueName(incoming.name, except = null)), bump = false)
         settings.save(saved.id, (saved.rules ?: RulesSpec()).resolved(), saved.updatedAt)
         log.info { "Imported course ${saved.id} \"${saved.name}\"${if (copy) " as a copy with fresh ids" else ""}" }
         return saved
@@ -35,15 +36,15 @@ class CourseService(private val courses: CourseRepository, private val settings:
 
     /**
      * Throws [CourseUpdateException] unless [incoming] may replace the stored course [courseId]: it must be the same course
-     * (same id), carry a higher [Course.courseVersion], and not use an id of any other course.
+     * (same id), carry a higher [Course.version], and not use an id of any other course.
      */
     fun checkUpdate(courseId: Uuid, incoming: Course) {
         val stored = course(courseId)
         if (incoming.id != courseId) {
             throw CourseUpdateException("The file is another course: its id is ${incoming.id}, \"${stored.name}\" has $courseId")
         }
-        if (incoming.courseVersion <= stored.courseVersion) {
-            throw CourseUpdateException("The file's version is ${incoming.courseVersion}, \"${stored.name}\" is already at ${stored.courseVersion}; the file must be newer")
+        if (incoming.version <= stored.version) {
+            throw CourseUpdateException("The file's version is ${incoming.version}, \"${stored.name}\" is already at ${stored.version}; the file must be newer")
         }
         val others = courses.all().filter { it.id != courseId }.flatMapTo(mutableSetOf()) { it.ids() }
         incoming.ids().firstOrNull { it in others }?.let {
@@ -53,15 +54,15 @@ class CourseService(private val courses: CourseRepository, private val settings:
 
     /**
      * Replaces the content of the stored course with the same id by the file's course, which must have a higher
-     * [Course.courseVersion] ([checkUpdate]). Progress stays: it hangs on the ids of topics and exercises, so what keeps its id
+     * [Course.version] ([checkUpdate]); the course then has the file's version. Progress stays: it hangs on the ids of topics and exercises, so what keeps its id
      * keeps its progress, what is new starts fresh, and answers to what the file no longer has stay in the journal unused.
-     * The course's settings stay as they are; its name may change; each update is a new [Course.revision].
+     * The course's settings stay as they are; its name may change.
      */
     fun update(courseId: Uuid, incoming: Course): Course {
         checkUpdate(courseId, incoming)
         val stored = course(courseId)
-        val saved = save(incoming.copy(name = uniqueName(incoming.name, except = courseId), createdAt = stored.createdAt, revision = stored.revision))
-        log.info { "Updated course $courseId \"${saved.name}\" to version ${saved.courseVersion} (revision ${saved.revision}): ${saved.allTopics.size} topics" }
+        val saved = save(incoming.copy(name = uniqueName(incoming.name, except = courseId), createdAt = stored.createdAt), bump = false)
+        log.info { "Updated course $courseId \"${saved.name}\" from version ${stored.version} to ${saved.version}: ${saved.allTopics.size} topics" }
         return saved
     }
 
@@ -99,12 +100,12 @@ class CourseService(private val courses: CourseRepository, private val settings:
         return CourseParts.check(course, part, text, clock.now().instant)
     }
 
-    /** Saves an edited or new unit or topic as a new revision; [PartException] with the problems if it isn't valid. */
+    /** Saves an edited or new unit or topic as the next version; [PartException] with the problems if it isn't valid. */
     fun savePart(courseId: Uuid, part: CoursePart, text: String): Course {
         val check = checkPart(courseId, part, text)
         val edited = check.course ?: throw PartException(check.problems)
         val saved = save(edited)
-        log.info { "Saved $part in course $courseId (revision ${saved.revision})" }
+        log.info { "Saved $part in course $courseId (version ${saved.version})" }
         return saved
     }
 
@@ -115,14 +116,15 @@ class CourseService(private val courses: CourseRepository, private val settings:
         val check = CourseParts.remove(course, part, clock.now().instant)
         val edited = check.course ?: throw PartException(check.problems)
         val saved = save(edited)
-        log.info { "Deleted $part from course $courseId (revision ${saved.revision})" }
+        log.info { "Deleted $part from course $courseId (version ${saved.version})" }
         return saved
     }
 
     private fun course(id: Uuid) = requireNotNull(courses.get(id)) { "No course $id" }
 
-    private fun save(course: Course): Course =
-        course.copy(revision = course.revision + 1, updatedAt = clock.now().instant).also(courses::save)
+    /** Saves the document; a change made in the app is the next version, an import or an update keeps the version of its file. */
+    private fun save(course: Course, bump: Boolean = true): Course =
+        course.copy(version = if (bump) course.version + 1 else course.version, updatedAt = clock.now().instant).also(courses::save)
 
     private fun uniqueName(name: String, except: Uuid?): String {
         val base = validName(name)

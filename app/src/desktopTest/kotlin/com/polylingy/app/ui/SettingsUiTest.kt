@@ -104,7 +104,7 @@ class SettingsUiTest {
         text("Save").assertIsNotEnabled()
         screenshot("settings")
         click("Cancel")
-        text("Courses").assertIsDisplayed()
+        test.onAllNodesWithText("Courses")[0].assertIsDisplayed()
 
         click("Irregular verbs")
         click("Study settings")
@@ -204,7 +204,7 @@ class SettingsUiTest {
         assertEquals(listOf(com.polylingy.content.ItemResult.TYPO), journal.results)
     }
 
-    @Test fun aCourseFromANewerVersionHasNoSettings() = appTest({ it.seedCourse(course.replace("\"formatVersion\": 2", "\"formatVersion\": 13")) }) {
+    @Test fun aCourseFromANewerVersionHasNoSettings() = appTest({ it.seedCourse(course.replace("\"formatVersion\": 2", "\"formatVersion\": 14")) }) {
         click("Irregular verbs")
         assertTrue(test.onAllNodesWithText("Study settings").fetchSemanticsNodes().isEmpty())
         click("Courses")

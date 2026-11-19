@@ -9,7 +9,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performMouseInput
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
-import com.polylingy.app.APP_VERSION
+import com.polylingy.app.APP_VERSION_LABEL
 import com.polylingy.app.MovableClock
 import com.polylingy.client.CourseArchive
 import com.polylingy.client.DesktopStorage
@@ -35,7 +35,7 @@ class CourseListUiTest {
     }
 
     @Test fun appVersionIsShownOnTheCourseList() = appTest {
-        text(APP_VERSION).assertIsDisplayed()
+        text(APP_VERSION_LABEL).assertIsDisplayed()
     }
 
     @Test fun coursesAreListedOldestFirst() = appTest(seed = {
@@ -105,7 +105,7 @@ class CourseListUiTest {
         text("Spanish Basics").assertIsDisplayed()
     }
 
-    private fun versioned(name: String, version: Int, id: String = "7d0b0e5a-1c2f-4e57-9b64-0f3a8e2d1c10") = """{ "formatVersion": 12, "id": "$id", "name": "$name", "courseVersion": $version,
+    private fun versioned(name: String, version: Int, id: String = "7d0b0e5a-1c2f-4e57-9b64-0f3a8e2d1c10") = """{ "formatVersion": 12, "id": "$id", "name": "$name", "version": $version,
         "topics": [ { "id": "8e1c1f6b-2d30-4f68-8c75-1a4b9f3e2d21", "title": "Greetings", "exercises": [ { "type": "gaps", "items": [ { "text": "{{Hola}}!" } ] } ] } ] }"""
 
     @Test fun aNewerFileUpdatesTheCourseAfterAskingFirst() = appTest(seed = { it.seedCourse(versioned("Spanish", 1)) }) {
@@ -165,7 +165,7 @@ class CourseListUiTest {
     }
 
     @Test fun aCourseFromANewerVersionIsImportedWithANotice() = appTest {
-        files.open("future.json", """{ "formatVersion": 13, "name": "Future",
+        files.open("future.json", """{ "formatVersion": 14, "name": "Future",
             "topics": [ { "title": "T", "exercises": [ { "type": "dictation", "audio": "a.mp3" } ] } ] }""")
         click("＋ Import")
         text("\"Future\" was made with a newer Polylingy").assertIsDisplayed()
@@ -208,7 +208,7 @@ class CourseListUiTest {
         val dir = Files.createTempDirectory("polylingy-ui")
         DesktopStorage.open(dir).use { storage ->
             val course = com.polylingy.core.content.CourseJson.read(flat("Old format"), kotlin.time.Clock.System.now()).course
-            storage.courses.save(course.copy(revision = 1))
+            storage.courses.save(course.copy(version = 1))
         }
         java.sql.DriverManager.getConnection("jdbc:sqlite:${dir.resolve("polylingy.db")}").use {
             it.createStatement().executeUpdate("UPDATE course_document SET body = replace(body, '\"topics\"', '\"topix\"')")

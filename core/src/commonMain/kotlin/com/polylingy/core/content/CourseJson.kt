@@ -71,10 +71,20 @@ object CourseJson {
      * 10 → 11: the hint of a gaps item (`hint`, one for the sentence) moved into the sentence, after the blank it was shown in
      * (the last one): `{{answer}}[[hint]]`; every older document gets the same change.
      * 11 → 12: only an addition (`courseVersion`): the number alone changes.
+     * 12 → 13: `revision` (a count of saves in one app) and `courseVersion` became one field, `version`: the larger of the two, or none
+     * when the document had neither (it then reads as version 1).
      */
     internal fun upgrade(root: JsonObject): JsonObject {
         val version = (root["formatVersion"] as? JsonPrimitive)?.takeUnless { it.isString }?.intOrNull ?: return root
-        return if (version < 1 || version >= FORMAT_VERSION) root else numbered(hintsInSentences(if (version == 1) to2(root) else root))
+        return if (version < 1 || version >= FORMAT_VERSION) root else numbered(oneVersion(hintsInSentences(if (version == 1) to2(root) else root)))
+    }
+
+    /** `revision` and `courseVersion` into one `version`, the larger. */
+    private fun oneVersion(root: JsonObject): JsonObject {
+        fun number(key: String) = (root[key] as? JsonPrimitive)?.takeUnless { it.isString }?.intOrNull
+        val larger = listOfNotNull(number("revision"), number("courseVersion")).maxOrNull()
+        val rest = JsonObject(root - "revision" - "courseVersion")
+        return if (larger != null && larger >= 1 && "version" !in rest) JsonObject(rest + ("version" to JsonPrimitive(larger))) else rest
     }
 
     /** Moves the `hint` of every gaps item into its text, after the last blank (where the app used to show it). */
@@ -154,7 +164,7 @@ object CourseJson {
         throw CourseFormatException(listOf(e.problem))
     }
 
-    /** Puts the course's ids, name, revision and time into its original document. */
+    /** Puts the course's ids, name, version and time into its original document. */
     private fun patch(root: JsonObject, course: Course): JsonObject {
         fun JsonObject.with(key: String, value: JsonElement) = JsonObject(this + (key to value))
         fun JsonObject.ids(key: String, ids: List<Uuid>, inner: (JsonObject, Int) -> JsonObject = { o, _ -> o }): JsonObject {
@@ -165,13 +175,13 @@ object CourseJson {
             ids(key, topics.map { it.id }) { topic, t -> topic.ids("exercises", topics[t].exercises.map { it.id }) }
         return root.with("id", JsonPrimitive(course.id.toString()))
             .with("name", JsonPrimitive(course.name))
-            .with("revision", JsonPrimitive(course.revision))
+            .with("version", JsonPrimitive(course.version))
             .with("updatedAt", JsonPrimitive(course.updatedAt.toString()))
             .ids("units", course.units.map { it.id }) { unit, u -> unit.topicIds("topics", course.units[u].topics) }
             .topicIds("topics", course.topics)
     }
 
-    /** Gives every object that needs an id a unique one, and sets the document fields an import resets. */
+    /** Gives every object that needs an id a unique one, and sets the document fields an import resets (the time; the version stays as the file has it). */
     private class Filler(private val now: Instant) {
         private val seen = mutableSetOf<Uuid>()
 
@@ -179,7 +189,6 @@ object CourseJson {
             val withFields = JsonObject(
                 root.withId() + mapOf(
                     "createdAt" to (root["createdAt"] ?: JsonPrimitive(now.toString())),
-                    "revision" to JsonPrimitive(0),
                     "updatedAt" to JsonPrimitive(now.toString()),
                 ),
             )

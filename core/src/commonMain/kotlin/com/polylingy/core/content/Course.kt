@@ -10,7 +10,7 @@ import kotlin.time.Instant
 import kotlin.uuid.Uuid
 
 /** The course file format this app reads and writes; see docs/content-format.md, section 9. */
-const val FORMAT_VERSION = 12
+const val FORMAT_VERSION = 13
 
 /** At most this many extra keys, each at most this long (docs/content-format.md). */
 const val MAX_EXTRA_KEYS = 12
@@ -18,7 +18,7 @@ const val MAX_EXTRA_KEY_LENGTH = 8
 
 /**
  * A course is a versioned document: it is always saved and synced as a whole, in the same JSON as the course file.
- * On conflict the higher [revision] wins; [updatedAt] breaks ties. A course has either [units] or [topics].
+ * On conflict the higher [version] wins; [updatedAt] breaks ties. A course has either [units] or [topics].
  */
 @Serializable
 data class Course(
@@ -27,13 +27,13 @@ data class Course(
     val name: String,
     val description: Inline? = null,
     val createdAt: Instant,
-    val revision: Int = 0,
     /**
-     * The version of the course's content, set by whoever makes the file (1, 2, 3…; 0 when the file has none). Unlike [revision],
-     * which counts saves inside the app, it comes from the file and is kept on import: a file of the same course
-     * updates the stored one only when its version is higher ([CourseService.update]).
+     * The version of the course's content: 1 for the first, and one more with every change of the document, whether made in the app
+     * (a unit or topic edited, the name or description) or by a newer file of the course ([CourseService.update]). It is kept as it is
+     * on import, so an exported file carries it; a file of a course already in the app updates it only when its version is higher.
+     * Every answer in the journal remembers the version it was given on. On conflict the higher version wins.
      */
-    @EncodeDefault val courseVersion: Int = 0,
+    @EncodeDefault val version: Int = 1,
     val updatedAt: Instant,
     val theme: Theme? = null,
     /**

@@ -2,8 +2,10 @@ package com.polylingy.core.journal
 
 import com.polylingy.content.ItemResult
 import com.polylingy.content.Response
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonNames
 import kotlin.uuid.Uuid
 
 /**
@@ -19,7 +21,8 @@ data class EventEnvelope(
     val event: Event,
 ) {
     companion object {
-        const val CURRENT_SCHEMA_VERSION = 1
+        /** 1: the course's version was called `courseRevision`; 2: `courseVersion` (old entries are read as they are, by that alias). */
+        const val CURRENT_SCHEMA_VERSION = 2
     }
 }
 
@@ -31,14 +34,15 @@ sealed interface Event
  * that moment. Grades, rounds and schedules are derived from these by replay() with the course's current policies,
  * and old answers are never checked again, so editing an exercise doesn't rewrite the past.
  */
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 @SerialName("AnswerSubmitted")
 data class AnswerSubmitted(
     val courseId: Uuid,
     val topicId: Uuid,
     val exerciseId: Uuid,
-    /** The course's revision when the answer was given: which version of the exercise was on screen. */
-    val courseRevision: Int,
+    /** The course's [com.polylingy.core.content.Course.version] when the answer was given: which edition of the exercise was on screen. */
+    @JsonNames("courseRevision") val courseVersion: Int,
     val response: Response,
     /** One per item of the exercise: blank, choice, pair or sentence. */
     val results: List<ItemResult>,

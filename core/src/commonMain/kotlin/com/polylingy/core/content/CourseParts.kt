@@ -117,7 +117,7 @@ object CourseParts {
 
         return try {
             val read = CourseJson.read(ContentJson.strict.encodeToString(JsonElement.serializer(), edited), now).course
-            PartCheck(read.copy(createdAt = course.createdAt, revision = course.revision, updatedAt = course.updatedAt), emptyList())
+            PartCheck(read.copy(createdAt = course.createdAt, version = course.version, updatedAt = course.updatedAt), emptyList())
         } catch (e: CourseFormatException) {
             val lines = JsonLines.of(text)
             PartCheck(null, e.problems.map { problem -> problem.within(prefix, lines) })
@@ -132,7 +132,7 @@ object CourseParts {
         val edited = doc.put(at.parent, JsonArray(array.filterIndexed { i, _ -> i != at.index }))
         return try {
             val read = CourseJson.read(ContentJson.strict.encodeToString(JsonElement.serializer(), edited), now).course
-            PartCheck(read.copy(createdAt = course.createdAt, revision = course.revision, updatedAt = course.updatedAt), emptyList())
+            PartCheck(read.copy(createdAt = course.createdAt, version = course.version, updatedAt = course.updatedAt), emptyList())
         } catch (e: CourseFormatException) {
             PartCheck(null, e.problems.map { PartProblem(it.path, it.message, null, inPart = false) })
         }

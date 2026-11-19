@@ -37,7 +37,6 @@ fun course(vararg topics: Topic, createdAt: Instant = Instant.fromEpochSeconds(0
     id = Uuid.random(),
     name = "course",
     createdAt = createdAt,
-    revision = 1,
     updatedAt = createdAt,
     topics = topics.toList(),
 )
@@ -47,7 +46,7 @@ fun answer(course: Course, topic: Topic, results: List<ItemResult>, occurredAt: 
     eventId = Uuid.random(),
     deviceId = Uuid.NIL,
     occurredAt = occurredAt,
-    event = AnswerSubmitted(course.id, topic.id, topic.exercises.first().id, course.revision, Response.Blanks(results.map { "" }), results),
+    event = AnswerSubmitted(course.id, topic.id, topic.exercises.first().id, course.version, Response.Blanks(results.map { "" }), results),
 )
 
 /** A one-item answer: right or wrong. */

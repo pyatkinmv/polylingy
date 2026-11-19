@@ -87,6 +87,24 @@ fun DangerDialog(title: String, text: String, confirm: String, onConfirm: () -> 
     )
 }
 
+/** Tells that something unexpected happened; [onOpenLogs], when the platform can, opens the folder with the log. */
+@Composable
+fun ErrorDialog(message: String, count: Int, onOpenLogs: (() -> Unit)?, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Something went wrong") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(message)
+                if (count > 1) Text("It happened $count times.")
+                Text("The details are in the log file. You can go on; if the screen looks wrong, go back to the course list.")
+            }
+        },
+        confirmButton = { Button(onClick = onDismiss) { Text("OK") } },
+        dismissButton = onOpenLogs?.let { open -> { TextButton(onClick = open) { Text("Open log folder") } } },
+    )
+}
+
 @Composable
 fun MessageDialog(title: String, text: String, onDismiss: () -> Unit) {
     AlertDialog(

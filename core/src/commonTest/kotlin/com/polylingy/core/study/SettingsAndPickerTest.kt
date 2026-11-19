@@ -137,7 +137,7 @@ class SettingsAndPickerTest {
         val changed = stored.copy(picker = PickerSpec.Conveyor(newPerDay = 1))
         study.saveSettings(course.id, changed)
         assertEquals(changed, courseService.forExport(courses.get(course.id)!!).rules)
-        assertEquals(course.revision, courses.get(course.id)!!.revision, "settings don't touch the document")
+        assertEquals(course.version, courses.get(course.id)!!.version, "settings don't touch the document")
 
         courseService.delete(course.id)
         assertNull(settings.get(course.id))
@@ -210,7 +210,7 @@ class SettingsAndPickerTest {
         assertFailsWith<IllegalArgumentException> { study.saveSettings(course.id, RulesSpec(picker = PickerSpec.Conveyor(newPerDay = 0))) }
         assertFailsWith<IllegalArgumentException> { study.saveSettings(Uuid.random(), RulesSpec()) }
         val newer = CourseJson.read(
-            """{ "formatVersion": 13, "name": "N", "topics": [ { "title": "A", "exercises": [ ${gaps("a")} ] } ] }""",
+            """{ "formatVersion": 14, "name": "N", "topics": [ { "title": "A", "exercises": [ ${gaps("a")} ] } ] }""",
             clock.now().instant,
         ).course.also(courses::save)
         assertFailsWith<IllegalArgumentException> { study.saveSettings(newer.id, RulesSpec()) }

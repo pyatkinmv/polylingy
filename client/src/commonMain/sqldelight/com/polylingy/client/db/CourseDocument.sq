@@ -1,8 +1,8 @@
--- Course documents, stored whole as JSON. id/revision/updated_at are copies of fields
+-- Course documents, stored whole as JSON. id/course_version/updated_at are copies of fields
 -- inside body, kept as columns for lookups and (later) sync conflict resolution.
 CREATE TABLE course_document (
     id TEXT NOT NULL PRIMARY KEY,
-    revision INTEGER NOT NULL,
+    course_version INTEGER NOT NULL,
     updated_at TEXT NOT NULL,
     body TEXT NOT NULL
 );
@@ -14,7 +14,7 @@ selectById:
 SELECT body FROM course_document WHERE id = ?;
 
 upsert:
-INSERT OR REPLACE INTO course_document(id, revision, updated_at, body) VALUES (?, ?, ?, ?);
+INSERT OR REPLACE INTO course_document(id, course_version, updated_at, body) VALUES (?, ?, ?, ?);
 
 deleteById:
 DELETE FROM course_document WHERE id = ?;

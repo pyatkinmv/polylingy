@@ -38,7 +38,7 @@ class CourseJsonTest {
         assertEquals("English Grammar in Use", course.name)
         assertEquals("Units on *present* tenses.", course.description?.text)
         assertEquals("#2F6B5E", course.theme?.accent)
-        assertEquals(12, course.formatVersion, "a file of format 1 is brought up to 12")
+        assertEquals(13, course.formatVersion, "a file of format 1 is brought up to 13")
         assertEquals(RulesSpec(Preset.SM2, grading = GradingSpec.Threshold(0.75, typos = false)), course.rules, "settings.allowTypos became grading.typos")
         val unit = course.units.single()
         assertEquals(Uuid.parse(UNIT_ID), unit.id)
@@ -53,9 +53,18 @@ class CourseJsonTest {
         assertNull(course.sourceJson)
     }
 
-    @Test fun importResetsRevisionAndTimesButKeepsCreatedAt() {
-        val course = read(CourseSamples.units.replace("\"formatVersion\": 1,", "\"formatVersion\": 1, \"revision\": 7, \"updatedAt\": \"2020-01-01T00:00:00Z\", \"createdAt\": \"2021-05-05T00:00:00Z\",")).course
-        assertEquals(0, course.revision)
+    @Test fun anOlderDocumentsRevisionAndCourseVersionBecomeOneVersion() {
+        fun versionOf(extra: String) = read(CourseSamples.flat.replace("\"formatVersion\": 1,", "\"formatVersion\": 12, $extra")).course.version
+        assertEquals(5, versionOf("\"revision\": 3, \"courseVersion\": 5,"), "the larger of the two")
+        assertEquals(7, versionOf("\"revision\": 7,"))
+        assertEquals(2, versionOf("\"courseVersion\": 2,"))
+        assertEquals(1, versionOf(""), "a document with neither is version 1")
+        assertEquals(1, read(CourseSamples.flat).course.version, "so is a file without one")
+    }
+
+    @Test fun importResetsTheTimesButKeepsCreatedAtAndTheVersion() {
+        val course = read(CourseSamples.units.replace("\"formatVersion\": 1,", "\"formatVersion\": 1, \"version\": 7, \"updatedAt\": \"2020-01-01T00:00:00Z\", \"createdAt\": \"2021-05-05T00:00:00Z\",")).course
+        assertEquals(7, course.version)
         assertEquals(now, course.updatedAt)
         assertEquals(Instant.parse("2021-05-05T00:00:00Z"), course.createdAt)
         assertEquals(now, read(CourseSamples.flat).course.createdAt)
@@ -89,9 +98,9 @@ class CourseJsonTest {
     @Test fun notAnObject() = assertEquals(listOf("$: a course file must be a JSON object"), problems("[]"))
 
     @Test fun formatVersionIsRequiredAndWholeNumber() {
-        assertEquals(listOf("formatVersion: missing; this app writes 12"), problems("""{ "name": "X", "topics": [] }"""))
+        assertEquals(listOf("formatVersion: missing; this app writes 13"), problems("""{ "name": "X", "topics": [] }"""))
         for (bad in listOf("\"1\"", "1.5", "0", "null")) {
-            assertEquals(listOf("formatVersion: must be a whole number like 12"), problems("""{ "formatVersion": $bad, "name": "X" }"""), bad)
+            assertEquals(listOf("formatVersion: must be a whole number like 13"), problems("""{ "formatVersion": $bad, "name": "X" }"""), bad)
         }
     }
 
@@ -196,7 +205,7 @@ class CourseJsonTest {
     @Test fun formatsTwoToFiveAreReadAsSix() {
         for (old in 2..5) {
             val file = flatWithExercise("""{ "type": "gaps", "items": [ { "text": "{{a}}" } ] }""").replace("\"formatVersion\": 1", "\"formatVersion\": $old")
-            assertEquals(12, read(file).course.formatVersion, "$old")
+            assertEquals(13, read(file).course.formatVersion, "$old")
         }
     }
 
@@ -256,14 +265,14 @@ class CourseJsonTest {
     // newer format
 
     private val newer = CourseSamples.units
-        .replace("\"formatVersion\": 1", "\"formatVersion\": 13, \"level\": \"B1\"")
+        .replace("\"formatVersion\": 1", "\"formatVersion\": 14, \"level\": \"B1\"")
         .replace("\"type\": \"order\"", "\"type\": \"dictation\"")
         .replace("{ \"type\": \"text\", \"text\": \"He**’s cycling**.\" }", "{ \"type\": \"hologram\", \"src\": \"v.mp4\" }")
 
     @Test fun aNewerFileIsReadLenientlyWithWarnings() {
         val (course, warnings) = read(newer)
         assertTrue(course.studyOnly)
-        assertEquals(13, course.formatVersion)
+        assertEquals(14, course.formatVersion)
         assertEquals(
             listOf(
                 "units[0].theory.blocks[0].blocks[0]: unknown block type \"hologram\"",
@@ -277,18 +286,18 @@ class CourseJsonTest {
     }
 
     @Test fun aNewerFileStillFailsOnRealErrors() =
-        assertEquals(listOf("topics[0].title: must not be empty"), problems(flatWith("""{ "title": "", "exercises": [ { "type": "x" } ] }""").replace("\"formatVersion\": 1", "\"formatVersion\": 13")))
+        assertEquals(listOf("topics[0].title: must not be empty"), problems(flatWith("""{ "title": "", "exercises": [ { "type": "x" } ] }""").replace("\"formatVersion\": 1", "\"formatVersion\": 14")))
 
     @Test fun aStudyOnlyCourseIsWrittenAsItCameWithNewIdsAndName() {
         val course = read(newer).course
-        val renamed = course.withFreshIds().copy(name = "Copy", revision = 3, updatedAt = Instant.parse("2027-01-01T00:00:00Z"))
+        val renamed = course.withFreshIds().copy(name = "Copy", version = 3, updatedAt = Instant.parse("2027-01-01T00:00:00Z"))
         val written = CourseJson.write(renamed)
         assertContains(written, "\"level\": \"B1\"")
         assertContains(written, "\"dictation\"")
         val again = CourseJson.readStored(written)
         assertTrue(again.studyOnly)
         assertEquals("Copy", again.name)
-        assertEquals(3, again.revision)
+        assertEquals(3, again.version)
         assertEquals(renamed.ids(), again.ids())
         assertEquals(Instant.parse("2027-01-01T00:00:00Z"), again.updatedAt)
     }
@@ -307,7 +316,7 @@ class CourseJsonTest {
 
     @Test fun writtenFilesStartWithTheFormatVersion() {
         val written = CourseJson.write(read(CourseSamples.flat).course)
-        assertTrue(written.lines()[1].trim() == "\"formatVersion\": 12,", written.lines()[1])
+        assertTrue(written.lines()[1].trim() == "\"formatVersion\": 13,", written.lines()[1])
     }
 
     @Test fun storedDocumentsAreReadWithoutChecks() {

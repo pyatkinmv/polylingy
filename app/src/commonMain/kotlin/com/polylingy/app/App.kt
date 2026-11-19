@@ -5,6 +5,9 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.foundation.background
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import com.polylingy.app.ui.ErrorDialog
 import androidx.compose.ui.text.TextStyle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
@@ -34,6 +37,8 @@ import androidx.compose.ui.Modifier
 import com.polylingy.content.compose.CourseContent
 import com.polylingy.content.compose.PlayerDock
 import com.polylingy.core.content.CoursePart
+import com.polylingy.app.stats.StatisticsScreen
+import com.polylingy.app.stats.StatisticsViewModel
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.serialization.Serializable
 import kotlin.uuid.Uuid
@@ -42,6 +47,10 @@ private val log = KotlinLogging.logger {}
 
 @Serializable
 internal object CourseListRoute
+
+/** The statistics tab, next to the course list. */
+@Serializable
+internal object StatisticsRoute
 
 @Serializable
 internal data class CourseRoute(val courseId: String)
@@ -92,6 +101,12 @@ internal data class SettingsRoute(val courseId: String)
 class Navigator internal constructor(private val nav: NavHostController) {
     fun courses() {
         nav.popBackStack(CourseListRoute, inclusive = false)
+    }
+
+    /** The statistics tab; from it, Courses goes back to the list. */
+    fun statistics() {
+        log.info { "Opens statistics" }
+        nav.navigate(StatisticsRoute) { launchSingleTop = true }
     }
 
     fun course(courseId: Uuid) = go(CourseRoute(courseId.toString()))
@@ -148,8 +163,10 @@ class Navigator internal constructor(private val nav: NavHostController) {
 }
 
 @Composable
-fun App(container: AppContainer, text: TextStyle = TextStyle.Default) {
+fun App(container: AppContainer, text: TextStyle = TextStyle.Default, onOpenLogs: (() -> Unit)? = null) {
     AppTheme(text) {
+        val error by ErrorReport.latest.collectAsState()
+        error?.let { ErrorDialog(it.message, it.count, onOpenLogs, onDismiss = ErrorReport::dismiss) }
         val nav = rememberNavController()
         val go = remember(nav) { Navigator(nav) }
         // The docked player of a long recording sits under every screen: the sound goes on when the page is left, and so does its player.
@@ -159,13 +176,17 @@ fun App(container: AppContainer, text: TextStyle = TextStyle.Default) {
             composable<CourseListRoute> {
                 CourseListScreen(
                     viewModel = viewModel {
-                        CourseListViewModel(container.library, container.courseService, container.storage.courses, container.study, container.storage::brokenCourses)
+                        CourseListViewModel(container.library, container.courseService, container.storage.courses, container.study, container.storage::brokenCourses, container.statistics::streak)
                     },
                     files = container.files,
                     today = container.clock.now().localDate,
                     onOpen = go::course,
                     onSettings = go::settings,
+                    onStatistics = go::statistics,
                 )
+            }
+            composable<StatisticsRoute> {
+                StatisticsScreen(viewModel { StatisticsViewModel(container.statistics, container.storage.courses) }, go)
             }
             composable<CourseRoute> { entry ->
                 val route = entry.toRoute<CourseRoute>()

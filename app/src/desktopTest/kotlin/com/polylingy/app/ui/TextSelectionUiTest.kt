@@ -74,6 +74,14 @@ class TextSelectionUiTest {
         try { clipboard { it.setContents(StringSelection(""), null) }; true } catch (e: IllegalStateException) { println("The system clipboard is busy: the selection scenarios are skipped"); false }
     }
 
+    /** The clipboard can be taken by another program at any moment, not only at the start: then the scenario is skipped. */
+    private fun skippedWhenBusy(scenario: () -> Unit) {
+        try { scenario() } catch (e: IllegalStateException) {
+            if (e.message?.contains("clipboard") != true) throw e
+            println("The system clipboard is busy: the selection scenario is skipped")
+        }
+    }
+
     private fun clipboardText() = clipboard { it.getData(DataFlavor.stringFlavor) as String }
 
     private fun ComposeUiTest.copyAll(toX: Float, toY: Float): String {
@@ -104,8 +112,8 @@ class TextSelectionUiTest {
         return copied
     }
 
-    @Test fun aPageIsSelectedAndCopiedWithoutTheAnnotationsAndNotBeyondItself() {
-        if (!clipboardUsable) return
+    @Test fun aPageIsSelectedAndCopiedWithoutTheAnnotationsAndNotBeyondItself() = skippedWhenBusy {
+        if (!clipboardUsable) return@skippedWhenBusy
         val copied = showPage(Palettes.softGreen, "selection-page")
         assertTrue("A plain paragraph with bold words, one line." in copied, copied)
         assertTrue("老师" in copied && "你好" in copied, copied)
@@ -114,16 +122,16 @@ class TextSelectionUiTest {
         assertFalse("outside" in copied, copied)
     }
 
-    @Test fun theSelectionIsDrawnInEveryPalette() {
-        if (!clipboardUsable) return
+    @Test fun theSelectionIsDrawnInEveryPalette() = skippedWhenBusy {
+        if (!clipboardUsable) return@skippedWhenBusy
         for (palette in Palettes.all) {
             val copied = showPage(palette, "selection-page-${palette.id}")
             assertTrue("A plain paragraph" in copied, "${palette.id}: $copied")
         }
     }
 
-    @Test fun anOptionIsStillClickedButItsTextIsNotSelected() {
-        if (!clipboardUsable) return
+    @Test fun anOptionIsStillClickedButItsTextIsNotSelected() = skippedWhenBusy {
+        if (!clipboardUsable) return@skippedWhenBusy
         var result: List<ItemCheck>? = null
         var copied = ""
         runDesktopComposeUiTest(width = 700, height = 220) {

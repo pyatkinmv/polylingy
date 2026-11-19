@@ -48,7 +48,7 @@ class CoursePartsTest {
         assertEquals(topic.id, edited.id)
         assertEquals(topic.exercises.map { it.id }, edited.exercises.map { it.id })
         assertContains(((edited.exercises[0] as Exercise.Gaps).items[0].text.text), "Hush!")
-        assertEquals(course.revision + 1, saved.revision)
+        assertEquals(course.version + 1, saved.version)
         assertEquals(course.createdAt, saved.createdAt)
     }
 
@@ -116,7 +116,7 @@ class CoursePartsTest {
     @Test fun aGoneOrStudyOnlyCourseCantBeChanged() {
         assertNull(service.partJson(course.id, topicPart(Uuid.random())))
         assertFalse(service.checkPart(course.id, topicPart(Uuid.random()), "{}").ok)
-        val newer = service.import(CourseJson.read(CourseSamples.flat.replace("\"formatVersion\": 1", "\"formatVersion\": 13"), clock.now().instant).course)
+        val newer = service.import(CourseJson.read(CourseSamples.flat.replace("\"formatVersion\": 1", "\"formatVersion\": 14"), clock.now().instant).course)
         assertFalse(service.checkPart(newer.id, CoursePart.Topic(null, null), CourseParts.TOPIC_TEMPLATE).ok)
         assertFailsWith<PartException> { service.deletePart(newer.id, CoursePart.Topic(null, newer.topics[0].id)) }
     }

@@ -39,7 +39,7 @@ class StudyServiceTest {
               { "title": "U1", "theory": { "format": "blocks", "blocks": [ { "type": "text", "text": "Theory" } ] },
                 "topics": [ { "title": "1.1", "exercises": [ ${gaps("a")} ] },
                             { "title": "1.2", "exercises": [ ${gaps("b")}, ${gaps("c")}, { "type": "dictation" } ] } ] },
-              { "title": "U2", "topics": [ { "title": "2.1", "exercises": [ ${gaps("d")} ] } ] } ] }""".replace("formatVersion\": 1", "formatVersion\": 13"),
+              { "title": "U2", "topics": [ { "title": "2.1", "exercises": [ ${gaps("d")} ] } ] } ] }""".replace("formatVersion\": 1", "formatVersion\": 14"),
         clock.now().instant,
     ).course
 
@@ -165,7 +165,7 @@ class StudyServiceTest {
         assertEquals(TopicStatus.InProgress to TopicStatus.Learned, right.before to right.after)
         val event = journal.all().last().event as AnswerSubmitted
         assertEquals(listOf(ItemResult.CORRECT), event.results)
-        assertEquals(course.revision, event.courseRevision)
+        assertEquals(course.version, event.courseVersion)
     }
 
     @Test fun theWholeCourseFromNewToLearnedWithTheQuickPreset() {

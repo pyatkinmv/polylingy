@@ -79,7 +79,7 @@ class EditUiTest {
         text("Exercise 1 · gaps").assertIsDisplayed()
         screenshot("edit-topic")
 
-        val revision = stored().revision
+        val version = stored().version
         val original = container.courseService.partJson(stored().id, com.polylingy.core.content.CoursePart.Topic(stored().units[0].id, stored().units[0].topics[0].id))!!
         type(original.replace("\"items\"", "\"itmes\"").replace("is singing}}", "is singing"))
         test.onNodeWithText("to save", substring = true).assertIsDisplayed()
@@ -104,7 +104,7 @@ class EditUiTest {
         click("Save")
         text("Happening now").assertIsDisplayed()
         assertEquals("Happening now", stored().units[0].topics[0].title)
-        assertEquals(revision + 1, stored().revision)
+        assertEquals(version + 1, stored().version)
     }
 
     @Test fun thePreviewCanBeSolvedWithoutTouchingProgress() = appTest(seed, height = 1000) {
@@ -227,7 +227,7 @@ class EditUiTest {
         screenshot("edit-flat-course")
     }
 
-    @Test fun aCourseFromANewerVersionCantBeChanged() = appTest({ it.seedCourse(course.replace("\"formatVersion\": 1", "\"formatVersion\": 13")) }) {
+    @Test fun aCourseFromANewerVersionCantBeChanged() = appTest({ it.seedCourse(course.replace("\"formatVersion\": 1", "\"formatVersion\": 14")) }) {
         click("Grammar in Use")
         assertTrue(test.onAllNodesWithText("＋ Add unit").fetchSemanticsNodes().isEmpty())
         assertTrue(test.onAllNodesWithText("⋯").fetchSemanticsNodes().isEmpty())

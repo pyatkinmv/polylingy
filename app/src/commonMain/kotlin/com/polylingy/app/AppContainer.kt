@@ -25,6 +25,7 @@ import com.polylingy.content.compose.ImageLoader
 import com.polylingy.core.content.CourseService
 import com.polylingy.core.journal.ZonedInstant
 import com.polylingy.core.ports.Clock
+import com.polylingy.core.study.StatisticsService
 import com.polylingy.core.study.StudyService
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.datetime.TimeZone
@@ -92,6 +93,7 @@ class AppContainer(
     val courseService = CourseService(storage.courses, storage.courseSettings, clock)
     val library = CourseLibrary(storage.courses, courseService, images, fetcher, archives, clock)
     val study = StudyService(storage.courses, storage.courseSettings, storage.journal, clock, storage.deviceId, random)
+    val statistics = StatisticsService(storage.courses, storage.courseSettings, storage.journal, clock, study, random)
 
     private val players = mutableMapOf<Uuid, AudioPlayer>()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)

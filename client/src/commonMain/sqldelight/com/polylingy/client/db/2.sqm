@@ -1,0 +1,11 @@
+-- Schema 2 → 3: the version of a course's content has its own name in the table (it is `version` in the course document).
+-- The table is rebuilt, because the SQL dialect used to check migrations has no RENAME COLUMN.
+CREATE TABLE course_document_new (
+    id TEXT NOT NULL PRIMARY KEY,
+    course_version INTEGER NOT NULL,
+    updated_at TEXT NOT NULL,
+    body TEXT NOT NULL
+);
+INSERT INTO course_document_new(id, course_version, updated_at, body) SELECT id, revision, updated_at, body FROM course_document;
+DROP TABLE course_document;
+ALTER TABLE course_document_new RENAME TO course_document;

@@ -171,6 +171,26 @@ class CourseLibrary(
 
     private fun slug(name: String) = name.lowercase().replace(Regex("[^\\p{L}\\p{N}]+"), "_").trim('_').ifEmpty { "course" }
 
+    /**
+     * The course that ships with the app (id [id], content version [version], read by [source] only when needed): imported when
+     * there are no courses at all, and updated — progress kept ([update]) — when the stored course has a lower version, which is
+     * how a new installer brings the fixes of the course. A failure is logged and never stops the app from starting.
+     */
+    fun seedBundled(id: Uuid, version: Int, source: () -> CourseSource) {
+        try {
+            val stored = courses.get(id)
+            when {
+                courses.all().isEmpty() -> { import(source()); log.info { "Added the bundled course $id (version $version)" } }
+                stored != null && version > stored.version -> {
+                    update(id, source())
+                    log.info { "Updated the bundled course $id from version ${stored.version} to $version" }
+                }
+            }
+        } catch (e: Exception) {
+            log.error(e) { "The bundled course $id (version $version) couldn't be added or updated" }
+        }
+    }
+
     /** Imports the bundled sample course on first launch, when there are no courses at all. */
     fun seedSample(sample: CourseSource) {
         if (courses.all().isNotEmpty()) return

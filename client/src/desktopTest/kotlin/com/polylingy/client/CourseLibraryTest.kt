@@ -5,6 +5,7 @@ import com.polylingy.core.content.CourseFormatException
 import com.polylingy.core.content.CourseService
 import com.polylingy.core.content.GradingSpec
 import com.polylingy.core.content.PickerSpec
+import com.polylingy.core.content.ids
 import com.polylingy.core.content.images
 import com.polylingy.core.journal.ZonedInstant
 import com.polylingy.core.ports.Clock
@@ -76,13 +77,12 @@ class CourseLibraryTest {
     @Test fun aNewerFileUpdatesTheCourseAndAddsItsPictures() {
         val first = library.import("cat.zip", CourseArchive.zip(course("images/cat.png"), mapOf("images/cat.png" to png))).course
         val newer = com.polylingy.core.content.CourseJson.write(storage.courses.get(first.id)!!)
-            .replace("\"courseVersion\": 0", "\"courseVersion\": 2").replace("images/cat.png", "images/dog.png")
+            .replace("\"version\": 1", "\"version\": 3").replace("images/cat.png", "images/dog.png")
         val dog = byteArrayOf(4, 5)
         val archive = CourseArchive.zip(newer, mapOf("images/dog.png" to dog))
         val updated = library.update(first.id, "dog.zip", archive).course
         assertEquals(first.id, updated.id)
-        assertEquals(2, updated.courseVersion)
-        assertEquals(first.revision + 1, updated.revision)
+        assertEquals(3, updated.version, "the course has the version of the file")
         assertContentEquals(dog, library.image(first.id, "images/dog.png"))
         assertContentEquals(png, library.image(first.id, "images/cat.png"), "pictures of earlier versions stay")
         assertEquals(1, storage.courses.all().size, "an update is not a copy")
@@ -91,7 +91,7 @@ class CourseLibraryTest {
 
     @Test fun anUpdateWithABadFileChangesNothing() {
         val first = library.import("cat.zip", CourseArchive.zip(course("images/cat.png"), mapOf("images/cat.png" to png))).course
-        val broken = com.polylingy.core.content.CourseJson.write(storage.courses.get(first.id)!!).replace("\"courseVersion\": 0", "\"courseVersion\": 2")
+        val broken = com.polylingy.core.content.CourseJson.write(storage.courses.get(first.id)!!).replace("\"version\": 1", "\"version\": 3")
         assertFailsWith<CourseFormatException> { library.update(first.id, "broken.zip", CourseArchive.zip(broken.replace("images/cat.png", "images/missing.png"), emptyMap())) }
         assertEquals(first, storage.courses.get(first.id))
     }
@@ -165,7 +165,7 @@ class CourseLibraryTest {
     }
 
     @Test fun formatErrorsAreReportedAndNothingIsSaved() {
-        assertEquals(listOf("formatVersion: missing; this app writes 12"), problems(CourseSource("x.json", """{ "name": "X" }""")))
+        assertEquals(listOf("formatVersion: missing; this app writes 13"), problems(CourseSource("x.json", """{ "name": "X" }""")))
         assertEquals(emptyList(), storage.courses.all())
     }
 
@@ -189,7 +189,7 @@ class CourseLibraryTest {
 
         storage.courseSettings.save(course.id, settings.copy(picker = PickerSpec.Alternate(newPerDay = 7)), Instant.parse("2026-11-02T10:00:00Z"))
         val exported = library.export(course.id).bytes.decodeToString()
-        assertTrue("\"formatVersion\": 12" in exported, exported)
+        assertTrue("\"formatVersion\": 13" in exported, exported)
         assertTrue("\"alternate\"" in exported && "\"newPerDay\": 7" in exported, "the file carries the current settings")
         assertTrue("\"settings\"" !in exported)
         val again = library.import("old.json", exported.encodeToByteArray()).course
@@ -209,7 +209,7 @@ class CourseLibraryTest {
     }
 
     @Test fun aStudyOnlyCourseCantBeExported() {
-        val newer = """{ "formatVersion": 13, "name": "Future", "topics": [ { "title": "T", "exercises": [ { "type": "dictation" } ] } ] }"""
+        val newer = """{ "formatVersion": 14, "name": "Future", "topics": [ { "title": "T", "exercises": [ { "type": "dictation" } ] } ] }"""
         val (course, warnings) = library.import(CourseSource("future.json", newer))
         assertEquals(listOf("topics[0].exercises[0]: unknown exercise type \"dictation\""), warnings.map { it.toString() })
         assertFailsWith<IllegalArgumentException> { library.export(course.id) }
@@ -253,6 +253,39 @@ class CourseLibraryTest {
         for (src in listOf("images/cycling.png", "images/cooking.png", "images/swimming.png")) {
             assertTrue(library.image(course.id, src)!!.isNotEmpty(), src)
         }
+    }
+
+    @Test fun theBundledCourseMatchesItsManifestAndHasStableIds() {
+        val bundled = BundledCourse.find()!!
+        val read = com.polylingy.core.content.CourseJson.read(bundled.source().json, clock.now().instant)
+        assertEquals(emptyList(), read.warnings)
+        assertEquals(bundled.id, read.course.id, "the manifest names the course of the file")
+        assertEquals(bundled.version, read.course.version)
+        assertTrue(read.course.version >= 1)
+        assertEquals("English Usage Exercises", read.course.name)
+        val again = com.polylingy.core.content.CourseJson.read(bundled.source().json, clock.now().instant).course
+        assertEquals(read.course.ids(), again.ids(), "the same file always reads to the same ids")
+    }
+
+    @Test fun theBundledCourseIsAddedOnceAndUpdatedByANewerVersionKeepingItsId() {
+        val bundled = BundledCourse.find()!!
+        library.seedBundled(bundled.id, bundled.version, bundled::source)
+        val stored = storage.courses.all().single()
+        assertEquals(bundled.id, stored.id)
+        library.seedBundled(bundled.id, bundled.version, bundled::source)
+        assertEquals(stored, storage.courses.get(bundled.id), "the same version changes nothing")
+
+        val newer = { bundled.source().let { CourseSource(it.fileName, it.json.replaceFirst("\"version\": ${bundled.version}", "\"version\": ${bundled.version + 1}"), it.files) } }
+        library.seedBundled(bundled.id, bundled.version + 1, newer)
+        val updated = storage.courses.get(bundled.id)!!
+        assertEquals(bundled.version + 1, updated.version)
+        assertEquals(1, storage.courses.all().size)
+        assertEquals(stored.allTopics.map { it.id }, updated.allTopics.map { it.id }, "the topics keep their ids, so their progress stays")
+    }
+
+    @Test fun aBrokenBundledCourseNeverStopsTheApp() {
+        library.seedBundled(kotlin.uuid.Uuid.random(), 1) { error("unreadable") }
+        assertEquals(emptyList(), storage.courses.all())
     }
 
     @Test fun httpFetcherDownloadsAndRejectsErrors() {

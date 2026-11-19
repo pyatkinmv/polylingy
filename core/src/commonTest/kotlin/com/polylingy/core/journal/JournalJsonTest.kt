@@ -37,11 +37,26 @@ class JournalJsonTest {
         val id = "00000000-0000-0000-0000-000000000000"
         val json = """
             {"eventId":"$id","deviceId":"$id","occurredAt":"$zoned","schemaVersion":1,"addedLater":true,
-             "event":{"type":"AnswerSubmitted","courseId":"$id","topicId":"$id","exerciseId":"$id","courseRevision":1,
+             "event":{"type":"AnswerSubmitted","courseId":"$id","topicId":"$id","exerciseId":"$id","courseVersion":1,
                "response":{"type":"choice","picked":["a"]},"results":["WRONG"],"timeSpent":12}}
         """.trimIndent()
         val event = PolylingyJson.decodeFromString(EventEnvelope.serializer(), json).event as AnswerSubmitted
         assertEquals(Response.Choice(listOf("a")), event.response)
         assertEquals(listOf(ItemResult.WRONG), event.results)
+    }
+
+    @Test fun anEntryOfSchemaOneNamesTheCoursesVersionCourseRevisionAndStaysReadable() {
+        val id = "00000000-0000-0000-0000-000000000000"
+        val old = """
+            {"eventId":"$id","deviceId":"$id","occurredAt":"$zoned","schemaVersion":1,
+             "event":{"type":"AnswerSubmitted","courseId":"$id","topicId":"$id","exerciseId":"$id","courseRevision":4,
+               "response":{"type":"blanks","values":["x"]},"results":["CORRECT"]}}
+        """.trimIndent()
+        val envelope = PolylingyJson.decodeFromString(EventEnvelope.serializer(), old)
+        assertEquals(1, envelope.schemaVersion, "an old entry is read as it is")
+        assertEquals(4, (envelope.event as AnswerSubmitted).courseVersion)
+        val written = PolylingyJson.encodeToString(EventEnvelope.serializer(), envelope)
+        assertTrue("\"courseVersion\":4" in written && "courseRevision" !in written, written)
+        assertEquals(2, EventEnvelope.CURRENT_SCHEMA_VERSION)
     }
 }

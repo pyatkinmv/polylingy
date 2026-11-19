@@ -41,9 +41,14 @@ class CourseListViewModel(
     private val repository: CourseRepository,
     private val study: StudyService,
     private val brokenCourses: () -> List<BrokenCourse>,
+    /** Days in a row with answers, for the header; 0 when it is not known. */
+    private val streak: () -> Int = { 0 },
 ) : ViewModel() {
     private val _courses = MutableStateFlow(load())
     private val _broken = MutableStateFlow(brokenCourses())
+    private val _streak = MutableStateFlow(streak())
+
+    val streakDays: StateFlow<Int> = _streak.asStateFlow()
 
     /** Oldest course first. */
     val courses: StateFlow<List<CourseRow>> = _courses.asStateFlow()
@@ -102,6 +107,7 @@ class CourseListViewModel(
     fun refresh() {
         _courses.value = load()
         _broken.value = brokenCourses()
+        _streak.value = streak()
     }
 
     private fun load() = repository.all().sortedBy { it.createdAt }.map { course ->

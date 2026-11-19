@@ -43,6 +43,8 @@ kotlin {
 // APP_VERSION constant generated from `version` in gradle.properties, so the UI shows the built version.
 val generateAppVersion = tasks.register("generateAppVersion") {
     val appVersion = project.version.toString()
+    val stage = (project.findProperty("releaseStage") as String?).orEmpty().trim()
+    inputs.property("stage", stage)
     val outputDir = layout.buildDirectory.dir("generated/appVersion")
     inputs.property("version", appVersion)
     outputs.dir(outputDir)
@@ -55,6 +57,12 @@ val generateAppVersion = tasks.register("generateAppVersion") {
             |
             |/** Generated from `version` in gradle.properties. */
             |const val APP_VERSION = "$appVersion"
+            |
+            |/** Generated from `releaseStage` in gradle.properties: empty for a final release, else e.g. "alpha". */
+            |const val APP_STAGE = "$stage"
+            |
+            |/** What the UI shows: the version and, when there is one, the stage. */
+            |const val APP_VERSION_LABEL = "$appVersion${if (stage.isEmpty()) "" else " $stage"}"
             |""".trimMargin(),
         )
     }
@@ -100,4 +108,15 @@ compose.desktop {
             }
         }
     }
+}
+
+// The installer under a name that says the stage: ./gradlew :app:releaseMsi -> app/build/release/Polylingy-0.8.0-alpha.msi
+tasks.register<Copy>("releaseMsi") {
+    group = "distribution"
+    description = "Builds the Windows installer and copies it to build/release under a name with the version and stage."
+    dependsOn("packageMsi")
+    val stage = (project.findProperty("releaseStage") as String?).orEmpty().trim()
+    val name = "Polylingy-${project.version}" + (if (stage.isEmpty()) "" else "-$stage") + ".msi"
+    from(layout.buildDirectory.dir("compose/binaries/main/msi")) { include("*.msi"); rename { name } }
+    into(layout.buildDirectory.dir("release"))
 }

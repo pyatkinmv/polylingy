@@ -251,7 +251,7 @@ class StudyService(
         journal.append(
             EventEnvelope(
                 Uuid.random(), deviceId, now,
-                event = AnswerSubmitted(courseId, topicId, exerciseId, course.revision, response, checks.map { it.result }),
+                event = AnswerSubmitted(courseId, topicId, exerciseId, course.version, response, checks.map { it.result }),
             ),
         )
         val after = statuses(course).getValue(topicId)

@@ -25,9 +25,10 @@ class CourseServiceTest {
     private fun file(name: String = "Spanish Basics", sample: String = CourseSamples.flat) =
         CourseJson.read(sample.replace("\"Spanish Basics\"", "\"$name\""), clock.now().instant).course
 
-    @Test fun importSavesTheCourseAsRevisionOne() {
+    @Test fun importKeepsTheVersionOfTheFileAndAFileWithoutOneIsVersionOne() {
         val course = service.import(file())
-        assertEquals(1, course.revision)
+        assertEquals(1, course.version)
+        assertEquals(7, service.import(file("Seven").copy(version = 7)).version, "an import keeps the version of its file")
         assertEquals(clock.now().instant, course.updatedAt)
         assertEquals(course, repository.get(course.id))
     }
@@ -62,14 +63,13 @@ class CourseServiceTest {
     }
 
     @Test fun aNewerFileOfTheSameCourseReplacesItsContentAndKeepsIdsAndSettings() {
-        val stored = service.import(file().copy(courseVersion = 1))
+        val stored = service.import(file().copy(version = 1))
         val settingsBefore = settings.of(stored)
         val edited = stored.topics[0].copy(title = "Fixed title")
         val added = stored.topics[0].copy(id = Uuid.random(), title = "A new topic", exercises = stored.topics[0].exercises.map { it.withId(Uuid.random()) })
-        val updated = service.update(stored.id, stored.copy(courseVersion = 2, name = "Spanish Basics 2", topics = listOf(edited) + stored.topics.drop(1) + added))
+        val updated = service.update(stored.id, stored.copy(version = 2, name = "Spanish Basics 2", topics = listOf(edited) + stored.topics.drop(1) + added))
         assertEquals(stored.id, updated.id)
-        assertEquals(2, updated.courseVersion)
-        assertEquals(stored.revision + 1, updated.revision, "an update is one more revision")
+        assertEquals(2, updated.version, "after an update the course has the version of the file")
         assertEquals(stored.createdAt, updated.createdAt)
         assertEquals("Spanish Basics 2", updated.name)
         assertEquals(stored.topics[0].id, updated.topics[0].id, "what keeps its id keeps its progress")
@@ -80,36 +80,36 @@ class CourseServiceTest {
     }
 
     @Test fun aFileThatIsNotNewerIsRefused() {
-        val stored = service.import(file().copy(courseVersion = 3))
-        for (version in listOf(0, 2, 3)) {
-            val e = assertFailsWith<CourseUpdateException> { service.update(stored.id, stored.copy(courseVersion = version)) }
+        val stored = service.import(file().copy(version = 3))
+        for (version in listOf(1, 2, 3)) {
+            val e = assertFailsWith<CourseUpdateException> { service.update(stored.id, stored.copy(version = version)) }
             assertTrue("already at 3" in e.message!!, e.message)
         }
         assertEquals(stored, repository.get(stored.id), "a refused update changes nothing")
     }
 
-    @Test fun aCourseWithoutAVersionCountsAsZero() {
+    @Test fun aCourseWithoutAVersionIsVersionOneAndAnyHigherFileUpdatesIt() {
         val stored = service.import(file())
-        assertEquals(0, stored.courseVersion)
-        assertEquals(1, service.update(stored.id, stored.copy(courseVersion = 1)).courseVersion)
+        assertEquals(1, stored.version)
+        assertEquals(2, service.update(stored.id, stored.copy(version = 2)).version)
     }
 
     @Test fun aFileOfAnotherCourseOrWithAnotherCoursesIdsIsRefused() {
-        val first = service.import(file("First").copy(courseVersion = 1))
+        val first = service.import(file("First").copy(version = 1))
         val second = service.import(file("Second").withFreshIds())
-        assertFailsWith<CourseUpdateException> { service.update(first.id, second.copy(courseVersion = 5)) }
-        val sharing = first.copy(courseVersion = 2, topics = listOf(second.topics[0]) + first.topics.drop(1))
+        assertFailsWith<CourseUpdateException> { service.update(first.id, second.copy(version = 5)) }
+        val sharing = first.copy(version = 2, topics = listOf(second.topics[0]) + first.topics.drop(1))
         val e = assertFailsWith<CourseUpdateException> { service.update(first.id, sharing) }
         assertTrue("another course" in e.message!!, e.message)
         assertEquals(first, repository.get(first.id))
     }
 
     @Test fun aVersionIsReadFromTheFileAndWrittenBack() {
-        val withVersion = CourseSamples.flat.replaceFirst("\"formatVersion\":", "\"courseVersion\": 7, \"formatVersion\":")
+        val withVersion = CourseSamples.flat.replaceFirst("\"formatVersion\":", "\"version\": 7, \"formatVersion\":")
         val course = CourseJson.read(withVersion, clock.now().instant).course
-        assertEquals(7, course.courseVersion)
-        assertEquals(7, CourseJson.read(CourseJson.write(course), clock.now().instant).course.courseVersion)
-        assertTrue("\"courseVersion\": 0" in CourseJson.write(file()), "an export always says the version")
+        assertEquals(7, course.version)
+        assertEquals(7, CourseJson.read(CourseJson.write(course), clock.now().instant).course.version)
+        assertTrue("\"version\": 1" in CourseJson.write(file()), "an export always says the version")
     }
 
     @Test fun namesAreComparedIgnoringCase() {
@@ -124,14 +124,14 @@ class CourseServiceTest {
         assertEquals("x".repeat(46) + " (2)", second.name)
     }
 
-    @Test fun editDetailsBumpsTheRevisionAndKeepsNamesUnique() {
+    @Test fun editDetailsBumpsTheVersionAndKeepsNamesUnique() {
         val french = service.import(file("French"))
         val spanish = service.import(file("Spanish"))
         assertEquals("french (2)", service.editDetails(spanish.id, "  french ", "").name)
         val edited = service.editDetails(french.id, "French", "  Verbs and *nouns*. ")
         assertEquals("French", edited.name)
         assertEquals("Verbs and *nouns*.", edited.description?.text)
-        assertEquals(2, edited.revision)
+        assertEquals(2, edited.version)
         assertNull(service.editDetails(french.id, "French", " ").description, "a blank description is removed")
     }
 
@@ -146,7 +146,7 @@ class CourseServiceTest {
     }
 
     @Test fun aCourseFromANewerFormatCantBeEdited() {
-        val newer = CourseJson.read(CourseSamples.flat.replace("\"formatVersion\": 1", "\"formatVersion\": 13"), clock.now().instant).course
+        val newer = CourseJson.read(CourseSamples.flat.replace("\"formatVersion\": 1", "\"formatVersion\": 14"), clock.now().instant).course
         val course = service.import(newer)
         assertFailsWith<IllegalArgumentException> { service.editDetails(course.id, "Other", "") }
     }
