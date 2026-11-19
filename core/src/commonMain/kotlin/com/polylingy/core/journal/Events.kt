@@ -47,3 +47,22 @@ data class AnswerSubmitted(
     /** One per item of the exercise: blank, choice, pair or sentence. */
     val results: List<ItemResult>,
 ) : Event
+
+/**
+ * The learner answered one exercise in extra practice: the same facts as [AnswerSubmitted], but a fact of its own kind. Practice
+ * stands apart from the plan: progress, schedules and the choice of what comes next are derived only from [AnswerSubmitted],
+ * so a [PracticeAnswered] can't change them. Statistics count it as activity.
+ */
+@Serializable
+@SerialName("PracticeAnswered")
+data class PracticeAnswered(
+    val courseId: Uuid,
+    val topicId: Uuid,
+    val exerciseId: Uuid,
+    val courseVersion: Int,
+    val response: Response,
+    val results: List<ItemResult>,
+) : Event {
+    /** The same answer as an [AnswerSubmitted], for what only reads the facts of an answer (grading, counting). */
+    fun asAnswer() = AnswerSubmitted(courseId, topicId, exerciseId, courseVersion, response, results)
+}

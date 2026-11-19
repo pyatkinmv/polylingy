@@ -10,6 +10,7 @@ import com.polylingy.core.content.Course
 import com.polylingy.core.learning.TopicStatus
 import com.polylingy.core.study.AnswerOutcome
 import com.polylingy.core.study.NextExercise
+import com.polylingy.core.study.PracticeScope
 import com.polylingy.core.study.ProgressCounts
 import com.polylingy.core.study.StudyService
 import com.polylingy.core.study.TopicGroup
@@ -37,8 +38,8 @@ sealed interface StudyState {
         val checks: List<ItemCheck>? get() = outcome?.checks
     }
 
-    /** Nothing left today in the unit (or course): [counts] of the same scope. */
-    data class Done(val counts: ProgressCounts) : StudyState
+    /** Nothing left today in the unit (or course): [counts] of the same scope; [canPractise] — there is something to practise in it. */
+    data class Done(val counts: ProgressCounts, val canPractise: Boolean = false) : StudyState
 
     /** The course or topic is gone, or has no exercise this version can show. */
     data object Missing : StudyState
@@ -87,7 +88,7 @@ class StudyViewModel(
             if (course == null) return StudyState.Missing
             val counts = unitId?.let { id -> progress.units.firstOrNull { it.unit.id == id }?.counts } ?: progress.counts
             log.info { "Nothing left today in course $courseId${unitId?.let { " unit $it" }.orEmpty()}" }
-            return StudyState.Done(counts)
+            return StudyState.Done(counts, study.canPractise(courseId, unitId?.let(PracticeScope::Unit) ?: PracticeScope.Course))
         }
         val topic = progress.allTopics.first { it.topic.id == next.topic.id }
         val review = topic.group == TopicGroup.TO_REVIEW

@@ -5,6 +5,7 @@ import com.polylingy.core.content.Course
 import com.polylingy.core.content.of
 import com.polylingy.core.journal.AnswerSubmitted
 import com.polylingy.core.journal.EventEnvelope
+import com.polylingy.core.journal.PracticeAnswered
 import com.polylingy.core.learning.CourseRules
 import com.polylingy.core.learning.PassFail
 import com.polylingy.core.learning.TopicStatus
@@ -84,7 +85,8 @@ class StatisticsService(
 
         val firstDay = firstAnswerDays(answers)
         val begun = firstDay.values.groupingBy { it }.eachCount()
-        val days = answers.groupBy { (envelope, _) -> envelope.occurredAt.localDate }.mapValues { (date, day) -> activity(day.map { it.second }, ::passed, begun[date] ?: 0) }
+        // extra practice counts as activity (the map, the streak, the answers of a day) but not as progress: new topics, learned and the plan use only the plan's answers
+        val days = (answers + practiceOf(scope)).groupBy { (envelope, _) -> envelope.occurredAt.localDate }.mapValues { (date, day) -> activity(day.map { it.second }, ::passed, begun[date] ?: 0) }
         val active = days.keys
         val total = days.values.sumOf { it.answers }
         val progress = scope.mapNotNull { study.progress(it.id) }
@@ -114,7 +116,10 @@ class StatisticsService(
     /** Days in a row with answers up to today, for the chip in the header: only the journal is read, nothing is replayed. */
     fun streak(): Int {
         val ids = courses.all().mapTo(mutableSetOf()) { it.id }
-        val active = journal.all().mapNotNullTo(mutableSetOf()) { e -> (e.event as? AnswerSubmitted)?.takeIf { it.courseId in ids }?.let { e.occurredAt.localDate } }
+        val active = journal.all().mapNotNullTo(mutableSetOf()) { e ->
+            val course = (e.event as? AnswerSubmitted)?.courseId ?: (e.event as? PracticeAnswered)?.courseId
+            course?.takeIf { it in ids }?.let { e.occurredAt.localDate }
+        }
         return streak(active, clock.now().localDate)
     }
 
@@ -124,6 +129,12 @@ class StatisticsService(
     private fun answersOf(scope: List<Course>): List<Pair<EventEnvelope, AnswerSubmitted>> {
         val ids = scope.mapTo(mutableSetOf()) { it.id }
         return journal.all().mapNotNull { envelope -> (envelope.event as? AnswerSubmitted)?.takeIf { it.courseId in ids }?.let { envelope to it } }
+    }
+
+    /** Every answer of extra practice in [scope], as the facts of an answer, with its envelope. */
+    private fun practiceOf(scope: List<Course>): List<Pair<EventEnvelope, AnswerSubmitted>> {
+        val ids = scope.mapTo(mutableSetOf()) { it.id }
+        return journal.all().mapNotNull { envelope -> (envelope.event as? PracticeAnswered)?.takeIf { it.courseId in ids }?.let { envelope to it.asAnswer() } }
     }
 
     private fun activity(answers: List<AnswerSubmitted>, passed: (AnswerSubmitted) -> Boolean, newTopics: Int) =

@@ -8,6 +8,7 @@ import com.polylingy.core.content.PartProblem
 import com.polylingy.core.learning.TopicStatus
 import com.polylingy.core.study.CourseProgress
 import com.polylingy.core.study.NextExercise
+import com.polylingy.core.study.PracticeScope
 import com.polylingy.core.study.StudyService
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -46,6 +47,12 @@ class CourseViewModel(
     val progress: StateFlow<CourseProgress?> = _progress.asStateFlow()
 
     private val _next = MutableStateFlow(study.next(courseId, scope))
+    private val _canPractise = MutableStateFlow(canPractise())
+
+    /** Whether the plan has started anything in this course (or unit) that extra practice can go over. */
+    val practisable: StateFlow<Boolean> = _canPractise.asStateFlow()
+
+    private fun canPractise() = study.canPractise(courseId, scope?.let(PracticeScope::Unit) ?: PracticeScope.Course)
 
     /** What "Continue" would show now; null — nothing left today. */
     val next: StateFlow<NextExercise?> = _next.asStateFlow()
@@ -53,6 +60,7 @@ class CourseViewModel(
     fun refresh() {
         _progress.value = study.progress(courseId)
         _next.value = study.next(courseId, scope)
+        _canPractise.value = canPractise()
     }
 
     /** Deletes a unit or topic; the problems if the course needs it (a unit's last topic, the course's last unit). */

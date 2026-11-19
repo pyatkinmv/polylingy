@@ -38,6 +38,8 @@ import com.polylingy.content.compose.CourseContent
 import com.polylingy.content.compose.PlayerDock
 import com.polylingy.core.content.CoursePart
 import com.polylingy.app.stats.StatisticsScreen
+import com.polylingy.app.study.PracticeScreen
+import com.polylingy.app.study.PracticeViewModel
 import com.polylingy.app.stats.StatisticsViewModel
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.serialization.Serializable
@@ -47,6 +49,10 @@ private val log = KotlinLogging.logger {}
 
 @Serializable
 internal object CourseListRoute
+
+/** Extra practice in a course, a unit ([unitId]) or a topic ([topicId]); apart from the plan. */
+@Serializable
+internal data class PracticeRoute(val courseId: String, val unitId: String? = null, val topicId: String? = null)
 
 /** The statistics tab, next to the course list. */
 @Serializable
@@ -110,6 +116,15 @@ class Navigator internal constructor(private val nav: NavHostController) {
     }
 
     fun course(courseId: Uuid) = go(CourseRoute(courseId.toString()))
+
+    /** Extra practice over [scope] of the course; "Back" leads to where it was started. */
+    fun practice(courseId: Uuid, scope: com.polylingy.core.study.PracticeScope) = go(
+        when (scope) {
+            com.polylingy.core.study.PracticeScope.Course -> PracticeRoute(courseId.toString())
+            is com.polylingy.core.study.PracticeScope.Unit -> PracticeRoute(courseId.toString(), unitId = scope.unitId.toString())
+            is com.polylingy.core.study.PracticeScope.Topic -> PracticeRoute(courseId.toString(), topicId = scope.topicId.toString())
+        },
+    )
 
     /** Back to the course screen already on the stack, or open it. */
     fun backToCourse(courseId: Uuid) {
@@ -240,6 +255,21 @@ fun App(container: AppContainer, text: TextStyle = TextStyle.Default, onOpenLogs
             composable<SettingsRoute> { entry ->
                 val courseId = Uuid.parse(entry.toRoute<SettingsRoute>().courseId)
                 SettingsScreen(viewModel { SettingsViewModel(container.study, container.clock, courseId) }, container.clock.now().localDate, go)
+            }
+            composable<PracticeRoute> { entry ->
+                val route = entry.toRoute<PracticeRoute>()
+                val courseId = Uuid.parse(route.courseId)
+                val scope = route.topicId?.let { com.polylingy.core.study.PracticeScope.Topic(Uuid.parse(it)) }
+                    ?: route.unitId?.let { com.polylingy.core.study.PracticeScope.Unit(Uuid.parse(it)) }
+                    ?: com.polylingy.core.study.PracticeScope.Course
+                CourseLooked(container, courseId) {
+                    PracticeScreen(
+                        viewModel = viewModel { PracticeViewModel(container.study, courseId, scope) },
+                        images = container.images(courseId),
+                        today = container.clock.now().localDate,
+                        go = go,
+                    )
+                }
             }
             composable<StudyRoute> { entry ->
                 val route = entry.toRoute<StudyRoute>()

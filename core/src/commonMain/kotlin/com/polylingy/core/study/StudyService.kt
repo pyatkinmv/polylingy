@@ -9,6 +9,7 @@ import com.polylingy.core.content.DisplaySpec
 import com.polylingy.core.content.Topic
 import com.polylingy.core.journal.AnswerSubmitted
 import com.polylingy.core.journal.EventEnvelope
+import com.polylingy.core.journal.PracticeAnswered
 import com.polylingy.content.Path
 import com.polylingy.core.content.RulesSpec
 import com.polylingy.core.content.of
@@ -138,8 +139,24 @@ data class CourseProgress(
 /** What to show: an exercise of a topic, with the unit it belongs to. */
 data class NextExercise(val topic: Topic, val unit: CourseUnit?, val exercise: Exercise)
 
+/** A checked answer of practice: [outcome] as the learner sees it (the status unchanged) and whether it [passed] by the course's grading. */
+data class PracticeResult(val outcome: AnswerOutcome, val passed: Boolean)
+
 /** A checked answer: one check per item, and the topic's status before and after it, for "passed" or "learned". */
 data class AnswerOutcome(val checks: List<ItemCheck>, val before: TopicStatus, val after: TopicStatus)
+
+/** Where extra practice goes over: the whole course, one unit, or one topic. */
+sealed interface PracticeScope {
+    data object Course : PracticeScope
+    data class Unit(val unitId: Uuid) : PracticeScope
+    data class Topic(val topicId: Uuid) : PracticeScope
+}
+
+/** One answer of a practice session, for [PracticeState]. */
+data class PracticeAnswer(val topicId: Uuid, val exerciseId: Uuid, val passed: Boolean)
+
+/** What a practice session has done so far, oldest answer first, and the topic it is on. It lives only as long as the session. */
+data class PracticeState(val answers: List<PracticeAnswer> = emptyList(), val current: Uuid? = null)
 
 /** Use cases of the study screens; the learning rules all live behind this class. */
 class StudyService(
@@ -280,6 +297,81 @@ class StudyService(
         val after = statuses(course).getValue(topicId)
         log.info { "Answer in course $courseId, topic $topicId \"${topic.title}\", exercise $exerciseId: ${checks.map { it.result }}; $before → $after" }
         return AnswerOutcome(checks.forgiving(forgivesTypos(course)), before, after)
+    }
+
+    // ---- extra practice: apart from the plan (docs/learning-model.md, "Extra practice")
+
+    /**
+     * The topics extra practice in [scope] can go over: those the plan has already started (answered at least once) and that
+     * have an exercise this version can show; for a [PracticeScope.Topic] that topic.
+     */
+    fun practiceTopics(courseId: Uuid, scope: PracticeScope): List<Topic> {
+        val course = courses.get(courseId) ?: return emptyList()
+        val inScope = when (scope) {
+            PracticeScope.Course -> course.allTopics
+            is PracticeScope.Unit -> course.units.firstOrNull { it.id == scope.unitId }?.topics.orEmpty()
+            is PracticeScope.Topic -> return listOfNotNull(course.allTopics.firstOrNull { it.id == scope.topicId }?.takeIf { it.playable().isNotEmpty() })
+        }
+        val started = journal.all().mapNotNullTo(mutableSetOf()) { e -> (e.event as? AnswerSubmitted)?.takeIf { it.courseId == courseId }?.topicId }
+        return inScope.filter { it.id in started && it.playable().isNotEmpty() }
+    }
+
+    fun canPractise(courseId: Uuid, scope: PracticeScope): Boolean = practiceTopics(courseId, scope).isNotEmpty()
+
+    /**
+     * The next exercise of a practice session, or null when there is nothing to practise. It uses the course's own pickers (the
+     * queue orders the topics, the focus stays on a topic or moves on, the exercise choice picks the exercise), but its own set of
+     * candidates and its own round: a *pass*, in which every exercise of a topic comes once. The topics with the fewest finished
+     * passes are the candidates, so the session goes round the topics and then starts again; it never ends by itself.
+     * Only [state], the session's own answers, is read: the plan's journal is not.
+     */
+    fun practiceNext(courseId: Uuid, scope: PracticeScope, state: PracticeState): NextExercise? {
+        val course = courses.get(courseId) ?: return null
+        return practiceNextWith(course, practiceTopics(courseId, scope), course.rules(), state)
+    }
+
+    private fun <M> practiceNextWith(course: Course, topics: List<Topic>, rules: CourseRules<M, PassFail>, state: PracticeState): NextExercise? {
+        if (topics.isEmpty()) return null
+        val display = course.display()
+        // for each topic: the exercises shown in its current pass, and how many passes are finished
+        class Pass(val topic: Topic, val offered: List<Exercise>, val shown: Set<Uuid>, val finished: Int)
+        val passes = topics.map { topic ->
+            val offered = topic.offered(display)
+            var shown = emptySet<Uuid>()
+            var finished = 0
+            for (a in state.answers) if (a.topicId == topic.id) {
+                shown = shown + a.exerciseId
+                if (shown.containsAll(offered.map { it.id })) { finished++; shown = emptySet() }
+            }
+            Pass(topic, offered, shown, finished)
+        }
+        val fewest = passes.minOf { it.finished }
+        // the topic whose pass has just been finished lets another one have its turn, whichever focus the course has
+        val justFinished = state.current?.takeIf { id -> passes.first { it.topic.id == id }.let { it.shown.isEmpty() && it.finished > 0 } }
+        val candidates = passes.filter { it.finished == fewest }.let { all -> all.filter { it.topic.id != justFinished }.ifEmpty { all } }
+        val queue = rules.picker.queue.build(candidates.map { Candidate(it.topic.id, Group.STARTED) }, 0)
+        val picked = rules.picker.focus.pick(queue, state.current) ?: return null
+        val pass = candidates.first { it.topic.id == picked }
+        val pool = pass.offered.filter { it.id !in pass.shown }.ifEmpty { pass.offered }
+        val history = state.answers.filter { it.topicId == picked }.map { TopicAnswer(it.exerciseId, it.passed, inCurrentRound = true) }
+        return NextExercise(pass.topic, unitOf(course, pass.topic), rules.picker.exercise.choose(pool, history))
+    }
+
+    /**
+     * Checks an answer of practice and writes it to the journal as a [PracticeAnswered]. The topic's status is told as it is
+     * (before and after the same), because practice changes none; [PracticeResult.passed] is by the course's grading.
+     */
+    fun practiceAnswer(courseId: Uuid, topicId: Uuid, exerciseId: Uuid, response: Response): PracticeResult {
+        val course = requireNotNull(courses.get(courseId)) { "No course $courseId" }
+        val topic = requireNotNull(course.allTopics.firstOrNull { it.id == topicId }) { "No topic $topicId in course $courseId" }
+        val exercise = requireNotNull(topic.exercises.firstOrNull { it.id == exerciseId }) { "No exercise $exerciseId in topic $topicId" }
+        val checks = Checking.check(exercise, response)
+        val event = PracticeAnswered(courseId, topicId, exerciseId, course.version, response, checks.map { it.result })
+        journal.append(EventEnvelope(Uuid.random(), deviceId, clock.now(), event = event))
+        val status = statuses(course).getValue(topicId)
+        val passed = course.rules().grading.grade(event.asAnswer()) == PassFail.PASS
+        log.info { "Practice answer in course $courseId, topic $topicId \"${topic.title}\", exercise $exerciseId: ${checks.map { it.result }}" }
+        return PracticeResult(AnswerOutcome(checks.forgiving(forgivesTypos(course)), status, status), passed)
     }
 
     /** Checks an answer as [answer] would show it, without writing anything — for previews. */

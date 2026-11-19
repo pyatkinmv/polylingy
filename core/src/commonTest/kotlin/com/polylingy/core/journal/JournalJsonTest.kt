@@ -59,4 +59,16 @@ class JournalJsonTest {
         assertTrue("\"courseVersion\":4" in written && "courseRevision" !in written, written)
         assertEquals(2, EventEnvelope.CURRENT_SCHEMA_VERSION)
     }
+
+    @Test fun aPracticeAnswerIsAFactOfItsOwnKind() {
+        val envelope = EventEnvelope(
+            eventId = Uuid.random(), deviceId = Uuid.random(), occurredAt = zoned,
+            event = PracticeAnswered(Uuid.random(), Uuid.random(), Uuid.random(), 3, Response.Blanks(listOf("rojo")), listOf(ItemResult.WRONG)),
+        )
+        val json = PolylingyJson.encodeToString(EventEnvelope.serializer(), envelope)
+        assertTrue("\"type\":\"PracticeAnswered\"" in json && "AnswerSubmitted" !in json, json)
+        assertEquals(envelope, PolylingyJson.decodeFromString(EventEnvelope.serializer(), json))
+        val plan = (envelope.event as PracticeAnswered).asAnswer()
+        assertEquals(listOf(ItemResult.WRONG), plan.results, "read as the facts of an answer by what only counts them")
+    }
 }

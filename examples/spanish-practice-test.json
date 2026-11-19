@@ -1,0 +1,360 @@
+{
+  "formatVersion": 13,
+  "name": "Spanish basics (practice test)",
+  "description": "A tiny course to try Extra practice: two new topics a day, one right answer passes a topic.",
+  "rules": {
+    "mastery": {
+      "type": "consecutive",
+      "learning": 1,
+      "review": 1
+    },
+    "picker": {
+      "type": "conveyor",
+      "newPerDay": 2
+    }
+  },
+  "units": [
+    {
+      "title": "Greetings",
+      "topics": [
+        {
+          "title": "Hello and goodbye",
+          "explanation": {
+            "format": "blocks",
+            "blocks": [
+              {
+                "type": "text",
+                "text": "*Hola* = hello, *adiós* = goodbye, *buenos días* = good morning."
+              }
+            ]
+          },
+          "exercises": [
+            {
+              "type": "gaps",
+              "instruction": "Fill in the blank.",
+              "items": [
+                {
+                  "text": "{{Hola}}, ¿cómo estás?"
+                },
+                {
+                  "text": "{{Adiós}}, hasta mañana."
+                }
+              ]
+            },
+            {
+              "type": "gaps",
+              "instruction": "Fill in the blank.",
+              "items": [
+                {
+                  "text": "Buenos {{días}}."
+                }
+              ]
+            },
+            {
+              "type": "choice",
+              "instruction": "Choose the right word.",
+              "items": [
+                {
+                  "text": "{{Hola}} = hello",
+                  "options": [
+                    "Hola",
+                    "Adiós"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Introducing yourself",
+          "explanation": {
+            "format": "blocks",
+            "blocks": [
+              {
+                "type": "text",
+                "text": "*Me llamo …* = my name is …; *Soy de …* = I am from …."
+              }
+            ]
+          },
+          "exercises": [
+            {
+              "type": "gaps",
+              "instruction": "Fill in the blank.",
+              "items": [
+                {
+                  "text": "{{Me llamo}} Ana."
+                },
+                {
+                  "text": "{{Soy}} de Madrid."
+                }
+              ]
+            },
+            {
+              "type": "gaps",
+              "instruction": "Fill in the blank.",
+              "items": [
+                {
+                  "text": "¿Cómo te {{llamas}}?"
+                }
+              ]
+            },
+            {
+              "type": "choice",
+              "instruction": "Choose the right word.",
+              "items": [
+                {
+                  "text": "{{Me llamo}} Ana. (My name is Ana.)",
+                  "options": [
+                    "Me llamo",
+                    "Me gusta"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Please and thank you",
+          "explanation": {
+            "format": "blocks",
+            "blocks": [
+              {
+                "type": "text",
+                "text": "*Por favor* = please, *gracias* = thank you."
+              }
+            ]
+          },
+          "exercises": [
+            {
+              "type": "gaps",
+              "instruction": "Fill in the blank.",
+              "items": [
+                {
+                  "text": "{{Gracias}} por todo."
+                },
+                {
+                  "text": "Un café, {{por favor}}."
+                }
+              ]
+            },
+            {
+              "type": "choice",
+              "instruction": "Choose the right word.",
+              "items": [
+                {
+                  "text": "{{Gracias}} = thank you",
+                  "options": [
+                    "Gracias",
+                    "Perdón"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Food",
+      "topics": [
+        {
+          "title": "Drinks",
+          "explanation": {
+            "format": "blocks",
+            "blocks": [
+              {
+                "type": "text",
+                "text": "*el agua* = water, *el café* = coffee, *la leche* = milk."
+              }
+            ]
+          },
+          "exercises": [
+            {
+              "type": "gaps",
+              "instruction": "Fill in the blank.",
+              "items": [
+                {
+                  "text": "Quiero {{agua}}."
+                },
+                {
+                  "text": "Un {{café}}, por favor."
+                }
+              ]
+            },
+            {
+              "type": "gaps",
+              "instruction": "Fill in the blank.",
+              "items": [
+                {
+                  "text": "Bebo {{leche}}."
+                }
+              ]
+            },
+            {
+              "type": "choice",
+              "instruction": "Choose the right word.",
+              "items": [
+                {
+                  "text": "{{la leche}} = milk",
+                  "options": [
+                    "la leche",
+                    "el pan"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Eating",
+          "explanation": {
+            "format": "blocks",
+            "blocks": [
+              {
+                "type": "text",
+                "text": "*el pan* = bread, *la manzana* = apple, *comer* = to eat."
+              }
+            ]
+          },
+          "exercises": [
+            {
+              "type": "gaps",
+              "instruction": "Fill in the blank.",
+              "items": [
+                {
+                  "text": "Como {{pan}}."
+                },
+                {
+                  "text": "Me gusta la {{manzana}}."
+                }
+              ]
+            },
+            {
+              "type": "gaps",
+              "instruction": "Fill in the blank.",
+              "items": [
+                {
+                  "text": "Quiero {{comer}}."
+                }
+              ]
+            },
+            {
+              "type": "choice",
+              "instruction": "Choose the right word.",
+              "items": [
+                {
+                  "text": "{{el pan}} = bread",
+                  "options": [
+                    "el pan",
+                    "el agua"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Numbers",
+      "topics": [
+        {
+          "title": "One to five",
+          "explanation": {
+            "format": "blocks",
+            "blocks": [
+              {
+                "type": "text",
+                "text": "*uno, dos, tres, cuatro, cinco*."
+              }
+            ]
+          },
+          "exercises": [
+            {
+              "type": "gaps",
+              "instruction": "Fill in the blank.",
+              "items": [
+                {
+                  "text": "{{uno}}, {{dos}}, {{tres}}."
+                }
+              ]
+            },
+            {
+              "type": "gaps",
+              "instruction": "Fill in the blank.",
+              "items": [
+                {
+                  "text": "Tengo {{cuatro}} libros."
+                },
+                {
+                  "text": "Son las {{cinco}}."
+                }
+              ]
+            },
+            {
+              "type": "choice",
+              "instruction": "Choose the right word.",
+              "items": [
+                {
+                  "text": "{{tres}} = 3",
+                  "options": [
+                    "tres",
+                    "seis"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Six to ten",
+          "explanation": {
+            "format": "blocks",
+            "blocks": [
+              {
+                "type": "text",
+                "text": "*seis, siete, ocho, nueve, diez*."
+              }
+            ]
+          },
+          "exercises": [
+            {
+              "type": "gaps",
+              "instruction": "Fill in the blank.",
+              "items": [
+                {
+                  "text": "{{seis}}, {{siete}}, {{ocho}}."
+                }
+              ]
+            },
+            {
+              "type": "gaps",
+              "instruction": "Fill in the blank.",
+              "items": [
+                {
+                  "text": "Tengo {{nueve}} años."
+                },
+                {
+                  "text": "Son las {{diez}}."
+                }
+              ]
+            },
+            {
+              "type": "choice",
+              "instruction": "Choose the right word.",
+              "items": [
+                {
+                  "text": "{{ocho}} = 8",
+                  "options": [
+                    "ocho",
+                    "nueve"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

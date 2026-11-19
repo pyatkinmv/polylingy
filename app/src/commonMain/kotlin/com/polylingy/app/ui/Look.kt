@@ -101,6 +101,11 @@ object Look {
     val ToReview = Color(0xFFC3D35A)
     val Learned = Color(0xFF6DB383)
     val LearnedForGood = Color(0xFF1F6B3F)
+
+    /** Extra practice has colours of its own, so it is never taken for the plan (green). */
+    val Practice = Color(0xFF2B6C99)
+    val PracticeBg = Color(0xFFE1EDF3)
+    val PracticeEdge = Color(0xFFC9DDEA)
 }
 
 private val Scheme = lightColorScheme(
@@ -304,6 +309,17 @@ fun StubButton(text: String) {
         border = androidx.compose.foundation.BorderStroke(1.5.dp, Look.Rule),
         colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(contentColor = Look.Faint),
     ) { Text(text) }
+}
+
+/** The button that starts extra practice: outlined in the practice blue. */
+@Composable
+fun PracticeButton(onClick: () -> Unit, text: String = "Extra practice") {
+    OutlinedButton(
+        onClick = onClick,
+        shape = RoundedCornerShape(8.dp),
+        border = androidx.compose.foundation.BorderStroke(1.5.dp, Look.Practice),
+        colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(contentColor = Look.Practice),
+    ) { Text(text, fontWeight = FontWeight.SemiBold) }
 }
 
 @Composable

@@ -42,7 +42,7 @@ import com.polylingy.app.ui.Look
 import com.polylingy.app.ui.Page
 import com.polylingy.app.ui.CardProgress
 import com.polylingy.app.ui.ProgressRing
-import com.polylingy.app.ui.StubButton
+import com.polylingy.app.ui.PracticeButton
 import com.polylingy.app.ui.Tile
 import com.polylingy.app.ui.TopBar
 import com.polylingy.app.ui.TopicState
@@ -58,6 +58,7 @@ import com.polylingy.core.content.Topic
 import com.polylingy.core.learning.TopicStatus
 import com.polylingy.core.ports.Clock
 import com.polylingy.core.study.NextExercise
+import com.polylingy.core.study.PracticeScope
 import com.polylingy.core.study.ProgressCounts
 import com.polylingy.core.study.TopicProgress
 import kotlinx.datetime.LocalDate
@@ -101,7 +102,8 @@ fun CourseScreen(viewModel: CourseViewModel, clock: Clock, go: Navigator) {
                 course.description?.let { InlineText(it, style = MaterialTheme.typography.bodyLarge.copy(color = Look.Muted)) }
             }
             if (course.studyOnly) NewerVersionNote()
-            TodayHero(p.counts, next, today, accent, p.newPerDay) { go.follow(course.id, viewModel.continueStudy()) }
+            val practisable by viewModel.practisable.collectAsState()
+            TodayHero(p.counts, next, today, accent, p.newPerDay, onPractise = if (practisable) ({ go.practice(course.id, PracticeScope.Course) }) else null) { go.follow(course.id, viewModel.continueStudy()) }
             if (course.units.isNotEmpty()) {
                 ListTitle("Units", if (editable) "＋ Add unit" else null) { go.edit(course.id, CoursePart.Unit(null)) }
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -165,7 +167,11 @@ fun UnitScreen(viewModel: CourseViewModel, unitId: Uuid, clock: Clock, go: Navig
                 unit.unit.subtitle?.let { InlineText(it, style = MaterialTheme.typography.bodyLarge.copy(color = Look.Muted)) }
             }
             // The daily limit belongs to the course: the unit's new topics are offered only as far as it allows today.
-            TodayHero(ProgressCounts.of(unit.topics, p.newToday), next, today, Look.Green, p.newPerDay) {
+            val practisable by viewModel.practisable.collectAsState()
+            TodayHero(
+                ProgressCounts.of(unit.topics, p.newToday), next, today, Look.Green, p.newPerDay,
+                onPractise = if (practisable) ({ go.practice(course.id, PracticeScope.Unit(unitId)) }) else null,
+            ) {
                 go.follow(course.id, viewModel.continueStudy())
             }
             ListTitle("Topics", if (editable) "＋ Add topic" else null) { go.edit(course.id, CoursePart.Topic(unitId, null)) }
@@ -224,9 +230,14 @@ fun TopicScreen(viewModel: CourseViewModel, topicId: Uuid, clock: Clock, go: Nav
                     }
                 }
             }
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                StubButton("Extra practice")
-                Text("coming later", color = Look.Faint, fontSize = 13.sp)
+            if (topic.status is TopicStatus.Passed || topic.status == TopicStatus.Learned) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    PracticeButton({ go.practice(course.id, PracticeScope.Topic(topicId)) })
+                    Text(
+                        "Every exercise of this topic once, the way the course’s settings choose them. Doesn’t change when it comes back.",
+                        Modifier.weight(1f), color = Look.Faint, fontSize = 13.sp,
+                    )
+                }
             }
         }
     }
@@ -237,7 +248,7 @@ fun TopicScreen(viewModel: CourseViewModel, topicId: Uuid, clock: Clock, go: Nav
  * "Continue" — or, when nothing is left, when the next review is.
  */
 @Composable
-private fun TodayHero(counts: ProgressCounts, next: NextExercise?, today: LocalDate, accent: Color, newPerDay: Int?, onContinue: () -> Unit) {
+private fun TodayHero(counts: ProgressCounts, next: NextExercise?, today: LocalDate, accent: Color, newPerDay: Int?, onPractise: (() -> Unit)? = null, onContinue: () -> Unit) {
     Hero(
         accent,
         content = {
@@ -255,7 +266,7 @@ private fun TodayHero(counts: ProgressCounts, next: NextExercise?, today: LocalD
             ProgressRing(counts, 58.dp)
             if (next != null) Button(onClick = onContinue, colors = ButtonDefaults.buttonColors(containerColor = accent), shape = RoundedCornerShape(8.dp)) {
                 Text("Continue →")
-            } else StubButton("Extra practice")
+            } else if (onPractise != null) PracticeButton(onPractise)
         }
     }
 }

@@ -33,7 +33,7 @@ import com.polylingy.app.Navigator
 import com.polylingy.app.course.TheoryButton
 import com.polylingy.app.ui.Look
 import com.polylingy.app.ui.Page
-import com.polylingy.app.ui.StubButton
+import com.polylingy.app.ui.PracticeButton
 import com.polylingy.app.ui.TopBar
 import com.polylingy.app.ui.dayPhrase
 import com.polylingy.content.Block
@@ -45,6 +45,7 @@ import com.polylingy.content.compose.ExerciseView
 import com.polylingy.content.compose.ExplanationView
 import com.polylingy.content.compose.ImageLoader
 import com.polylingy.core.content.Course
+import com.polylingy.core.study.PracticeScope
 import kotlinx.datetime.LocalDate
 
 @Composable
@@ -74,8 +75,8 @@ fun StudyScreen(viewModel: StudyViewModel, images: ImageLoader, today: LocalDate
             if (course != null && unit?.theory != null) TheoryButton(Look.Green) { go.theory(course.id, unit.id, back = true) }
         }
         when (val s = state) {
-            is StudyState.Exercise -> ExerciseBody(s, course!!, links!!, images, today, viewModel, go)
-            is StudyState.Done -> DoneBody(s, viewModel.unitId != null, today, go)
+            is StudyState.Exercise -> ExerciseBody(s, course!!, links!!, images, today, viewModel::change, viewModel::check, viewModel::next, go)
+            is StudyState.Done -> DoneBody(s, viewModel.unitId != null, today, go) { viewModel.unitId?.let { id -> go.practice(viewModel.courseId, PracticeScope.Unit(id)) } ?: go.practice(viewModel.courseId, PracticeScope.Course) }
             StudyState.Missing -> Page {
                 Text("Nothing to show here.", color = Look.Muted)
                 Button(onClick = go::back) { Text("Back") }
@@ -84,14 +85,17 @@ fun StudyScreen(viewModel: StudyViewModel, images: ImageLoader, today: LocalDate
     }
 }
 
+/** One exercise with its check and its explanations; shared by studying and by extra practice. */
 @Composable
-private fun ExerciseBody(
+internal fun ExerciseBody(
     state: StudyState.Exercise,
     course: Course,
     links: CourseLinks,
     images: ImageLoader,
     today: LocalDate,
-    viewModel: StudyViewModel,
+    onChange: (com.polylingy.content.Response) -> Unit,
+    onCheck: () -> Unit,
+    onNext: () -> Unit,
     go: Navigator,
 ) {
     val accent = Look.Green
@@ -114,8 +118,8 @@ private fun ExerciseBody(
                 exercise = state.next.exercise,
                 response = state.response,
                 checks = state.checks,
-                onChange = viewModel::change,
-                onSubmit = viewModel::check,
+                onChange = onChange,
+                onSubmit = onCheck,
                 onLink = onLink,
                 seed = state.seed,
             )
@@ -129,11 +133,11 @@ private fun ExerciseBody(
             val colors = Look.buttonColors(accent)
             if (state.outcome == null) {
                 val complete = state.next.exercise.isComplete(state.response)
-                Button(onClick = viewModel::check, enabled = complete, colors = colors, shape = RoundedCornerShape(8.dp)) { Text("Check") }
+                Button(onClick = onCheck, enabled = complete, colors = colors, shape = RoundedCornerShape(8.dp)) { Text("Check") }
                 if (!complete) Text("Answer every item to check", color = Look.Faint, fontSize = 13.sp)
                 else if (state.next.exercise.hasBlanks()) Text("Tab — next blank · Enter — check", color = Look.Faint, fontSize = 13.sp)
             } else {
-                Button(onClick = viewModel::next, colors = colors, shape = RoundedCornerShape(8.dp)) { Text("Next →") }
+                Button(onClick = onNext, colors = colors, shape = RoundedCornerShape(8.dp)) { Text("Next →") }
             }
         }
     }
@@ -142,7 +146,7 @@ private fun ExerciseBody(
 private fun Exercise.hasBlanks() = this is Exercise.Gaps || this is Exercise.Pictures || this is Exercise.Table
 
 @Composable
-private fun DoneBody(state: StudyState.Done, inUnit: Boolean, today: LocalDate, go: Navigator) {
+private fun DoneBody(state: StudyState.Done, inUnit: Boolean, today: LocalDate, go: Navigator, onPractise: () -> Unit) {
     val counts = state.counts
     Box(Modifier.fillMaxWidth().padding(top = 72.dp), contentAlignment = Alignment.TopCenter) {
         Column(Modifier.padding(horizontal = 32.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -166,8 +170,9 @@ private fun DoneBody(state: StudyState.Done, inUnit: Boolean, today: LocalDate, 
             )
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Button(onClick = go::back, shape = RoundedCornerShape(8.dp)) { Text(if (inUnit) "Back to the unit" else "Back to the course") }
-                StubButton("Extra practice")
+                if (state.canPractise) PracticeButton(onPractise)
             }
+            if (state.canPractise) Text("Extra practice goes over what you have already seen and doesn’t change your plan.", color = Look.Faint, fontSize = 13.sp)
         }
     }
 }
