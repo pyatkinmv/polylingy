@@ -148,10 +148,63 @@ object MoveOn : Focus {
 
 // Picker: exercise
 
-/** A random exercise other than the last one, unless it is the only one. */
+/** A random exercise other than the last one answered, unless it is the only one. */
 class RandomNotLast(private val random: Random) : ExerciseChoice {
-    override fun choose(exercises: List<Exercise>, last: Uuid?): Exercise {
+    override fun choose(exercises: List<Exercise>, history: List<TopicAnswer>): Exercise {
         require(exercises.isNotEmpty()) { "a topic needs an exercise to show" }
+        val last = history.lastOrNull()?.exerciseId
         return exercises.filter { it.id != last }.ifEmpty { exercises }.random(random)
     }
+}
+
+/** The exercise after the one answered last, in the order of the course, and the first again after the last one: round robin. */
+object InCourseOrder : ExerciseChoice {
+    override fun choose(exercises: List<Exercise>, history: List<TopicAnswer>): Exercise {
+        require(exercises.isNotEmpty()) { "a topic needs an exercise to show" }
+        return nextAfterLast(exercises, exercises, history.lastOrNull()?.exerciseId)
+    }
+}
+
+/**
+ * Brings back what was missed, but never in the round it was missed in:
+ *  1. an exercise whose last answer was wrong, given in an earlier round, with no right answer since: the one missed longest ago;
+ *  2. otherwise the next in the order of the course after the last answered, skipping what was missed in this round and the one
+ *     just shown, while any other is left;
+ *  3. if every exercise was missed in this round, the next in the order of the course after the last answered, all of them
+ *     being left (the one just shown still never twice in a row unless it is the only one).
+ */
+object MissedFirst : ExerciseChoice {
+    override fun choose(exercises: List<Exercise>, history: List<TopicAnswer>): Exercise {
+        require(exercises.isNotEmpty()) { "a topic needs an exercise to show" }
+        val offered = exercises.mapTo(mutableSetOf()) { it.id }
+        val answers = history.filter { it.exerciseId in offered }
+        // for each exercise: where its run of wrong answers began (null when the last answer was right) and whether its last answer is of this round
+        val missedSince = HashMap<Uuid, Int>()
+        val lastInRound = HashMap<Uuid, Boolean>()
+        answers.forEachIndexed { i, a ->
+            if (a.passed) missedSince.remove(a.exerciseId) else missedSince.putIfAbsent(a.exerciseId, i)
+            lastInRound[a.exerciseId] = a.inCurrentRound
+        }
+        val earlier = missedSince.filterKeys { lastInRound[it] == false }
+        if (earlier.isNotEmpty()) {
+            val oldest = earlier.minBy { it.value }.key
+            return exercises.first { it.id == oldest }
+        }
+        val last = answers.lastOrNull()?.exerciseId
+        val missedNow = missedSince.keys
+        val others = exercises.filter { it.id != last && it.id !in missedNow }
+        val pool = others.ifEmpty { exercises.filter { it.id != last } }.ifEmpty { exercises }
+        return nextAfterLast(exercises, pool, last)
+    }
+}
+
+/** From [pool] (a part of [exercises]), the first that comes after [last] in the order of [exercises], wrapping round. */
+private fun nextAfterLast(exercises: List<Exercise>, pool: List<Exercise>, last: Uuid?): Exercise {
+    val at = exercises.indexOfFirst { it.id == last }
+    val allowed = pool.mapTo(mutableSetOf()) { it.id }
+    for (step in 1..exercises.size) {
+        val candidate = exercises[(at + step).mod(exercises.size)]
+        if (candidate.id in allowed) return candidate
+    }
+    return pool.first()
 }

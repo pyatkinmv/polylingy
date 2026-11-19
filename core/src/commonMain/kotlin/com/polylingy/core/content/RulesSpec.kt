@@ -124,17 +124,34 @@ sealed interface SchedulerSpec {
     @Serializable @SerialName("sm2") data object Sm2 : SchedulerSpec
 }
 
-/** What comes next in a session (docs/learning-model.md, section 7, «Пикер»). [newPerDay] — new topics a day; null — no limit. */
+/** Which exercise of a topic is shown next (docs/learning-model.md, section 7, «Пикер»). */
+@Serializable
+enum class ExerciseSpec {
+    /** A random one, never the one answered last. */
+    @SerialName("random-not-last") RANDOM_NOT_LAST,
+
+    /** One after another in the order of the course, round and round. */
+    @SerialName("in-order") IN_ORDER,
+
+    /** First the one missed longest ago and not answered right since, but never in the round it was missed in; then in order. */
+    @SerialName("missed-first") MISSED_FIRST,
+}
+
+/**
+ * What comes next in a session (docs/learning-model.md, section 7, «Пикер»). [newPerDay] — new topics a day; null — no limit.
+ * [exercise] — which exercise of a topic is shown; it is chosen apart from the three kinds of picker.
+ */
 @Serializable
 sealed interface PickerSpec {
     val newPerDay: Int?
+    val exercise: ExerciseSpec
 
     /** Started → due → new, in course order; stays on a topic until its round is over. */
-    @Serializable @SerialName("conveyor") data class Conveyor(override val newPerDay: Int? = null) : PickerSpec
+    @Serializable @SerialName("conveyor") data class Conveyor(override val newPerDay: Int? = null, override val exercise: ExerciseSpec = ExerciseSpec.RANDOM_NOT_LAST) : PickerSpec
 
     /** Started → due → new, each group in random order; stays on a topic until its round is over. */
-    @Serializable @SerialName("shuffle") data class Shuffle(override val newPerDay: Int? = null) : PickerSpec
+    @Serializable @SerialName("shuffle") data class Shuffle(override val newPerDay: Int? = null, override val exercise: ExerciseSpec = ExerciseSpec.RANDOM_NOT_LAST) : PickerSpec
 
     /** Started → due → new, in course order; another topic after every answer. */
-    @Serializable @SerialName("alternate") data class Alternate(override val newPerDay: Int? = null) : PickerSpec
+    @Serializable @SerialName("alternate") data class Alternate(override val newPerDay: Int? = null, override val exercise: ExerciseSpec = ExerciseSpec.RANDOM_NOT_LAST) : PickerSpec
 }

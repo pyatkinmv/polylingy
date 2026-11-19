@@ -12,6 +12,7 @@ import androidx.compose.ui.test.performScrollTo
 import com.polylingy.app.AppContainer
 import com.polylingy.content.CourseStyle
 import com.polylingy.content.Response
+import com.polylingy.core.content.ExerciseSpec
 import com.polylingy.core.content.GradingSpec
 import com.polylingy.core.content.MasterySpec
 import com.polylingy.core.content.PickerSpec
@@ -108,7 +109,7 @@ class SettingsUiTest {
 
         click("Irregular verbs")
         click("Study settings")
-        see("Nothing that affects progress has changed. Question 4 and the daily limit never recount progress.")
+        see("Nothing that affects progress has changed. Questions 4 and 5 and the daily limit never recount progress.")
         screenshot("settings-bottom")
     }
 
@@ -149,6 +150,12 @@ class SettingsUiTest {
         see("Another topic after every answer", substring = true)
         tap("No limit")
         step("New topics a day, fewer")
+        see("Example: C → A → D → B → E → A → D …")
+        tap("In course order")
+        see("Example: A → B → C → D → E → A → B …")
+        tap("Missed ones first")
+        see("Last round (it ended when the topic was learned):")
+        see("If every exercise was missed in the round, they are all brought back in course order, so there is always something to show.")
         screenshot("settings-custom-bottom")
         tap("Save")
 
@@ -156,7 +163,7 @@ class SettingsUiTest {
         assertEquals(GradingSpec.Threshold(0.8, typos = false), saved.grading)
         assertEquals(MasterySpec.Consecutive(4, 2), saved.mastery)
         assertEquals(SchedulerSpec.Ladder(retire = false), saved.scheduler)
-        assertEquals(PickerSpec.Alternate(newPerDay = 9), saved.picker)
+        assertEquals(PickerSpec.Alternate(newPerDay = 9, exercise = ExerciseSpec.MISSED_FIRST), saved.picker)
         assertTrue(test.onAllNodes(hasText("9 new a day", substring = true)).fetchSemanticsNodes().isNotEmpty())
     }
 
@@ -175,9 +182,10 @@ class SettingsUiTest {
         open()
         tap("Shuffle")
         step("New topics a day, more")
-        see("Nothing that affects progress has changed. Question 4 and the daily limit never recount progress.")
+        see("Nothing that affects progress has changed. Questions 4 and 5 and the daily limit never recount progress.")
         tap("Save")
         assertEquals(PickerSpec.Shuffle(newPerDay = 11), settings().picker)
+        assertEquals(ExerciseSpec.RANDOM_NOT_LAST, settings().picker!!.exercise, "an untouched course keeps the old way of choosing")
         assertEquals(RulesSpec(Preset.LADDER).resolved().mastery, settings().mastery)
     }
 

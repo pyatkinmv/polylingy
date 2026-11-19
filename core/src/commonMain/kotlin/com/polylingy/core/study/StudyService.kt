@@ -15,6 +15,8 @@ import com.polylingy.core.content.of
 import com.polylingy.core.learning.Candidate
 import com.polylingy.core.learning.Group
 import com.polylingy.core.learning.CourseRules
+import com.polylingy.core.learning.PassFail
+import com.polylingy.core.learning.TopicAnswer
 import com.polylingy.core.learning.TopicStatus
 import com.polylingy.core.learning.replay
 import com.polylingy.core.learning.status
@@ -207,7 +209,7 @@ class StudyService(
      * Builds the candidates from replay() and asks the picker's three parts in turn: the queue (which topics and in what
      * order), the focus (stay or move on), the exercise choice. Nothing is decided here.
      */
-    private fun <M, G> nextWith(course: Course, rules: CourseRules<M, G>, unitId: Uuid?, current: Uuid?, lastExercise: Uuid?): NextExercise? {
+    private fun <M> nextWith(course: Course, rules: CourseRules<M, PassFail>, unitId: Uuid?, current: Uuid?, lastExercise: Uuid?): NextExercise? {
         val states = replay(course, journal.all(), rules)
         val today = clock.now().localDate
         val topics = (if (unitId != null) course.units.firstOrNull { it.id == unitId }?.topics.orEmpty() else course.allTopics)
@@ -226,15 +228,36 @@ class StudyService(
         val picked = rules.picker.focus.pick(queue, current) ?: return null.also { log.debug { "Nothing left today in course ${course.id}" } }
         log.debug { "Picked topic $picked from a queue of ${queue.size}" }
         val topic = topics.first { it.id == picked }
-        return NextExercise(topic, unitOf(course, topic), rules.picker.exercise.choose(topic.offered(course.display()), lastAnswered(course, topic) ?: lastExercise))
+        val history = historyOf(course, topic, rules, states.getValue(topic.id).round.size, lastExercise)
+        return NextExercise(topic, unitOf(course, topic), rules.picker.exercise.choose(topic.offered(course.display()), history))
     }
 
     /** An exercise of a topic the learner chose, whatever its status: practising early counts as a round. */
     fun practise(courseId: Uuid, topicId: Uuid, lastExercise: Uuid? = null): NextExercise? {
         val course = courses.get(courseId) ?: return null
         val topic = course.allTopics.firstOrNull { it.id == topicId }?.takeIf { it.playable().isNotEmpty() } ?: return null
-        val exercise = course.rules().picker.exercise.choose(topic.offered(course.display()), lastExercise ?: lastAnswered(course, topic))
+        return practiseWith(course, topic, course.rules(), lastExercise)
+    }
+
+    private fun <M> practiseWith(course: Course, topic: Topic, rules: CourseRules<M, PassFail>, lastExercise: Uuid?): NextExercise {
+        val roundSize = replay(course, journal.all(), rules).getValue(topic.id).round.size
+        val exercise = rules.picker.exercise.choose(topic.offered(course.display()), historyOf(course, topic, rules, roundSize, lastExercise))
         return NextExercise(topic, unitOf(course, topic), exercise)
+    }
+
+    /**
+     * What [ExerciseChoice] is told about the topic: its earlier answers, oldest first, each with whether it passed by the course's
+     * grading and whether it belongs to the topic's current round ([roundSize] of its last counted answers). An exercise shown
+     * on the screen but not in the journal (the [lastExercise]) counts as the last answer, so it is not shown twice in a row.
+     */
+    private fun <M> historyOf(course: Course, topic: Topic, rules: CourseRules<M, PassFail>, roundSize: Int, lastExercise: Uuid?): List<TopicAnswer> {
+        val ids = topic.exercises.mapTo(mutableSetOf()) { it.id }
+        val graded = journal.all().sortedBy { it.occurredAt.instant }
+            .mapNotNull { e -> (e.event as? AnswerSubmitted)?.takeIf { it.courseId == course.id && it.topicId == topic.id && it.exerciseId in ids } }
+            .mapNotNull { a -> rules.grading.grade(a)?.let { a to it } }
+        val firstOfRound = graded.size - roundSize
+        val history = graded.mapIndexed { i, (a, grade) -> TopicAnswer(a.exerciseId, grade == PassFail.PASS, i >= firstOfRound) }
+        return if (lastExercise != null && history.lastOrNull()?.exerciseId != lastExercise) history + TopicAnswer(lastExercise, true, false) else history
     }
 
     /**
@@ -272,7 +295,7 @@ class StudyService(
         return unit.unit.theory != null && !unit.started
     }
 
-    private fun Course.rules(): CourseRules<*, *> = settings.of(this).toRules(random)
+    private fun Course.rules(): CourseRules<*, PassFail> = settings.of(this).toRules(random)
 
     private fun Course.display(): DisplaySpec = settings.of(this).resolved().display ?: DisplaySpec()
 
@@ -290,10 +313,6 @@ class StudyService(
             topic.id to TopicProgress(topic, state.status(rules.scheduler, today), studied = state.memory != null)
         }
     }
-
-    /** The exercise of [topic] answered last, from the journal. */
-    private fun lastAnswered(course: Course, topic: Topic): Uuid? =
-        journal.all().mapNotNull { it.event as? AnswerSubmitted }.lastOrNull { it.courseId == course.id && it.topicId == topic.id }?.exerciseId
 
     private fun unitOf(course: Course, topic: Topic): CourseUnit? = course.units.firstOrNull { unit -> unit.topics.any { it.id == topic.id } }
 

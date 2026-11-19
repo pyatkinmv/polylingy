@@ -6,6 +6,7 @@ import com.polylingy.content.ItemResult.TYPO
 import com.polylingy.content.ItemResult.WRONG
 import com.polylingy.content.Response
 import com.polylingy.core.at
+import com.polylingy.core.content.ExerciseSpec
 import com.polylingy.core.content.GradingSpec
 import com.polylingy.core.content.MasterySpec
 import com.polylingy.core.content.PickerSpec
@@ -165,9 +166,10 @@ class PoliciesTest {
     @Test fun randomNotLastNeverRepeatsAnExerciseUnlessItIsTheOnlyOne() {
         val one = com.polylingy.core.exercise("one {{a}}")
         val two = com.polylingy.core.exercise("two {{b}}")
-        repeat(20) { assertSame(two, RandomNotLast(Random(it)).choose(listOf(one, two), last = one.id)) }
-        assertSame(one, RandomNotLast(Random(0)).choose(listOf(one), last = one.id))
-        assertEquals(setOf(one, two), (1..30).map { RandomNotLast(Random(it)).choose(listOf(one, two), null) }.toSet())
+        val afterOne = listOf(TopicAnswer(one.id, passed = true, inCurrentRound = false))
+        repeat(20) { assertSame(two, RandomNotLast(Random(it)).choose(listOf(one, two), afterOne)) }
+        assertSame(one, RandomNotLast(Random(0)).choose(listOf(one), afterOne))
+        assertEquals(setOf(one, two), (1..30).map { RandomNotLast(Random(it)).choose(listOf(one, two), emptyList()) }.toSet())
     }
 
     // presets
@@ -213,6 +215,8 @@ class PoliciesTest {
         assertSame(Stay, PickerSpec.Conveyor().toPicker(Random(0)).focus)
         assertSame(Stay, PickerSpec.Shuffle().toPicker(Random(0)).focus)
         assertIs<RandomNotLast>(PickerSpec.Conveyor().toPicker(Random(0)).exercise)
+        assertSame(InCourseOrder, PickerSpec.Shuffle(exercise = ExerciseSpec.IN_ORDER).toPicker(Random(0)).exercise)
+        assertSame(MissedFirst, PickerSpec.Alternate(newPerDay = 2, exercise = ExerciseSpec.MISSED_FIRST).toPicker(Random(0)).exercise)
     }
 
     @Test fun resolvedWritesEveryPartOutAndMatchesItsPreset() {

@@ -80,12 +80,18 @@ fun interface Focus {
 }
 
 /**
+ * One earlier answer to an exercise of a topic, as [ExerciseChoice] sees it: [passed] by the course's grading rule, and whether it
+ * was given in the topic's current round ([inCurrentRound]; when no round is under way, none is).
+ */
+data class TopicAnswer(val exerciseId: Uuid, val passed: Boolean, val inCurrentRound: Boolean)
+
+/**
  * Answers one question, and only this:
  *  4. which exercise of the chosen topic to show.
- * [last] — the exercise of this topic answered last, if any.
+ * [history] — the earlier answers to exercises of this topic, oldest first (derived from the journal; empty for a topic never answered).
  */
 fun interface ExerciseChoice {
-    fun choose(exercises: List<Exercise>, last: Uuid?): Exercise
+    fun choose(exercises: List<Exercise>, history: List<TopicAnswer>): Exercise
 }
 
 /** What comes next in a session: the three parts, each answering its own questions. */

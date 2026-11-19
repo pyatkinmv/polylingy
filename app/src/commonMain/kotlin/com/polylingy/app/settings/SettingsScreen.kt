@@ -68,6 +68,7 @@ import com.polylingy.app.ui.TopBar
 import com.polylingy.core.content.DisplaySpec
 import com.polylingy.core.content.GradingSpec
 import com.polylingy.core.content.MasterySpec
+import com.polylingy.core.content.ExerciseSpec
 import com.polylingy.core.content.PickerSpec
 import com.polylingy.core.content.Preset
 import com.polylingy.core.content.RulesSpec
@@ -138,6 +139,7 @@ fun SettingsScreen(viewModel: SettingsViewModel, today: LocalDate, go: Navigator
             ComesBack(draft.scheduler!!, viewModel.plan(if (draft.scheduler is SchedulerSpec.Sm2) 4 else 6), today, viewModel)
             HorizontalDivider(color = Look.Line)
             WhatComesNext(draft.picker!!, viewModel)
+            WhichExercise(draft.picker!!.exercise, viewModel)
             CourseLookCard(draft.display ?: DisplaySpec(), viewModel)
             HowItLooks(draft.display ?: DisplaySpec(), viewModel.typing, viewModel)
             Recount(viewModel.recounts, viewModel.before, after)
@@ -545,7 +547,7 @@ private fun ComesBack(scheduler: SchedulerSpec, plan: ReviewPlan, today: LocalDa
 @Composable
 private fun WhatComesNext(picker: PickerSpec, viewModel: SettingsViewModel) {
     Question(4, "What comes next in a session?", "order", fill = Look.Muted) {
-        Text("Not part of the sets: it changes only the order you see topics in, never what’s learned.", color = Look.Muted, fontSize = 14.sp)
+        Text("Not part of the sets: it changes only the order you see topics in, never what’s learned. Which exercise of a topic comes next is question 5.", color = Look.Muted, fontSize = 14.sp)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Choice("Conveyor", picker is PickerSpec.Conveyor) { viewModel.picker(PickerKind.CONVEYOR) }
             Choice("Shuffle", picker is PickerSpec.Shuffle) { viewModel.picker(PickerKind.SHUFFLE) }
@@ -568,6 +570,66 @@ private fun WhatComesNext(picker: PickerSpec, viewModel: SettingsViewModel) {
     }
 }
 
+/** How an exercise looks in a drawn example: [mark] — what happened to it; [back] — it comes back now because it was missed earlier. */
+private data class Ex(val letter: String, val mark: Boolean? = null, val back: Boolean = false)
+
+@Composable
+private fun ExerciseChip(ex: Ex) {
+    val shape = RoundedCornerShape(7.dp)
+    val bg = when (ex.mark) { true -> Color(0xFFE4F0E7); false -> Look.WrongBg; null -> Look.Card }
+    val ink = when (ex.mark) { true -> Color(0xFF1F5A39); false -> Look.Wrong; null -> Look.Ink }
+    Row(
+        Modifier.clip(shape).background(bg, shape).border(if (ex.back) 2.dp else 1.dp, if (ex.back) Look.Green else Look.LineHover, shape).padding(horizontal = 9.dp, vertical = 5.dp),
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(ex.letter, color = ink, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+        when (ex.mark) { true -> Text("✓", color = ink, fontSize = 12.sp); false -> Text("✗", color = ink, fontSize = 12.sp); null -> {} }
+    }
+}
+
+/** A row of exercises with a caption: what was answered before, or what comes now. */
+@Composable
+private fun ExerciseRow(caption: String, exercises: List<Ex>, arrows: Boolean = false) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(caption, color = Look.Muted, fontSize = 13.sp)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            exercises.forEachIndexed { i, ex ->
+                if (arrows && i > 0) Text("→", color = Look.Faint, modifier = Modifier.padding(top = 4.dp))
+                ExerciseChip(ex)
+            }
+        }
+    }
+}
+
+@Composable
+private fun WhichExercise(exercise: ExerciseSpec, viewModel: SettingsViewModel) {
+    Question(5, "Which exercise of a topic?", "exercise", fill = Look.Muted) {
+        Text("Not part of the sets: it changes only which exercise you get, never what’s learned. Shown here for a topic of five exercises, A to E.", color = Look.Muted, fontSize = 14.sp)
+        ChoiceRow("Random, never the last", "Any exercise of the topic, but not the one you just had.", exercise == ExerciseSpec.RANDOM_NOT_LAST) { viewModel.exercise(ExerciseSpec.RANDOM_NOT_LAST) }
+        ChoiceRow("In course order", "One after another in the order of the course, round and round.", exercise == ExerciseSpec.IN_ORDER) { viewModel.exercise(ExerciseSpec.IN_ORDER) }
+        ChoiceRow(
+            "Missed ones first",
+            "What you missed and haven’t got right since comes back first, the one missed longest ago first, but never in the round you missed it in. Otherwise in course order.",
+            exercise == ExerciseSpec.MISSED_FIRST,
+        ) { viewModel.exercise(ExerciseSpec.MISSED_FIRST) }
+        when (exercise) {
+            ExerciseSpec.RANDOM_NOT_LAST -> Example("Example: C → A → D → B → E → A → D …", "The same exercise can come twice before another one is seen.")
+            ExerciseSpec.IN_ORDER -> Example("Example: A → B → C → D → E → A → B …", "Every exercise once before any comes again.")
+            ExerciseSpec.MISSED_FIRST -> Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                ExerciseRow(
+                    "Last round (it ended when the topic was learned):",
+                    listOf(Ex("A", true), Ex("B", false), Ex("C", true), Ex("D", false), Ex("E", true), Ex("A", true), Ex("B", true)),
+                    arrows = true,
+                )
+                ExerciseRow("This round: D comes first (missed, never right since); B was got right later, so it is not brought back.", listOf(Ex("D", back = true), Ex("E"), Ex("A"), Ex("B"), Ex("C")), arrows = true)
+                ExerciseRow("Missing D again now: it waits for the next round, and this round goes on in order:", listOf(Ex("D", false), Ex("E"), Ex("A"), Ex("B")), arrows = true)
+                Text("If every exercise was missed in the round, they are all brought back in course order, so there is always something to show.", color = Look.Muted, fontSize = 13.sp)
+            }
+        }
+    }
+}
+
 /** What saving does to progress: questions 1–3 recount it from all answers; numbers before and after. */
 @Composable
 private fun Recount(recounts: Boolean, before: ProgressCounts?, after: ProgressCounts?) {
@@ -576,7 +638,7 @@ private fun Recount(recounts: Boolean, before: ProgressCounts?, after: ProgressC
         "Questions 1–3 changed: on Save your progress is recounted from all your answers — " +
             "learned ${before.learned} → ${after.learned} · to review ${before.toReview} → ${after.toReview}. Your answers themselves stay."
     } else {
-        "Nothing that affects progress has changed. Question 4 and the daily limit never recount progress."
+        "Nothing that affects progress has changed. Questions 4 and 5 and the daily limit never recount progress."
     }
     Text(
         text,

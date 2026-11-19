@@ -86,6 +86,10 @@ class BigJournalTest {
         val progress = measureTime { assertNotNull(study.progress(course.id)) }
         val progressAgain = measureTime { study.progress(course.id) }
         val next = measureTime { assertNotNull(study.next(course.id)) }
+        // the choice of the exercise reads the topic's answers from the journal: time it with the one that reads most
+        storage.courseSettings.save(course.id, com.polylingy.core.content.RulesSpec(picker = com.polylingy.core.content.PickerSpec.Conveyor(newPerDay = 4, exercise = com.polylingy.core.content.ExerciseSpec.MISSED_FIRST)), clock.now().instant)
+        val nextMissed = measureTime { assertNotNull(study.next(course.id)) }
+        println("PERF next exercise with missed-first: $nextMissed")
         val answered = study.next(course.id)!!
         val answer = measureTime { study.answer(course.id, answered.topic.id, answered.exercise.id, answered.exercise.solvedResponse()) }
 
@@ -102,7 +106,7 @@ class BigJournalTest {
         println("PERF answer one exercise: $answer")
 
         // Generous limits: they are here to catch a change that makes a screen unusable, not to measure.
-        for ((what, time) in listOf("progress" to progressAgain, "next exercise" to next, "answer" to answer, "statistics" to statsAgain, "the streak" to streak)) {
+        for ((what, time) in listOf("progress" to progressAgain, "next exercise" to next, "next exercise, missed first" to nextMissed, "answer" to answer, "statistics" to statsAgain, "the streak" to streak)) {
             assertTrue(time < 3.seconds, "$what took $time on a journal of $answers answers")
         }
     }

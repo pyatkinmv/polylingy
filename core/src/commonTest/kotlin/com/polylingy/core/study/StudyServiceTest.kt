@@ -9,6 +9,10 @@ import com.polylingy.core.InMemoryCourseSettings
 import com.polylingy.core.InMemoryEventLog
 import com.polylingy.core.at
 import com.polylingy.core.content.Course
+import com.polylingy.core.content.RulesSpec
+import com.polylingy.core.content.PickerSpec
+import com.polylingy.core.content.MasterySpec
+import com.polylingy.core.content.ExerciseSpec
 import com.polylingy.core.content.CourseJson
 import com.polylingy.core.journal.AnswerSubmitted
 import com.polylingy.core.learning.TopicStatus
@@ -269,6 +273,35 @@ class StudyServiceTest {
         val (study, _) = service(course)
         assertNotEquals(null, study.progress(course.id)!!.topics.firstOrNull())
         assertNull(study.next(course.id)!!.unit)
+    }
+
+    @Test fun missedFirstBringsAMissBackInTheNextRoundNeverInTheSameOne() {
+        val course = CourseJson.read(
+            """{ "formatVersion": 1, "name": "Course", "topics": [ { "title": "T", "exercises": [ ${gaps("a")}, ${gaps("b")}, ${gaps("c")}, ${gaps("d")} ] } ] }""",
+            clock.now().instant,
+        ).course
+        val (study, _) = service(course)
+        settings.save(course.id, RulesSpec(mastery = MasterySpec.Consecutive(2, 1), picker = PickerSpec.Conveyor(exercise = ExerciseSpec.MISSED_FIRST)), clock.now().instant)
+        val topic = course.topics.single()
+        val (a, b, c) = topic.exercises
+        fun answer(exercise: Exercise, right: Boolean) = study.answer(course.id, topic.id, exercise.id, Response.Blanks(listOf(if (right) blankOf(exercise) else "nope")))
+
+        clock.now = at(LocalDate(2026, 11, 3))
+        answer(a, right = false)                  // round 1: A missed, then two right in a row: mastered
+        answer(b, right = true)
+        answer(c, right = true)
+
+        clock.now = at(LocalDate(2026, 11, 4))    // the review has come
+        assertEquals(a.id, study.next(course.id)!!.exercise.id, "A was missed in an earlier round and not answered right since")
+        answer(a, right = false)                  // missed again, now in this round
+        assertEquals(b.id, study.next(course.id)!!.exercise.id, "not A again in this round: the next in order, B")
+        answer(b, right = true)                   // a review needs one right answer: mastered
+
+        clock.now = at(LocalDate(2026, 11, 8))
+        assertEquals(a.id, study.next(course.id)!!.exercise.id, "A is still open from the last round")
+        answer(a, right = true)
+        clock.now = at(LocalDate(2026, 11, 20))
+        assertEquals(b.id, study.next(course.id)!!.exercise.id, "nothing is open any more: the next in order after A (the last answered)")
     }
 
     private fun LocalDate.plusDays(n: Int) = LocalDate.fromEpochDays(toEpochDays() + n)

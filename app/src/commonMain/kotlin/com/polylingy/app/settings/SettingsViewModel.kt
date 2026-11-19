@@ -6,6 +6,7 @@ import com.polylingy.core.content.DisplaySpec
 import com.polylingy.core.content.Course
 import com.polylingy.core.content.GradingSpec
 import com.polylingy.core.content.MasterySpec
+import com.polylingy.core.content.ExerciseSpec
 import com.polylingy.core.content.PickerSpec
 import com.polylingy.core.content.Preset
 import com.polylingy.core.content.RulesSpec
@@ -119,10 +120,21 @@ class SettingsViewModel(private val study: StudyService, private val clock: Cloc
 
     fun picker(kind: PickerKind) = update {
         val limit = picker.newPerDay
+        val exercise = picker.exercise
         it.copy(picker = when (kind) {
-            PickerKind.CONVEYOR -> PickerSpec.Conveyor(limit)
-            PickerKind.SHUFFLE -> PickerSpec.Shuffle(limit)
-            PickerKind.ALTERNATE -> PickerSpec.Alternate(limit)
+            PickerKind.CONVEYOR -> PickerSpec.Conveyor(limit, exercise)
+            PickerKind.SHUFFLE -> PickerSpec.Shuffle(limit, exercise)
+            PickerKind.ALTERNATE -> PickerSpec.Alternate(limit, exercise)
+        })
+    }
+
+    // 5. Which exercise of a topic?
+
+    fun exercise(spec: ExerciseSpec) = update {
+        it.copy(picker = when (val p = picker) {
+            is PickerSpec.Conveyor -> p.copy(exercise = spec)
+            is PickerSpec.Shuffle -> p.copy(exercise = spec)
+            is PickerSpec.Alternate -> p.copy(exercise = spec)
         })
     }
 

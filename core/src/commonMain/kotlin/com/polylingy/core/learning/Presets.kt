@@ -1,5 +1,6 @@
 package com.polylingy.core.learning
 
+import com.polylingy.core.content.ExerciseSpec
 import com.polylingy.core.content.GradingSpec
 import com.polylingy.core.content.MasterySpec
 import com.polylingy.core.content.PickerSpec
@@ -27,7 +28,14 @@ fun RulesSpec?.toRules(random: Random): CourseRules<*, PassFail> {
 
 /** The ready pickers (docs/learning-model.md, section 7, «Пикер»): which queue, focus and exercise choice each one is. */
 fun PickerSpec.toPicker(random: Random): Picker = when (this) {
-    is PickerSpec.Conveyor -> Picker(StartedFirst(newPerDay), Stay, RandomNotLast(random))
-    is PickerSpec.Shuffle -> Picker(Shuffled(newPerDay, random), Stay, RandomNotLast(random))
-    is PickerSpec.Alternate -> Picker(StartedFirst(newPerDay), MoveOn, RandomNotLast(random))
+    is PickerSpec.Conveyor -> Picker(StartedFirst(newPerDay), Stay, exercise.toChoice(random))
+    is PickerSpec.Shuffle -> Picker(Shuffled(newPerDay, random), Stay, exercise.toChoice(random))
+    is PickerSpec.Alternate -> Picker(StartedFirst(newPerDay), MoveOn, exercise.toChoice(random))
+}
+
+/** The part of a picker that chooses the exercise. */
+fun ExerciseSpec.toChoice(random: Random): ExerciseChoice = when (this) {
+    ExerciseSpec.RANDOM_NOT_LAST -> RandomNotLast(random)
+    ExerciseSpec.IN_ORDER -> InCourseOrder
+    ExerciseSpec.MISSED_FIRST -> MissedFirst
 }

@@ -409,6 +409,15 @@
         "newPerDay": {
           "type": "integer",
           "minimum": 1
+        },
+        "exercise": {
+          "description": "Which exercise of a topic comes next: random-not-last (default): a random one, never the one answered last; in-order: one after another in the order of the course, round and round; missed-first: first the one missed longest ago and not answered right since, but never in the round it was missed in, then in order.",
+          "enum": [
+            "random-not-last",
+            "in-order",
+            "missed-first"
+          ],
+          "default": "random-not-last"
         }
       },
       "required": [
@@ -426,6 +435,15 @@
         "newPerDay": {
           "type": "integer",
           "minimum": 1
+        },
+        "exercise": {
+          "description": "Which exercise of a topic comes next: random-not-last (default): a random one, never the one answered last; in-order: one after another in the order of the course, round and round; missed-first: first the one missed longest ago and not answered right since, but never in the round it was missed in, then in order.",
+          "enum": [
+            "random-not-last",
+            "in-order",
+            "missed-first"
+          ],
+          "default": "random-not-last"
         }
       },
       "required": [
@@ -443,6 +461,15 @@
         "newPerDay": {
           "type": "integer",
           "minimum": 1
+        },
+        "exercise": {
+          "description": "Which exercise of a topic comes next: random-not-last (default): a random one, never the one answered last; in-order: one after another in the order of the course, round and round; missed-first: first the one missed longest ago and not answered right since, but never in the round it was missed in, then in order.",
+          "enum": [
+            "random-not-last",
+            "in-order",
+            "missed-first"
+          ],
+          "default": "random-not-last"
         }
       },
       "required": [
