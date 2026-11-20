@@ -16,6 +16,9 @@ anything outside it is an import error. Do not invent fields, types or values.
 | Looking for a book or course to make a course from | `find-source.md` (the search prompt and what to check) |
 | Made from a book, workbook or other material | `transfer.md` (nothing lost, `generated`, topics, annotations, review file) |
 | The source has pictures, or the course needs some | `pictures.md` |
+| A word or form is disputed (a reviewer doubts it, or you do) | `checking-forms.md` (books, dictionary, monolingual and parallel corpora, websites, native speaker) |
+| The course has people in it (heroes, dialogues, examples, pictures) | `characters.md` (one cast file, reuse, looks, checks) and `pictures.md` "Heroes in pictures" |
+| Making content for a course with a place and a culture of its own (examples, pictures, facts, dialogues) | `pictures.md` "Cultural context" (balance rule) and the course's local-colour file (Buryat: `build-notes/buryat/local-color.md`) |
 | The course uses videos from the internet (explainers, songs, speech) | `video.md` (roles, where they live, the theory a song needs) |
 | A course was generated or changed | `sanity-check.md`, then the skill `review-course` (isolated reviewers), then `handover.md` |
 | Revising an existing course in batches of units | `revision-playbook.md` (the path, the layers) and the course's `revision-log.md` (state, decisions) |
@@ -88,6 +91,21 @@ A paragraph, rule or table is not carried over because it is in the book. For ea
   A rule the learner cannot apply (no criterion, no list) is a list of words to learn, not a rule.
 - **No history for a beginner.** Old spellings, etymology and "why it is written so" are left out unless they change what the learner reads or writes; at most one line of reference.
 - Terms the learner does not know (diphthong, articulation, orthography…) are explained when first used or not used at all; test with the learner's eyes, not the author's.
+- **No university linguistics.** A course is for learners, not for philology students. A method book written for students carries material the learner never uses: parts of speech
+  and their native names, the structure of a word (root, stem, derived and non-derived stems, word-forming and form-forming suffixes), "agglutinative", the names of the cases in the
+  language itself, phonetic terms. Do not carry it over, even when the book has a whole chapter on it and even as "background". A rule is given by a pattern and examples; of terms keep
+  only what the learner needs to use the rule, in Russian: case (by name and question), ending, "who? / what?". A unit is never made of such material: test every topic with the meaning
+  gate above and with the question "does a later exercise, dialogue or sentence of the course need it?". `sanity.py` code `ТЕРМИН` (`terms_banned.json`, exceptions with reasons in
+  `terms_reasons.json`) catches the usual ones.
+- **Tip kinds by purpose.** `rule` ("Запомните") is the main rule of a topic or a short list of endings; `fact` and `culture` are what is interesting or cultural; `warning` is a typical mistake;
+  `note` is only a card of a grid (a flag, a coat of arms, a row of a family) or a reference ("Справка"). A lone note with no title is plain text or one of the other kinds. A rule that is
+  written as a note is a defect, and so is a unit where nearly all plates are notes. Comparing endings of several cases or word types is a table, not a row of cards. `sanity.py` code
+  `ПЛАШКА` (`sanity_tips.py`, exceptions with reasons in `tip_reasons.json`) catches the usual ones.
+- **Frequency check: rare is not taught.** A form is in the book does not make it worth teaching. When a word, a suffix or a pattern raises a doubt (the learner will hardly meet it, a
+  reviewer is unsure, the explanation is long for a small gain), count it in the corpora (`corpus.py count`, `build-notes/<course>/corpus/word_freq.py` for the whole lexicon). A form with
+  zero or a handful of occurrences against hundreds for its neighbours (here `-шаг` in colours: 0–1 against `-хан` 100–300) is dropped from the theory and the exercises, or kept as one line
+  "Справка" with no exercise. The decision and the numbers go into `corpus-findings.md`. `sanity.py` code `ЧАСТОТА` (`sanity_freq.py`, `word_freq.json`, reasons in `freq_reasons.json`) lists the
+  words of the course that the corpus does not know.
 - Cheap alarms in `sanity.py`: learned words in the early units, theory words that never appear in an exercise, matrix rows "partly" without a reason.
 
 ## 2b. Dialogues and heroes
@@ -112,6 +130,12 @@ A `dialogue` is a conversation of people, not a list of question–answer pairs.
   change, rebuild, take the `after` shots, join). One picture per fix, **«было» on the left and «стало» on the right** (side by side, not stacked).
 - **Answer what was asked:** a question "why" or "explain" gets an explanation, not a change; ask before changing something nobody asked about.
 - Import a rebuilt course into the app only when asked; replacing a course loses its journal.
+
+**Vary the kinds of exercises, lightly.** Over a unit try to meet the different kinds (choice, typing, find the error, match two columns, with pictures, sort into groups, put in order); do not add an exercise only to fill a kind if it repeats what the unit already has. `sanity.py` prints, in `sanity-report.md`, a table of the kinds per unit and the kinds a unit lacks (a reference, not a warning); the per-topic limits in `sanity-check.md` stay as they are.
+
+**Link the explanation to the theory.** Besides the text of a topic's explanation, add a `seeAlso` link to the theory section where the rule or the words are explained (the section gets an `id`; the explanation says it in words, the link takes the learner there). Where the topic also has a video, the theory link comes first, the video second. Skip it only when the unit has no theory for that topic. `sanity.py` warns «ССЫЛКА» about a topic of unit 10 or later whose explanation has no such link; the Buryat course does it in `course2/c2_links.py`.
+
+**An exercise must stand on its own.** Whatever it asks about (a dialogue, a story, a letter, a table, a forecast, voices) is shown in the exercise: as the text itself, as an `aside` picture on top, or as a cloze in a `look` frame. «Answer by the dialogue» with the dialogue left in the theory is an error (`sanity-check.md`, row «self-contained»).
 
 ## 3. Theory elements and the look of a course (format 9)
 

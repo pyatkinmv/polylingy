@@ -28,7 +28,7 @@ book. A reviewer that has only the page cannot. So:
    - *fix* — objectively wrong (a key with two right answers, a form that does not exist, text the learner cannot read, a hint that gives the answer);
    - *reject* — wrong, or contrary to a rule the user set (say why in the report);
    - *ask the user* — taste and structure (merging exercises, moving topics, removing readings).
-   Check anything that touches the source against the source (the book's answer key settles a key; a reviewer's memory does not).
+   Check anything that touches the source against the source (the book's answer key settles a key; a reviewer's memory does not). A doubt about a word or form is checked by `.claude/skills/make-course/checking-forms.md` (books, dictionary, the two corpora, websites) before it is fixed or rejected.
    **Write the triage down**: after each review append to the course's `review-decisions.md` (build notes) what was accepted, what was rejected and why, and what stays open for a native speaker; the person must be able to revise all of it in one place later. Forms derived by a rule rather than taken from the source go to a generated list (for the Buryat course `course2/review_log.py` -> `review-forms-by-rule.md`).
 4. **Fix**, rebuild, run `checkCourse` and `lint.py`.
 5. **Second round** with new reviewers on the fixed course. Two rounds are usually enough: stop when what is left is taste or "unsure".
@@ -54,6 +54,8 @@ book. A reviewer that has only the page cannot. So:
 > (c) exercises that give their answer away (for example a reading shown above the very word the exercise asks about), ask about what was never taught, or have
 > unclear instructions; (d) titles that do not say what is inside; (e) anything that looks like a technical glitch (stray Latin letters inside <script> words,
 > mixed-up options, empty items, a picture description that does not fit the exercise).
+>
+> (f) where the text shows a list of things, actions or scenes that a learner could see but the dump has no [PICTURE] near it: name the section and say what a picture would show (you cannot judge pictures themselves, only their absence).
 >
 > Report a concise list ordered by severity. For each real problem: where (topic, exercise number, item), what is wrong, and a concrete fix. Separate "certain"
 > from "unsure". Under 800 words. Do not modify any file.

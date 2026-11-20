@@ -42,7 +42,18 @@ An exercise that fails is rewritten, moved or dropped — not left with a note.
   exercises with another form that covers the same material of the topic (a typing table instead of one more match, sorting into groups instead of one more
   choice); do not only add, or the topic ends up with the same exercise three times. Use every layer that fits: a frame (`email`, `article`, `newspaper`) for a
   text, a picture next to or inside the exercise, sound, a video before the exercise, a short `explanation` after the answer. Do not force a form that has no
-  honest material (no invented sentences in a language you cannot verify); say so and ask. The count: `build-notes/buryat/course2/exercise_stats.py` is an example.
+  honest material (no invented sentences in a language you cannot verify); say so and ask. The count: `build-notes/buryat/course2/exercise_stats.py` is an example. **Per unit:** `sanity-report.md` has a reference table of the kinds of exercises per unit and the kinds missing (choice, typing, find the error from unit 10, match, with pictures, groups, order; sound only where there are recordings); fill a gap only when it adds a new kind of work, never to tick a box.
+
+## 2b. Meaning and place: does it belong in this unit?
+
+`sanity.py` proves form (words introduced before use, picture keywords, variety). It cannot tell by itself that a section about animals sits in a unit about the family. That is a decision, so it is made and written down **before** anything is added to a unit, and then checked mechanically where it can be.
+
+Before adding a section, topic or exercise to a unit (a pass that runs after the unit is built, a new recording, a new picture):
+- **Name the subject** of the new material in one phrase, and name the unit's subject: its title, subtitle, its sections and topics. They must be the same subject. If the unit already has material on this subject (a topic or section with the word in its title), the new material goes **next to it**; if not, it goes to the unit where that subject is taught, or a new topic is proposed to the user first.
+- **A shared form is not a shared subject.** "The same verb ending as in another unit" or "it also has a recording" does not justify the place. Choose by what the learner is studying in that unit: family words, places, time, colours, animals.
+- **Grammar the learner has not met** may appear only as ready-made words and phrases, never explained by a rule. Say so in the section.
+- **Write the reason** in `revision-log.md` next to the change ("placed in unit N because …"), and in the generator declare the place with `c2_common.declare_place(unit, kind, title, anchors, why)`; `anchors` are word stems that must already occur in the unit's own title, subtitle or in the titles of its other sections and topics.
+- `sanity.py` (E16) reads `placement.json` (written by `make_course2.py`) and stops with an error when an anchor is missing from the unit, or the declared section or topic does not exist. It catches the obvious mistakes (animals in the family unit); it does not replace the question above, and a registry entry that is never written is not checked: **every section or topic added after the build must be declared.**
 
 ## 3. Fresh eyes
 
@@ -71,3 +82,27 @@ learned words in units 1–6 (`артикуляция`, `орфография`�
 
 Dialogue and hero warnings (`sanity_variety.py`): a `dialogue` inside a `grid`, a bubble dialogue without portraits of two speakers, a line without a translation, a hero (Сэсэг, Баяр, Дарима)
 with a portrait other than the course-wide one, an `examples` item without a translation (units 6+). The rules are in `SKILL.md`, sections 2b and 2c.
+
+
+## Checks added during the Buryat course revision (each is a warning or an error in `sanity.py`; answer it, do not silence it)
+
+| Code | What it catches | Answer |
+|---|---|---|
+| `ВИЗУАЛ` | a theory section with four or more examples and no picture; a unit with no model picture | a picture, or a reason in `visual_reasons.json` |
+| `КАРТИНКА-УПР` | a model picture in a unit's theory and in none of its exercises | an exercise on the picture, or a reason in `picture_exercise_reasons.json` |
+| `ИМЯ` | a person's name that is not in the cast; the cast larger than its maximum | use a cast character, or add one in the cast script |
+| `ПЕРСОНАЖ` | a cast character never used in the course | use the character or drop it from the cast |
+| `КТО` | a picture with people with no «who» in the picture index | fill `image_who.json` or `who` in `gen.py` |
+| `ГЕОГРАФИЯ` | a hero travels where it is not possible (a train or plane from a place without rail or airport; a station scene for someone arriving from there) | fix the route (check the real map); add places to `geography.json` (the Buryat course: `course2/geography.json`, module `sanity_geo.py`) |
+| `ТЕРМИН` | university linguistics in learner text: parts of speech, derived and non-derived stems, "agglutinative", native names of cases and parts of speech | remove it or explain by pattern and example; keep only the terms needed to use a rule (case by Russian name and question, ending); an exception needs a reason in `terms_reasons.json`. The list is `terms_banned.json` |
+| `ПЛАШКА` | a lone `note` tip without a title; a `note` that holds a rule; a unit where most lone tips are `note` | use `rule` ("Запомните"), `fact`, `culture`, `warning`, plain text or a table; a reason in `tip_reasons.json` |
+| `ТАБЛИЦА` | a table of three or more columns where the longest cells of the columns add up to more than 120 characters | shorten the examples (a list of examples is "for example", keep two or three) or split the table; the right column is cut off in the app |
+| `ЧАСТОТА` | a word of the course that does not occur in the corpus at all (a rare form from a book) | drop it, replace it with a frequent one, or write the reason in `freq_reasons.json`; rebuild the list with `corpus/word_freq.py` |
+| table in a grid | a table with three or more columns inside a grid (clipped on the right) | one wide table in a normal block |
+| aside size | an exercise picture not `top`/`large` | set it |
+| self-contained | an exercise that asks «по диалогу / рассказу / письму / голосам» or says «из диалога» and does not carry the text (no `aside` or `look`): the learner would have to look it up in the theory | put the text into the exercise: a picture of the text on top (`aside`, top/large; the Buryat course draws it with `c2_readtext.py`), or a connected cloze in a `look` frame; or drop the reference when each item holds its own sentence |
+| `ССЫЛКА` | the explanation of a topic (unit 10 or later) has no `seeAlso` link to a section of the unit's theory | add the link to the section that explains the topic (not a video section); skip only if there is no such section |
+| `pictures` alternatives | a `pictures` item with `{{right|wrong}}`: the exercise is typed, and every listed variant counts as right | one answer per item; the distractors go to the exercise's `wordBank` (`c2_picfix.py` does it for the Buryat course) |
+
+
+Disputed words and forms are not decided by `sanity.py`: follow `checking-forms.md` (books, dictionary `burdict.db`, the corpora (`corpus.py`: monolingual for forms, parallel for meanings), websites, native speaker) and record the result in `corpus-findings.md` and the revision log.
