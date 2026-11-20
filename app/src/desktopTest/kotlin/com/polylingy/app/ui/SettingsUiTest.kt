@@ -143,7 +143,8 @@ class SettingsUiTest {
         see("Your answers 1–3 are your own — no set matches. That’s fine.")
 
         tap("After the last step — learned for good (otherwise the gap doubles each time)")
-        see("Done today, 15 Jan → 16 Jan → 19 Jan → 26 Jan → 9 Feb → 11 Mar → 10 May → …")
+        see("60")                                       // the gaps that keep doubling are drawn dashed after the last step
+        see("120")
         screenshot("settings-custom")
 
         tap("Alternate")
@@ -165,6 +166,34 @@ class SettingsUiTest {
         assertEquals(SchedulerSpec.Ladder(retire = false), saved.scheduler)
         assertEquals(PickerSpec.Alternate(newPerDay = 9, exercise = ExerciseSpec.MISSED_FIRST), saved.picker)
         assertTrue(test.onAllNodes(hasText("9 new a day", substring = true)).fetchSemanticsNodes().isNotEmpty())
+    }
+
+    @Test fun theLadderEndsWhereTheCourseChoosesAndTheStepsFollow() = appTest(seed, height = 1400) {
+        open()
+        see("Days after the previous review; the dates are for finishing today, 15 Jan.")
+        see("16 Jan")                                   // the first step, 1 day, is done tomorrow
+        see("A review with a mistake → back to 1 day, and up the steps again.")
+        screenshot("settings-ladder")
+
+        tap("180 days")                                 // the steps up to it are the round series
+        test.onNode(hasContentDescription("Step 8, 180 days")).performScrollTo().assertIsDisplayed()
+        tap("2 years")
+        test.onNode(hasContentDescription("Step 10, 730 days")).performScrollTo().assertIsDisplayed()
+        screenshot("settings-ladder-two-years")
+        tap("Save")
+        assertEquals(SchedulerSpec.Ladder(days = listOf(1, 3, 7, 14, 30, 60, 90, 180, 365, 730), retire = true), settings().scheduler)
+    }
+
+    @Test fun withoutTheCheckTheLadderGoesOnAndTheGapsDouble() = appTest(seed, height = 1400) {
+        open()
+        tap("2 years")
+        tap("After the last step — learned for good (otherwise the gap doubles each time)")
+        test.onAllNodesWithText("Last step:").fetchSemanticsNodes().let { assertTrue(it.isEmpty(), "no last step to choose") }
+        see("60")                                       // from the standard steps the gaps double, drawn dashed
+        see("120")
+        screenshot("settings-ladder-doubling")
+        tap("Save")
+        assertEquals(SchedulerSpec.Ladder(days = listOf(1, 3, 7, 14, 30), retire = false), settings().scheduler)
     }
 
     @Test fun growingGapsShowsTheGapsOfSm2() = appTest(seed, height = 1100) {

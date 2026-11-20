@@ -135,8 +135,8 @@ fun SettingsScreen(viewModel: SettingsViewModel, today: LocalDate, go: Navigator
             ReadySets(viewModel.matching, viewModel::usePreset)
             AnswerCounts(draft, viewModel)
             TopicDone(draft.mastery as MasterySpec.Consecutive, viewModel)
-            // Fixed steps show the whole ladder and one doubled gap; growing gaps a few, as they soon run far ahead.
-            ComesBack(draft.scheduler!!, viewModel.plan(if (draft.scheduler is SchedulerSpec.Sm2) 4 else 6), today, viewModel)
+            // Fixed steps show the whole ladder and two doubled gaps after it; growing gaps a few, as they soon run far ahead.
+            ComesBack(draft.scheduler!!, viewModel.plan(when (val sc = draft.scheduler) { is SchedulerSpec.Ladder -> sc.days.size + LadderSteps.DOUBLED_SHOWN; SchedulerSpec.Sm2 -> 4; else -> 6 }), today, viewModel)
             HorizontalDivider(color = Look.Line)
             WhatComesNext(draft.picker!!, viewModel)
             WhichExercise(draft.picker!!.exercise, viewModel)
@@ -516,31 +516,86 @@ private fun ComesBack(scheduler: SchedulerSpec, plan: ReviewPlan, today: LocalDa
         ChoiceRow("It doesn’t", "Once done, it’s learned for good.", scheduler is SchedulerSpec.Once) { viewModel.scheduler(SchedulerSpec.Once) }
         val ladder = scheduler as? SchedulerSpec.Ladder ?: SchedulerSpec.Ladder()
         ChoiceRow(
-            "After fixed steps: ${ladder.days.joinToString(" · ")} days",
-            "A clean review moves one step further; a review with a mistake goes back to ${ladder.days.first()} day${if (ladder.days.first() == 1) "" else "s"}.",
+            "After fixed steps",
+            "A clean review moves one step further; a review with a mistake goes back to the first step.",
             scheduler is SchedulerSpec.Ladder,
         ) { viewModel.scheduler(ladder) }
-        if (scheduler is SchedulerSpec.Ladder) Box(Modifier.padding(start = 8.dp)) {
-            Check("After the last step — learned for good (otherwise the gap doubles each time)", scheduler.retire, viewModel::retire)
-        }
+        if (scheduler is SchedulerSpec.Ladder) LadderChips(scheduler, plan, today, viewModel)
         ChoiceRow(
             "After growing gaps (SM-2 formula)",
             "Each topic gets its own gap: longer after clean reviews, shorter after mistakes. Never stops.",
             scheduler is SchedulerSpec.Sm2,
         ) { viewModel.scheduler(SchedulerSpec.Sm2) }
-        Example(
-            when {
-                plan.dates.isEmpty() -> "Done today → never offered by itself again; you can still open it and practise."
-                else -> "Done today, ${dayMonth(today)} → " + plan.dates.joinToString(" → ", transform = ::dayMonth) +
-                    if (plan.learned) " → learned for good." else " → …"
-            },
-            when (scheduler) {
-                SchedulerSpec.Once -> "That’s the whole schedule."
-                is SchedulerSpec.Ladder -> "A review with a mistake → back to ${scheduler.days.first()} day${if (scheduler.days.first() == 1) "" else "s"}, and up the steps again."
-                SchedulerSpec.Sm2 -> "Gaps of " + (listOf(today) + plan.dates).zipWithNext { a, b -> (b.toEpochDays() - a.toEpochDays()).toString() }.joinToString(", ") +
-                    " days… Mistakes make them shorter."
-            },
-        )
+        // The fixed steps explain themselves with their dates; the other two answers get an example.
+        when (scheduler) {
+            SchedulerSpec.Once -> Example("Done today → never offered by itself again; you can still open it and practise.", "That’s the whole schedule.")
+            is SchedulerSpec.Ladder -> Unit
+            SchedulerSpec.Sm2 -> Example(
+                "Done today, ${dayMonth(today)} → " + plan.dates.joinToString(" → ", transform = ::dayMonth) + if (plan.learned) " → learned for good." else " → …",
+                "Gaps of " + (listOf(today) + plan.dates).zipWithNext { a, b -> (b.toEpochDays() - a.toEpochDays()).toString() }.joinToString(", ") +
+                    " days… Mistakes make them shorter.",
+            )
+        }
+    }
+}
+
+private fun dayLabel(date: LocalDate, today: LocalDate) = dayMonth(date) + if (date.year != today.year) " ${date.year}" else ""
+
+private fun days(n: Int) = "$n day${if (n == 1) "" else "s"}"
+
+/**
+ * The steps of a ladder, drawn: each is the days after the previous review, with its date under it (for finishing today).
+ * After the last one either "learned for good" or, dashed, the gaps that keep doubling. The steps themselves aren't edited:
+ * a course only chooses where the ladder ends.
+ */
+@Composable
+private fun LadderChips(ladder: SchedulerSpec.Ladder, plan: ReviewPlan, today: LocalDate, viewModel: SettingsViewModel) {
+    val steps = ladder.days
+    Column(Modifier.padding(start = 10.dp, bottom = 2.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Days after the previous review; the dates are for finishing today, ${dayMonth(today)}.", color = Look.Faint, fontSize = 13.sp)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            steps.forEachIndexed { i, d ->
+                StepChip("Step ${i + 1}, ${days(d)}", d, plan.dates.getOrNull(i)?.let { dayLabel(it, today) }, ghost = false)
+            }
+            if (ladder.retire) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text("✓ learned", Modifier.background(Look.Green, RoundedCornerShape(9.dp)).padding(horizontal = 12.dp, vertical = 6.dp), color = Color.White, fontWeight = FontWeight.SemiBold)
+                    Text("for good", color = Look.LearnedForGood, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                }
+            } else {
+                var gap = steps.last()
+                for (k in 0 until LadderSteps.DOUBLED_SHOWN) {
+                    gap *= 2
+                    StepChip(null, gap, plan.dates.getOrNull(steps.size + k)?.let { dayLabel(it, today) }, ghost = true)
+                }
+                Text("…", Modifier.padding(horizontal = 10.dp, vertical = 6.dp), color = Look.Faint)
+            }
+        }
+        Check("After the last step — learned for good (otherwise the gap doubles each time)", ladder.retire, viewModel::retire)
+        if (ladder.retire) {
+            Row(Modifier.padding(start = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Last step:", color = Look.Muted, fontSize = 14.sp)
+                for (last in LadderSteps.LAST_STEPS) {
+                    Choice(LadderSteps.title(last), steps == LadderSteps.upTo(last)) { viewModel.lastStep(last) }
+                }
+            }
+        }
+        Text("A review with a mistake → back to ${days(steps.first())}, and up the steps again.", color = Look.Faint, fontSize = 13.sp)
+    }
+}
+
+/** A step of the ladder: the days, with the date of that review under it; [label] names it for the tests and screen readers. */
+@Composable
+private fun StepChip(label: String?, days: Int, date: String?, ghost: Boolean) {
+    val shape = RoundedCornerShape(9.dp)
+    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        var chip = Modifier.clip(shape).border(1.dp, Look.LineHover, shape)
+        if (label != null) chip = chip.semantics { contentDescription = label }
+        Row(chip.padding(horizontal = 11.dp, vertical = 5.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("$days", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = if (ghost) Look.Faint else Color.Unspecified)
+            Text(if (days == 1) "day" else "days", color = if (ghost) Look.Faint else Look.Muted, fontSize = 12.5.sp, modifier = Modifier.padding(bottom = 1.dp))
+        }
+        if (date != null) Text(date, color = Look.Faint, fontSize = 12.sp)
     }
 }
 

@@ -33,6 +33,30 @@ private val log = KotlinLogging.logger {}
 /** The three pickers as the settings screen offers them. */
 enum class PickerKind { CONVEYOR, SHUFFLE, ALTERNATE }
 
+/** The steps of a ladder are a fixed round series; what a course chooses is only where it ends. */
+internal object LadderSteps {
+    /** Round steps that roughly double: a week, a month, a quarter, half a year, a year, two years. Nothing is longer. */
+    val SERIES = listOf(1, 3, 7, 14, 30, 60, 90, 180, 365, 730)
+
+    /** The standard ladder, and the start of one that keeps going. */
+    val STANDARD = SERIES.takeWhile { it <= 30 }
+
+    /** Where a ladder that ends may end. */
+    val LAST_STEPS = listOf(30, 60, 90, 180, 365, 730)
+
+    /** How many of the gaps that keep doubling are drawn after the last step. */
+    const val DOUBLED_SHOWN = 2
+
+    /** The ladder that ends with the step [last]. */
+    fun upTo(last: Int) = SERIES.takeWhile { it <= last }
+
+    fun title(last: Int) = when (last) {
+        365 -> "1 year"
+        730 -> "2 years"
+        else -> "$last days"
+    }
+}
+
 /** When a topic done today comes back if every review is clean: [dates], then [learned] — learned for good. */
 data class ReviewPlan(val dates: List<LocalDate>, val learned: Boolean)
 
@@ -111,9 +135,15 @@ class SettingsViewModel(private val study: StudyService, private val clock: Cloc
 
     fun scheduler(scheduler: SchedulerSpec) = update { it.copy(scheduler = scheduler) }
 
-    fun retire(retire: Boolean) {
+    /** Ends the ladder (learned for good after the last step) or lets it go on, the gaps doubling; either way it starts from the standard steps. */
+    fun retire(retire: Boolean) = withLadder { it.copy(days = LadderSteps.STANDARD, retire = retire) }
+
+    /** The ladder ends with the step [last] (one of [LadderSteps.LAST_STEPS]); the steps before it are the round series. */
+    fun lastStep(last: Int) = withLadder { it.copy(days = LadderSteps.upTo(last), retire = true) }
+
+    private fun withLadder(change: (SchedulerSpec.Ladder) -> SchedulerSpec.Ladder) {
         val ladder = _draft.value.scheduler as? SchedulerSpec.Ladder ?: return
-        update { it.copy(scheduler = ladder.copy(retire = retire)) }
+        update { it.copy(scheduler = change(ladder)) }
     }
 
     // 4. What comes next in a session?
