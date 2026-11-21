@@ -98,7 +98,7 @@ Courses get in and out as files: `course.json` alone or a zip with `course.json`
 
 Follow `docs/testing.md`. For any UI change: add or extend a scenario in `app/src/desktopTest/.../ui/*UiTest.kt` (helpers in `UiTestSupport.kt`), call `screenshot("name")` for new or changed screens, run `./gradlew check`, then open the PNGs in `app/build/screenshots/` and review them. Only native file dialogs, the real window and the installer need manual checks.
 
-**After every change, relaunch the app so the user can see it:** run `scripts/relaunch.ps1` in the background. It closes any running Polylingy (dev run or `Polylingy.exe`), then builds and starts the current code. Check that the window came up (process `java` with `com.polylingy.app.MainKt` in its command line, window title `Polylingy`) and say which version is now running.
+**After every change, relaunch the app so the user can see it:** run `scripts/relaunch.ps1` (Windows) or `scripts/relaunch.sh` (macOS) in the background. It closes any running Polylingy (dev run, `Polylingy.exe` or `Polylingy.app`), then builds and starts the current code. Check that the window came up (process `java` with `com.polylingy.app.MainKt` in its command line, window title `Polylingy`) and say which version is now running.
 
 Never stop processes other than Polylingy's own — match them by command line or executable path, not by window title.
 
