@@ -94,7 +94,7 @@ private fun Preset.title() = when (this) {
 
 private fun Preset.about() = when (this) {
     Preset.QUICK -> "Right once and it’s done — no reviews. To go through a book fast."
-    Preset.LADDER -> "3 right in a row, then reviews after 1, 3, 7, 14, 30 days."
+    Preset.LADDER -> "3 right in a row, then reviews after 1, 3, 7, 14, 30 days and on, the gaps doubling."
     Preset.SM2 -> "3 right in a row, then reviews with gaps that grow for each topic."
 }
 

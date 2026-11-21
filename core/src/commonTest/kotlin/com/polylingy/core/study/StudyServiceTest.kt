@@ -37,7 +37,8 @@ class StudyServiceTest {
     private fun gaps(answer: String) = """{ "type": "gaps", "items": [ { "text": "{{$answer}}" } ] }"""
 
     /** Two units: the first with theory and two topics (the second with two exercises), the second with one topic. */
-    private fun twoUnits(rules: String = "") = CourseJson.read(
+    /** [rules] go into the course object; by default there is no daily limit, so every new topic is on offer. */
+    private fun twoUnits(rules: String = """, "rules": { "picker": { "type": "conveyor" } }""") = CourseJson.read(
         """{ "formatVersion": 1, "name": "Course" $rules,
             "units": [
               { "title": "U1", "theory": { "format": "blocks", "blocks": [ { "type": "text", "text": "Theory" } ] },
@@ -76,7 +77,7 @@ class StudyServiceTest {
     }
 
     /** A flat course of [n] one-blank topics; [extra] goes into the course object, e.g. settings. */
-    private fun flat(n: Int, extra: String = "") = CourseJson.read(
+    private fun flat(n: Int, extra: String = """, "rules": { "picker": { "type": "conveyor" } }""") = CourseJson.read(
         """{ "formatVersion": 1, "name": "Flat" $extra,
             "topics": [ ${(1..n).joinToString(",") { """{ "title": "T$it", "exercises": [ ${gaps("a$it")} ] }""" }} ] }""",
         clock.now().instant,

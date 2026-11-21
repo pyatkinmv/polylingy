@@ -77,13 +77,13 @@ data class DisplaySpec(
     val style: CourseStyle = CourseStyle.STRICT,
 )
 
-/** Ready sets of grading, mastery and scheduler (docs/learning-model.md, section 4); each comes with the conveyor picker. */
+/** Ready sets of grading, mastery and scheduler (docs/learning-model.md, section 4); each comes with the conveyor picker and a limit of [DEFAULT_NEW_PER_DAY] new topics a day. */
 @Serializable
 enum class Preset {
     /** All correct, 1 in a row, learned after one round. */
     @SerialName("quick") QUICK,
 
-    /** All correct, 3 in a row while learning and 1 while reviewing, ladder 1 · 3 · 7 · 14 · 30, then learned. */
+    /** All correct, 3 in a row while learning and 1 while reviewing, ladder 1 · 3 · 7 · 14 · 30, then every gap twice the one before, without end. */
     @SerialName("ladder") LADDER,
 
     /** All correct, 3 in a row while learning and 1 while reviewing, SM-2. */
@@ -93,10 +93,15 @@ enum class Preset {
     /** This preset with every part written out. */
     val spec: RulesSpec
         get() = when (this) {
-            QUICK -> RulesSpec(this, GradingSpec.AllCorrect(), MasterySpec.Consecutive(1, 1), SchedulerSpec.Once, PickerSpec.Conveyor())
-            LADDER -> RulesSpec(this, GradingSpec.AllCorrect(), MasterySpec.Consecutive(3, 1), SchedulerSpec.Ladder(), PickerSpec.Conveyor())
-            SM2 -> RulesSpec(this, GradingSpec.AllCorrect(), MasterySpec.Consecutive(3, 1), SchedulerSpec.Sm2, PickerSpec.Conveyor())
+            QUICK -> RulesSpec(this, GradingSpec.AllCorrect(), MasterySpec.Consecutive(1, 1), SchedulerSpec.Once, PickerSpec.Conveyor(DEFAULT_NEW_PER_DAY))
+            LADDER -> RulesSpec(this, GradingSpec.AllCorrect(), MasterySpec.Consecutive(3, 1), SchedulerSpec.Ladder(retire = false), PickerSpec.Conveyor(DEFAULT_NEW_PER_DAY))
+            SM2 -> RulesSpec(this, GradingSpec.AllCorrect(), MasterySpec.Consecutive(3, 1), SchedulerSpec.Sm2, PickerSpec.Conveyor(DEFAULT_NEW_PER_DAY))
         }
+
+    companion object {
+        /** New topics a day when a course doesn't say; reviews are never limited. */
+        const val DEFAULT_NEW_PER_DAY = 15
+    }
 }
 
 /** When an answer counts. [typos] — whether an item with a typo counts as right; checking always reports it as a typo. */

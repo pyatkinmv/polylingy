@@ -11,6 +11,7 @@ import com.polylingy.core.at
 import com.polylingy.core.content.Course
 import com.polylingy.core.content.GradingSpec
 import com.polylingy.core.content.PickerSpec
+import com.polylingy.core.content.Preset
 import com.polylingy.core.content.RulesSpec
 import com.polylingy.core.content.Topic
 import com.polylingy.core.course
@@ -123,7 +124,7 @@ class StatisticsTest {
         right(a, today)
         right(a, today)
         right(b, daysAgo(1))
-        assertNull(stats.statistics().work.newPerDay, "no limit, no goal")
+        assertEquals(Preset.DEFAULT_NEW_PER_DAY, stats.statistics().work.newPerDay, "a course that says nothing has the default limit, which is the goal")
         settings.save(c.id, RulesSpec(picker = PickerSpec.Conveyor(newPerDay = 4)), clock.now().instant)
         val work = stats.statistics().work
         assertEquals(4, work.newPerDay)

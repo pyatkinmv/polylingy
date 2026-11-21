@@ -224,10 +224,11 @@ class PoliciesTest {
         assertEquals(GradingSpec.AllCorrect(), resolved.grading)
         assertEquals(MasterySpec.Consecutive(2, 1), resolved.mastery)
         assertEquals(SchedulerSpec.Once, resolved.scheduler)
-        assertEquals(PickerSpec.Conveyor(), resolved.picker)
+        assertEquals(PickerSpec.Conveyor(Preset.DEFAULT_NEW_PER_DAY), resolved.picker, "every ready set limits the new topics a day")
         assertNull(resolved.matchingPreset(), "two in a row is no preset")
         assertEquals(Preset.SM2, RulesSpec(Preset.SM2).resolved().matchingPreset())
-        assertEquals(Preset.LADDER, RulesSpec(Preset.QUICK, mastery = MasterySpec.Consecutive(3, 1), scheduler = SchedulerSpec.Ladder()).matchingPreset())
+        assertEquals(Preset.LADDER, RulesSpec(Preset.QUICK, mastery = MasterySpec.Consecutive(3, 1), scheduler = SchedulerSpec.Ladder(retire = false)).matchingPreset(), "the ladder set goes on without end")
+        assertNull(RulesSpec(Preset.QUICK, mastery = MasterySpec.Consecutive(3, 1), scheduler = SchedulerSpec.Ladder(retire = true)).matchingPreset(), "a ladder that ends is no ready set")
         assertEquals(Preset.LADDER, RulesSpec(picker = PickerSpec.Alternate(10)).matchingPreset(), "the picker isn't part of a preset")
     }
 }

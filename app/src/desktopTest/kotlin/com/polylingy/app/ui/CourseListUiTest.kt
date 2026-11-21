@@ -22,13 +22,13 @@ import kotlin.test.assertTrue
 
 // Course list scenarios; see docs/testing.md.
 class CourseListUiTest {
-    private fun flat(name: String) = """{ "formatVersion": 1, "name": "$name",
+    private fun flat(name: String) = """{ "formatVersion": 1, "name": "$name", "rules": { "picker": { "type": "conveyor" } },
         "topics": [ { "title": "Greetings", "exercises": [ { "type": "gaps", "items": [ { "text": "{{Hola}}!" } ] } ] } ] }"""
 
     @Test fun firstLaunchShowsTheSampleCourse() = appTest(seed = { it.seedSample() }) {
         text("English Grammar Sampler").assertIsDisplayed()
         text("A short sample course: one unit with a page of theory and one exercise of every kind.").assertIsDisplayed()
-        text("6 new").assertIsDisplayed()
+        text("6 new for today").assertIsDisplayed()
         text("0 of 6 learned").assertIsDisplayed()
         text("0%").assertIsDisplayed()
         screenshot("course-list")

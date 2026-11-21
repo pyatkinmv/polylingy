@@ -172,7 +172,7 @@ class EditUiTest {
         click("Delete topic")
         assertEquals(listOf("Things happening now"), stored().units[0].topics.map { it.title })
         assertEquals(1, container.storage.journal.all().size)
-        text("Next: Things happening now · 0 of 1 learned").assertIsDisplayed()
+        text("Next: Things happening now · 0 of 1 learned · 15 new a day").assertIsDisplayed()
 
         openMenu(0)
         text("Delete topic…").assertIsNotEnabled()

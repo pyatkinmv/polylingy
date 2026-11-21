@@ -142,8 +142,7 @@ class SettingsUiTest {
         step("Review in a row, more")
         see("Your answers 1–3 are your own — no set matches. That’s fine.")
 
-        tap("After the last step — learned for good (otherwise the gap doubles each time)")
-        see("60")                                       // the gaps that keep doubling are drawn dashed after the last step
+        see("60")                                       // the ladder goes on by default: the gaps that double are drawn dashed after the last step
         see("120")
         screenshot("settings-custom")
 
@@ -164,17 +163,25 @@ class SettingsUiTest {
         assertEquals(GradingSpec.Threshold(0.8, typos = false), saved.grading)
         assertEquals(MasterySpec.Consecutive(4, 2), saved.mastery)
         assertEquals(SchedulerSpec.Ladder(retire = false), saved.scheduler)
-        assertEquals(PickerSpec.Alternate(newPerDay = 9, exercise = ExerciseSpec.MISSED_FIRST), saved.picker)
-        assertTrue(test.onAllNodes(hasText("9 new a day", substring = true)).fetchSemanticsNodes().isNotEmpty())
+        assertEquals(PickerSpec.Alternate(newPerDay = 14, exercise = ExerciseSpec.MISSED_FIRST), saved.picker)
+        assertTrue(test.onAllNodes(hasText("14 new a day", substring = true)).fetchSemanticsNodes().isNotEmpty())
+    }
+
+    @Test fun theLadderGoesOnByDefaultAndTheGapsDoubleAfterTheLastStep() = appTest(seed, height = 1400) {
+        open()
+        see("Days after the previous review; the dates are for finishing today, 15 Jan.")
+        see("16 Jan")                                   // the first step, 1 day, is done tomorrow
+        see("60")                                       // after 30 days the gaps double, drawn dashed
+        see("120")
+        see("A review with a mistake → back to 1 day, and up the steps again.")
+        assertTrue(test.onAllNodesWithText("Last step:").fetchSemanticsNodes().isEmpty(), "nothing to choose while the ladder goes on")
+        screenshot("settings-ladder")
     }
 
     @Test fun theLadderEndsWhereTheCourseChoosesAndTheStepsFollow() = appTest(seed, height = 1400) {
         open()
-        see("Days after the previous review; the dates are for finishing today, 15 Jan.")
-        see("16 Jan")                                   // the first step, 1 day, is done tomorrow
-        see("A review with a mistake → back to 1 day, and up the steps again.")
-        screenshot("settings-ladder")
-
+        tap("After the last step — learned for good (otherwise the gap doubles each time)")
+        see("Last step:")
         tap("180 days")                                 // the steps up to it are the round series
         test.onNode(hasContentDescription("Step 8, 180 days")).performScrollTo().assertIsDisplayed()
         tap("2 years")
@@ -184,16 +191,15 @@ class SettingsUiTest {
         assertEquals(SchedulerSpec.Ladder(days = listOf(1, 3, 7, 14, 30, 60, 90, 180, 365, 730), retire = true), settings().scheduler)
     }
 
-    @Test fun withoutTheCheckTheLadderGoesOnAndTheGapsDouble() = appTest(seed, height = 1400) {
+    @Test fun turningTheCheckOffAgainBringsBackTheStandardStepsThatGoOn() = appTest(seed, height = 1400) {
         open()
+        tap("After the last step — learned for good (otherwise the gap doubles each time)")
         tap("2 years")
         tap("After the last step — learned for good (otherwise the gap doubles each time)")
-        test.onAllNodesWithText("Last step:").fetchSemanticsNodes().let { assertTrue(it.isEmpty(), "no last step to choose") }
-        see("60")                                       // from the standard steps the gaps double, drawn dashed
+        assertTrue(test.onAllNodesWithText("Last step:").fetchSemanticsNodes().isEmpty(), "no last step to choose")
+        see("60")
         see("120")
         screenshot("settings-ladder-doubling")
-        tap("Save")
-        assertEquals(SchedulerSpec.Ladder(days = listOf(1, 3, 7, 14, 30), retire = false), settings().scheduler)
     }
 
     @Test fun growingGapsShowsTheGapsOfSm2() = appTest(seed, height = 1100) {
@@ -213,7 +219,7 @@ class SettingsUiTest {
         step("New topics a day, more")
         see("Nothing that affects progress has changed. Questions 4 and 5 and the daily limit never recount progress.")
         tap("Save")
-        assertEquals(PickerSpec.Shuffle(newPerDay = 11), settings().picker)
+        assertEquals(PickerSpec.Shuffle(newPerDay = 16), settings().picker)
         assertEquals(ExerciseSpec.RANDOM_NOT_LAST, settings().picker!!.exercise, "an untouched course keeps the old way of choosing")
         assertEquals(RulesSpec(Preset.LADDER).resolved().mastery, settings().mastery)
     }
@@ -226,7 +232,7 @@ class SettingsUiTest {
         screenshot("settings-discard")
         click("Discard")
         text("Study settings").assertIsDisplayed()
-        assertEquals(SchedulerSpec.Ladder(), settings().scheduler, "nothing saved")
+        assertEquals(SchedulerSpec.Ladder(retire = false), settings().scheduler, "nothing saved")
     }
 
     @Test fun aTypoNotForgivenIsShownAsWrongButKeptAsATypo() = appTest(seed) {

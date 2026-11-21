@@ -50,8 +50,8 @@ class StudyUiTest {
 
     @Test fun aNewUnitStartsWithItsTheoryThenGoesThroughItsTopicsToDoneForToday() = appTest(seed, height = 900) {
         click("Grammar in Use")
-        text("3 new").assertIsDisplayed()
-        text("Next: Things happening now · 0 of 3 learned").assertIsDisplayed()
+        text("3 new for today").assertIsDisplayed()
+        text("Next: Things happening now · 0 of 3 learned · 15 new a day").assertIsDisplayed()
         screenshot("course")
 
         click("Present continuous")

@@ -224,7 +224,7 @@ class SettingsViewModel(private val study: StudyService, private val clock: Cloc
 
     companion object {
         const val DEFAULT_MIN = 0.75
-        const val DEFAULT_LIMIT = 10
+        const val DEFAULT_LIMIT = Preset.DEFAULT_NEW_PER_DAY
         const val MAX_IN_A_ROW = 10
         const val MAX_LIMIT = 100
 
