@@ -139,4 +139,5 @@ To write a course (by hand or from a book), follow `.claude/skills/make-course/S
 | `docs/content-format.md` | Course format: theory blocks, exercise layers and types, explanations, links, import, validation, schema, `formatVersion` |
 | `docs/course.schema.json` | Formal JSON Schema of `course.json`, format 10 |
 | `docs/testing.md` | How changes are verified: test levels, UI tests, screenshots, manual checks |
+| `docs/handover/macos-port.md` | Starting from a clean session: the state of the project, how the user works, and the plan to port the app to macOS |
 | `.claude/docs/architectural_patterns.md` | Code conventions: ports, DI, ViewModels, testing helpers |
