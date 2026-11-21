@@ -85,6 +85,11 @@ Courses get in and out as files: `course.json` alone or a zip with `course.json`
 # The same, copied to app/build/release/Polylingy-<version>-<stage>.msi (the stage is releaseStage in gradle.properties)
 ./gradlew :app:releaseMsi
 
+# On macOS: the disk image -> app/build/compose/binaries/main/dmg/ (version 1.MINOR.PATCH inside: jpackage rejects a leading 0),
+# and the same copied to app/build/release/Polylingy-<version>-<stage>.dmg
+./gradlew :app:packageDmg
+./gradlew :app:releaseDmg
+
 # Check a course file as import does (comma-separated for several)
 ./gradlew :client:checkCourse -Pcourse=examples/advanced-grammar.json
 ```

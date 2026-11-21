@@ -78,6 +78,9 @@ tasks.withType<Test>().configureEach {
     jvmArgs("--enable-native-access=ALL-UNNAMED")
 }
 
+/** The app version for macOS packages: jpackage there needs a first number of at least 1, so 0.MINOR.PATCH becomes 1.MINOR.PATCH. */
+val macVersion: String = project.version.toString().let { v -> if (v.startsWith("0.")) "1." + v.removePrefix("0.") else v }
+
 compose.desktop {
     application {
         mainClass = "com.polylingy.app.MainKt"
@@ -89,7 +92,8 @@ compose.desktop {
         jvmArgs += "--enable-native-access=ALL-UNNAMED"
 
         nativeDistributions {
-            targetFormats(TargetFormat.Msi)
+            // Each system builds only its own: packageMsi on Windows, packageDmg on macOS.
+            targetFormats(TargetFormat.Msi, TargetFormat.Dmg)
             packageName = "Polylingy"
             packageVersion = project.version.toString()
             description = "Spaced-repetition language learning"
@@ -106,6 +110,15 @@ compose.desktop {
                 // Must never change: lets a newer .msi upgrade an installed version in place.
                 upgradeUuid = "024500e5-77f0-4b9a-93dd-5617686569a0"
             }
+
+            macOS {
+                iconFile = project.file("icons/polylingy.icns")
+                bundleID = "com.polylingy.app"
+                dockName = "Polylingy"
+                // jpackage on macOS rejects a version whose first number is 0, so 0.8.6 is packaged as 1.8.6.
+                packageVersion = macVersion
+                dmgPackageVersion = macVersion
+            }
         }
     }
 }
@@ -118,5 +131,16 @@ tasks.register<Copy>("releaseMsi") {
     val stage = (project.findProperty("releaseStage") as String?).orEmpty().trim()
     val name = "Polylingy-${project.version}" + (if (stage.isEmpty()) "" else "-$stage") + ".msi"
     from(layout.buildDirectory.dir("compose/binaries/main/msi")) { include("*.msi"); rename { name } }
+    into(layout.buildDirectory.dir("release"))
+}
+
+// The same for macOS: ./gradlew :app:releaseDmg -> app/build/release/Polylingy-0.8.6-alpha.dmg (the name has the app's own version, not the 1.x inside)
+tasks.register<Copy>("releaseDmg") {
+    group = "distribution"
+    description = "Builds the macOS disk image and copies it to build/release under a name with the version and stage."
+    dependsOn("packageDmg")
+    val stage = (project.findProperty("releaseStage") as String?).orEmpty().trim()
+    val name = "Polylingy-${project.version}" + (if (stage.isEmpty()) "" else "-$stage") + ".dmg"
+    from(layout.buildDirectory.dir("compose/binaries/main/dmg")) { include("*.dmg"); rename { name } }
     into(layout.buildDirectory.dir("release"))
 }
