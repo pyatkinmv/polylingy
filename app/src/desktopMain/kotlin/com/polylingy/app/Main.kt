@@ -21,7 +21,6 @@ import com.polylingy.client.HttpImageFetcher
 import com.polylingy.client.sampleCourse
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.jetbrains.skia.Image
-import java.awt.Dimension
 
 private val AppIcon = BitmapPainter(
     Image.makeFromEncoded(requireNotNull(Thread.currentThread().contextClassLoader.getResource("polylingy.png")).readBytes())
@@ -84,9 +83,9 @@ fun main() {
             icon = AppIcon,
             state = windowState,
         ) {
-            // Below this the cards and their progress no longer fit side by side. AWT applies the minimum in physical
-            // pixels, ignoring the display scale (at 175 % a 900-wide minimum let the window shrink to 514), so scale it.
-            // A window saved on a screen that is gone (another monitor unplugged) would open where nobody can see it.
+            // Below the minimum the cards and their progress no longer fit side by side; its units differ between
+            // Windows and macOS, see minimumWindowSize. A window saved on a screen that is gone (another monitor
+            // unplugged) would open where nobody can see it, and one saved on a bigger screen would not fit this one.
             LaunchedEffect(Unit) {
                 if (!onSomeScreen(window.bounds)) {
                     log.info { "The saved window position ${window.bounds} is on no screen; centring the window" }
@@ -94,9 +93,20 @@ fun main() {
                 }
             }
             LaunchedEffect(Unit) {
-                val scale = window.graphicsConfiguration.defaultTransform.scaleX
-                window.minimumSize = Dimension((MIN_WIDTH * scale).toInt(), (MIN_HEIGHT * scale).toInt())
-                log.info { "Window minimum size $MIN_WIDTH×$MIN_HEIGHT at scale $scale" }
+                val config = window.graphicsConfiguration
+                val scale = config.defaultTransform.scaleX
+                val insets = java.awt.Toolkit.getDefaultToolkit().getScreenInsets(config)
+                val screen = config.bounds
+                val usable = java.awt.Rectangle(
+                    screen.x + insets.left, screen.y + insets.top,
+                    screen.width - insets.left - insets.right, screen.height - insets.top - insets.bottom,
+                )
+                window.minimumSize = minimumWindowSize(MIN_WIDTH, MIN_HEIGHT, scale, isMacOS(), usable)
+                log.info { "Window minimum size ${window.minimumSize.width}×${window.minimumSize.height} (${MIN_WIDTH}×$MIN_HEIGHT at scale $scale), screen free area $usable" }
+                if (windowState.placement == WindowPlacement.Floating) fittedWindowBounds(window.bounds, usable)?.let {
+                    log.info { "The window ${window.bounds} is bigger than the screen; fitting it to $it" }
+                    window.bounds = it
+                }
             }
             val container = remember {
                 DesktopSound.warmUp()
