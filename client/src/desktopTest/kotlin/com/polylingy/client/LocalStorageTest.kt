@@ -208,6 +208,22 @@ class LocalStorageTest {
         }
     }
 
+    @Test fun onMacOSTheDataIsInApplicationSupportAndDocumentsIsTheRealDocuments() {
+        val osName = System.getProperty("os.name")
+        val home = java.nio.file.Path.of(System.getProperty("user.home"))
+        try {
+            System.setProperty("os.name", "Mac OS X")
+            assertEquals(home.resolve("Documents"), DesktopStorage.documents(), "not the home folder, which FileSystemView gives on macOS")
+            assertEquals(home.resolve("Documents").resolve(DesktopStorage.DEV_DIR), DesktopStorage.defaultDataDir())
+            System.setProperty("jpackage.app-path", "/Applications/Polylingy.app/Contents/MacOS/Polylingy")
+            assertEquals(home.resolve("Library/Application Support").resolve(DesktopStorage.INSTALLED_DIR), DesktopStorage.defaultDataDir())
+            assertEquals(home.resolve("Documents").resolve(DesktopStorage.MIRROR_DIR), DesktopStorage.backupMirror())
+        } finally {
+            System.setProperty("os.name", osName)
+            System.clearProperty("jpackage.app-path")
+        }
+    }
+
     @Test fun deviceIdIsStable() = assertEquals(storage.deviceId, storage.deviceId)
 
     @Test fun dataAndDeviceIdSurviveReopeningTheFile() {

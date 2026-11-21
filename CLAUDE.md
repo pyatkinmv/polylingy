@@ -63,8 +63,8 @@ Key files:
 ```
 
 The data dir depends on how the app runs (`DesktopStorage.defaultDataDir`): the **installed** app (`jpackage.app-path` is set) uses `%LOCALAPPDATA%\Polylingy data`
-(not Documents: OneDrive syncs it file by file) and copies each daily backup also to `<Documents>/Polylingy backups`; a run **from the sources** (Gradle, IDE,
-tests) uses `<Documents>/polylingy`, so development never touches the installed app's data. `-Dpolylingy.dataDir=<folder>` overrides both. The installed app
+(on macOS `~/Library/Application Support/Polylingy data`; not Documents: OneDrive or iCloud sync it file by file) and copies each daily backup also to `<Documents>/Polylingy backups`; a run **from the sources** (Gradle, IDE,
+tests) uses `<Documents>/polylingy`, so development never touches the installed app's data. `-Dpolylingy.dataDir=<folder>` overrides both. On macOS `FileSystemView` gives the home folder for Documents, so `DesktopStorage.documents()` uses `~/Documents` there. The installed app
 starts with its bundled course `English Usage Exercises` (`client/src/desktopMain/resources/bundled/`), not the sample; `-Dpolylingy.bundled=true` does the
 same in a run from the sources. A newer version of the bundled course in a new installer updates the stored one (`CourseLibrary.seedBundled`), progress kept.
 

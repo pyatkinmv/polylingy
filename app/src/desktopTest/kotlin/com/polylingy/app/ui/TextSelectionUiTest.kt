@@ -88,7 +88,9 @@ class TextSelectionUiTest {
         clipboard { it.setContents(StringSelection(""), null) }
         onRoot().performMouseInput { moveTo(Offset(18f, 20f)); press(); moveTo(Offset(toX, toY / 2)); moveTo(Offset(toX, toY)); release() }
         waitForIdle()
-        onRoot().performKeyInput { keyDown(Key.CtrlLeft); keyDown(Key.C); keyUp(Key.C); keyUp(Key.CtrlLeft) }
+        // Copy is Cmd+C on macOS and Ctrl+C elsewhere.
+        val modifier = if (System.getProperty("os.name").orEmpty().startsWith("Mac")) Key.MetaLeft else Key.CtrlLeft
+        onRoot().performKeyInput { keyDown(modifier); keyDown(Key.C); keyUp(Key.C); keyUp(modifier) }
         waitForIdle()
         return clipboardText()
     }
